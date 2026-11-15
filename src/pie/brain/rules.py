@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
+from typing import Any
 
 from pie.brain.types import ToolCall
 from pie.inputs.voice.commands import parse_voice_command
@@ -48,6 +49,7 @@ def wants_local(text: str) -> tuple[bool, str]:
 def rule_to_tool_call(match: RuleMatch) -> ToolCall:
     """Map a deterministic voice rule to one registered built-in tool."""
     action, value = match.action, match.value
+    args: dict[str, Any]
     if action == "stop":
         name, args = "voice.stop_listening", {}
     elif action == "delete":
