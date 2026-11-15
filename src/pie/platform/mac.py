@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 import os
 import shlex
 import subprocess
@@ -7,7 +8,6 @@ from collections.abc import Callable, Sequence
 from datetime import datetime
 from pathlib import Path
 from typing import Any
-import importlib
 
 Runner = Callable[..., subprocess.CompletedProcess[str]]
 
@@ -64,7 +64,7 @@ class MacController:
         self,
         runner: Runner = subprocess.run,
         *,
-        poster=None,
+        poster: Any | None = None,
         screen_size: Callable[[], tuple[int, int]] | None = None,
     ) -> None:
         self._runner, self._poster, self._screen_size = runner, poster, screen_size
@@ -164,7 +164,7 @@ class MacController:
         return True
 
     def click(self) -> bool:
-        import pyautogui
+        pyautogui = importlib.import_module("pyautogui")
 
         pyautogui.click()
         return True
@@ -237,7 +237,7 @@ class MacController:
         Quartz.CGEventPost(Quartz.kCGHIDEventTap, event)
 
     def mouse_click(self) -> bool:
-        import Quartz
+        Quartz = importlib.import_module("Quartz")
 
         point = Quartz.CGEventGetLocation(Quartz.CGEventCreate(None))
         for event_type in (Quartz.kCGEventLeftMouseDown, Quartz.kCGEventLeftMouseUp):
