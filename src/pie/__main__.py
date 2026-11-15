@@ -206,8 +206,8 @@ def main(argv: list[str] | None = None) -> int:
         daemon = Daemon(config)
         if not args.voice_background:
             daemon.register_module(GestureModule())
-        from pie.tools.module import ToolsModule
         from pie.inputs.gesture.bindings import GestureBindingsModule
+        from pie.tools.module import ToolsModule
 
         daemon.register_module(ToolsModule())
         daemon.register_module(GestureBindingsModule())
