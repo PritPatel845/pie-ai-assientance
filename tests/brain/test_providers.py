@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime, timedelta, timezone
+from email.utils import format_datetime
 
 import pytest
 
@@ -22,9 +24,9 @@ class AuthenticationError(Exception):
 
 
 class RateLimitError(Exception):
-    def __init__(self) -> None:
+    def __init__(self, retry_after: str = "2.5") -> None:
         super().__init__("too many requests")
-        self.response = type("Response", (), {"headers": {"retry-after": "2.5"}})()
+        self.response = type("Response", (), {"headers": {"retry-after": retry_after}})()
 
 
 class APIConnectionError(Exception):
@@ -80,3 +82,12 @@ def test_missing_cloud_credential_stays_in_chain_and_raises_auth_error() -> None
             )
 
     asyncio.run(scenario())
+
+def test_vendor_http_date_retry_after_is_parsed() -> None:
+    retry_at = datetime.now(timezone.utc) + timedelta(seconds=30)
+    error = RateLimitError(format_datetime(retry_at, usegmt=True))
+
+    with pytest.raises(RateLimited) as caught:
+        _raise_vendor_error("anthropic", error)
+
+    assert 0 < caught.value.retry_after <= 30
