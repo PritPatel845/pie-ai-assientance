@@ -26,6 +26,9 @@ def hand(*, extended=(True, True, True, True), thumb_x=0.35, thumb_y=0.3, z=0.0,
     for (tip, pip), is_up in zip(((8, 6), (12, 10), (16, 14), (20, 18)), extended, strict=False):
         points[pip] = P(0.5 + shift, 0.6, z)
         points[tip] = P(0.5 + shift, 0.3 if is_up else 0.68, z)
+    # Model the thumb's CMC/MCP landmarks separately; coincident defaults
+    # falsely classify every synthetic thumb pose as extended.
+    points[5] = P(0.5 + shift, 0.8, z)
     points[4] = P(thumb_x + shift, thumb_y, z)
     points[8] = P(0.5 + shift, 0.3 if extended[0] else 0.68, z)
     return points
@@ -201,10 +204,12 @@ def test_volume_filter_emits_on_two_point_change_or_elapsed_interval() -> None:
     assert SetVolume(71) in elapsed.actions
 
 
-def arm_game(processor: FrameProcessor) -> None:
+def arm_game(processor: FrameProcessor):
     palm = hand()
     processor.process([palm], 0.0)
-    assert processor.process([palm], 2.1).armed
+    result = processor.process([palm], 2.1)
+    assert result.armed
+    return result
 
 
 def test_unarmed_desktop_emits_no_actions_for_every_pose() -> None:
@@ -288,9 +293,9 @@ def test_fps_profile_covers_directional_keys_click_and_jump() -> None:
 
     processor = FrameProcessor()
     processor.set_mode("game", "counter-strike")
-    arm_game(processor)
-
-    assert processor.process([hand()], 2.2).actions == [KeyAction("forward", True)]
+    armed_frame = arm_game(processor)
+    assert KeyAction("forward", True) in armed_frame.actions
+    assert processor.process([hand()], 2.2).actions == []
 
     three = hand(extended=(True, True, True, False))
     assert KeyAction("left", True) in processor.process([three], 2.3).actions
