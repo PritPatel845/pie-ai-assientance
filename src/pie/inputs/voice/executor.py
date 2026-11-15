@@ -25,6 +25,8 @@ class LegacyRuleExecutor:
         if action == "hide":
             return bool(self.controller.hide_frontmost())
         if action == "key":
+            if not isinstance(value, tuple):
+                return False
             return bool(self.controller.key_combo(*value))
         if action == "open":
             target = str(value)
@@ -71,11 +73,11 @@ class LegacyRuleExecutor:
 class VoiceController:
     def __init__(
         self,
-        controller,
+        controller: Any,
         *,
         no_actions: bool = False,
         listen_seconds: int = 20,
-        learning_engine=None,
+        learning_engine: Any | None = None,
     ) -> None:
         if listen_seconds < 5:
             raise ValueError("listen_seconds must be at least 5")
