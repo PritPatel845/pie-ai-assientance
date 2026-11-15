@@ -128,7 +128,7 @@ def build_parser() -> argparse.ArgumentParser:
         default="run",
     )
     parser.add_argument("config_action", nargs="?")
-    parser.add_argument("brain_args", nargs="*")
+    parser.add_argument("brain_args", nargs=argparse.REMAINDER)
     return parser
 
 
