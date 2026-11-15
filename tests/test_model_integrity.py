@@ -93,3 +93,10 @@ def test_download_uses_checksum_pinned_mirror_after_primary_failure(
     result = engine.ensure_model(download=True)
     assert result.read_bytes() == payload
     assert calls == ["https://primary.invalid/model", "https://mirror.invalid/model"]
+
+
+def test_bundled_model_asset_matches_pinned_integrity() -> None:
+    model = Path(__file__).parents[1] / "assets" / "hand_landmarker.task"
+    assert model.is_file()
+    assert model.stat().st_size == engine.MODEL_BYTES
+    assert engine.sha256_file(model) == engine.MODEL_SHA256
