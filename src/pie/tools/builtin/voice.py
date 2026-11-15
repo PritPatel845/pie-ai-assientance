@@ -13,7 +13,7 @@ def build_voice_tools(bus: EventBus) -> list[FunctionTool]:
         del args
         if ctx.dry_run:
             return ok({"would_stop_listening": True})
-        bus.publish("voice.stop_listening", {}, source="tool", correlation_id=ctx.call_id)
+        bus.publish("input.voice.listening", {"active": False, "until": 0.0}, source="tool", correlation_id=ctx.call_id)
         return ok({"listening": False})
 
     return [
