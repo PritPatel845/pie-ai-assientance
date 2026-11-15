@@ -103,9 +103,7 @@ def test_all_cloud_providers_exhausted_switches_to_local(tmp_path: Path) -> None
         anthropic = FakeProvider("anthropic", "cloud", error=QuotaExhausted("anthropic"))
         openai = FakeProvider("openai", "cloud", error=QuotaExhausted("openai"))
         local = FakeProvider("local", "local", text="offline answer")
-        router = _router(
-            {"anthropic": anthropic, "openai": openai, "local": local}, tmp_path
-        )
+        router = _router({"anthropic": anthropic, "openai": openai, "local": local}, tmp_path)
 
         result = await router.handle("explain gravity", source="test")
 
