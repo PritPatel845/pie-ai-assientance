@@ -22,8 +22,8 @@ def doctor() -> int:
         try:
             loaded = importlib.import_module(module)
             print(f"{module}: OK ({getattr(loaded, '__version__', 'installed')})")
-        except ImportError:
-            print(f"{module}: FAIL (not installed)")
+        except Exception as exc:
+            print(f"{module}: FAIL ({type(exc).__name__}: {exc})")
     model = resolve_model_path()
     print(f"Hand model: {model if model else 'NOT FOUND'}")
     for path in (pie_home(), state_dir(), logs_dir(), models_dir(), learning_dir()):
