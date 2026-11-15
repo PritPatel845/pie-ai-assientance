@@ -498,7 +498,7 @@ python -m pie run --voice-background --print-events
 ## Phase 2B implementation progress — 2026-11-15
 
 ### Branch and scope
-- Implementation is isolated on `phase-2b-implementation`; PR #5 targets `main`.
+- Implementation branch `phase-2b-implementation` was merged to `main` by PR #5. Merge commit: `33af64c8a144a1a7b69de2f020f65b9fbd23f58f` (2026-11-15). CI passed on the final implementation head: 347 tests, Ruff lint/format, mypy (42 files), model-downloader verification, and `pie doctor`.
 - Phase 2B builds the fault-tolerant routing layer only. No real tools are exposed; the model receives an empty tool list until Phase 3A. The generic tool-loop seam is nevertheless implemented and exercised with fake tools: sequential round trips, untrusted tool-result messages, 4,000-character truncation, repeated unknown/bad-argument aborts, max-step limits, total timeout, and local READ/REVERSIBLE filtering.
 - The voice pipeline now has a single-execution switch: with `brain.enabled=true`, it publishes addressed transcripts and does not separately execute legacy commands. `BrainModule` is the sole consumer of addressed voice transcripts and typed `input.text.command` events. Deterministic matches call the shared `LegacyRuleExecutor.run(action, value)` seam exactly once. With brain disabled, the Phase 2A legacy path remains active.
 
@@ -521,8 +521,8 @@ python -m pie run --voice-background --print-events
 - No cloud model identifier is hard-coded. The owner must set `anthropic_model` / `openai_model` in the user config and add keys using `pie brain set-key` or environment variables.
 - CI uses fake providers only. Real API credentials, a running local model, offline fallback, voice command handoff, and local model memory/latency still require manual verification on the target Mac.
 
-### Manual verification
-See `scripts/manual_checks/phase2b.md`. Do not merge PR #5 or create `pie-phase-2b-done` until the complete fallback matrix, one-execution voice handoff, configured cloud/local path, and target-Mac checks are verified.
+### Manual verification — still required before Phase 2B is declared done
+See `scripts/manual_checks/phase2b.md`. PR #5 is merged, but do NOT create `pie-phase-2b-done` or start Phase 3A until the complete fallback matrix, one-execution voice handoff, at least one configured cloud provider, a running local model, and target-Mac checks are verified. CI uses fake providers only and cannot prove live API credentials, local model availability, or microphone-to-router behaviour.
 
 ### Exact automated commands
 ```bash
