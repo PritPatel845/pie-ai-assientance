@@ -123,10 +123,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "command",
         nargs="?",
-        choices=("run", "doctor", "config"),
+        choices=("run", "doctor", "config", "brain"),
         default="run",
     )
-    parser.add_argument("config_action", nargs="?", choices=("show",))
+    parser.add_argument("config_action", nargs="?")
+    parser.add_argument("brain_args", nargs="*")
     return parser
 
 
@@ -158,6 +159,13 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.command == "doctor":
         return doctor()
+    if args.command == "brain":
+        from pie.brain.cli import run_brain_command
+
+        try:
+            return run_brain_command(args.config_action, args.brain_args, args.config)
+        except (OSError, RuntimeError, ValueError) as exc:
+            parser.error(str(exc))
     try:
         config = _effective_config(args)
         if args.command == "config":
