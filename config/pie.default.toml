@@ -35,3 +35,21 @@ debug_save_audio = false
 [ui]
 host = "127.0.0.1"
 port = 8765
+
+[brain]
+enabled = true
+cloud_order = ["anthropic", "openai"]
+cli_providers_enabled = false
+anthropic_model = ""
+openai_model = ""
+local_backend = "auto"
+local_model = ""
+max_steps = 8
+total_timeout_s = 90
+provider_timeout_s = 45
+context_turns = 6
+context_ttl_s = 600
+default_cooldown_s = 3600
+rate_limit_max_wait_s = 8
+local_max_ram_gb = 6.0
+local_keep_alive = "2m"
