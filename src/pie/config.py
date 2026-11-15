@@ -281,8 +281,10 @@ def load_config(
         raise ConfigError("voice.tts_rate must be between 1 and 500")
     if config.brain.local_backend not in {"auto", "ollama", "mlx"}:
         raise ConfigError("brain.local_backend must be auto, ollama, or mlx")
-    if not config.brain.cloud_order or any(
-        provider not in {"anthropic", "openai"} for provider in config.brain.cloud_order
+    if (
+        not config.brain.cloud_order
+        or len(set(config.brain.cloud_order)) != len(config.brain.cloud_order)
+        or any(provider not in {"anthropic", "openai"} for provider in config.brain.cloud_order)
     ):
         raise ConfigError("brain.cloud_order must contain anthropic and/or openai")
     if min(
