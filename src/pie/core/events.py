@@ -148,5 +148,5 @@ class EventBus:
         if tasks:
             try:
                 await asyncio.wait_for(asyncio.gather(*tasks, return_exceptions=True), timeout)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 _LOG.warning("Timed out while closing event subscribers")
