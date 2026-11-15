@@ -1,3 +1,5 @@
+"""CLI flags, config precedence, and doctor/version surfaces follow Phase 0S §3.9 (PDF p. 23)."""
+
 from __future__ import annotations
 
 from pie import __main__ as cli
