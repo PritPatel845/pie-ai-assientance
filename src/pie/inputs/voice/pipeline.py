@@ -89,7 +89,6 @@ class VoiceController(_VoiceController):
         self._last_stt_activity = self._clock()
         self._transcriber: Transcriber | None = None
         self._stt_disabled = False
-        self._last_zero_notice = 0.0
         self._all_zero_frames = 0
         self._mic_permission_missing = threading.Event()
 
@@ -239,20 +238,6 @@ class VoiceController(_VoiceController):
             else:
                 self._all_zero_frames = 0
             if self._all_zero_frames >= 3 * _SAMPLE_RATE:
-                now = self._clock()
-                if now - self._last_zero_notice >= 10:
-                    self._last_zero_notice = now
-                    self._publish(
-                        "system.error",
-                        {
-                            "where": "voice.microphone",
-                            "error": "Microphone returned only silent samples",
-                            "detail": (
-                                "System Settings > Privacy & Security > Microphone: "
-                                "enable <host app>"
-                            ),
-                        },
-                    )
                 self._all_zero_frames = 0
                 self._mic_permission_missing.set()
                 continue
