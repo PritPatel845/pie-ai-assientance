@@ -129,6 +129,7 @@ def test_local_completion_checks_memory_and_sends_keep_alive(
 
     asyncio.run(scenario())
 
+
 def test_auto_backend_tries_mlx_when_ollama_has_no_eligible_model(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
