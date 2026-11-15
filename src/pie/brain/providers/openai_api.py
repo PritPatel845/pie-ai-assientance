@@ -89,11 +89,14 @@ class OpenAIProvider:
         message = choice.message
         calls: list[ToolCall] = []
         for call in message.tool_calls or []:
+            function = getattr(call, "function", None)
+            if function is None:
+                continue
             calls.append(
                 ToolCall(
-                    call.id,
-                    call.function.name,
-                    json.loads(call.function.arguments or "{}"),
+                    str(getattr(call, "id", "")),
+                    str(getattr(function, "name", "")),
+                    json.loads(getattr(function, "arguments", "{}") or "{}"),
                 )
             )
         usage = getattr(response, "usage", None)
