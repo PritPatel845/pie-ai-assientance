@@ -45,6 +45,7 @@ class VoiceModule:
             no_actions=self.no_actions,
             bus=daemon.bus,
             config=daemon.config.voice,
+            brain_enabled=daemon.config.brain.enabled,
         )
         self.controller.start()
 
@@ -183,10 +184,21 @@ def main(argv: list[str] | None = None) -> int:
         daemon = Daemon(config)
         if not args.voice_background:
             daemon.register_module(GestureModule())
+        voice_module: VoiceModule | None = None
         if config.voice.enabled:
-            daemon.register_module(VoiceModule(no_actions=args.no_actions))
+            voice_module = VoiceModule(no_actions=args.no_actions)
+            daemon.register_module(voice_module)
         if config.brain.enabled:
-            daemon.register_module(BrainModule())
+            daemon.register_module(
+                BrainModule(
+                    executor_getter=lambda: (
+                        voice_module.controller.executor
+                        if voice_module is not None and voice_module.controller is not None
+                        else None
+                    ),
+                    no_actions=args.no_actions,
+                )
+            )
 
         def main_thread() -> None:
             if args.print_events and daemon.bus is not None:
