@@ -1,4 +1,4 @@
-"""Voice phrase matrix follows Phase 0S section 3.6."""
+"""Voice parsing and wake-word matching follow Phase 0S §3.6 (PDF pp. 21–22)."""
 
 from __future__ import annotations
 
