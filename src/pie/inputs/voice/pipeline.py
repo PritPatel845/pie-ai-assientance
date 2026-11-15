@@ -19,8 +19,12 @@ class VoiceController(_VoiceController):
         bus: EventBus | None = None,
         language: str = "en",
     ) -> None:
-        super().__init__(controller, no_actions=no_actions, listen_seconds=listen_seconds,
-                         learning_engine=learning_engine)
+        super().__init__(
+            controller,
+            no_actions=no_actions,
+            listen_seconds=listen_seconds,
+            learning_engine=learning_engine,
+        )
         self.bus = bus
         self.language = language
 
@@ -30,14 +34,19 @@ class VoiceController(_VoiceController):
 
     def publish_listening(self, active: bool, until: float) -> None:
         if self.bus is not None:
-            self.bus.publish("input.voice.listening", {"active": active, "until": until},
-                             source="voice")
+            self.bus.publish(
+                "input.voice.listening",
+                {"active": active, "until": until},
+                source="voice",
+            )
 
     def publish_transcript(self, text: str, *, final: bool = True) -> None:
         if self.bus is not None:
-            self.bus.publish("input.voice.transcript",
-                             {"text": text, "final": final, "lang": self.language},
-                             source="voice")
+            self.bus.publish(
+                "input.voice.transcript",
+                {"text": text, "final": final, "lang": self.language},
+                source="voice",
+            )
 
     def execute(self, command: str) -> bool:
         # Preserve the existing bounded parser and command executor unchanged.
