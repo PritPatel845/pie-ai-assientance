@@ -35,9 +35,18 @@ def build_mac_tools(controller: MacController) -> list[FunctionTool]:
 
     async def open_url(args: Mapping[str, Any], ctx: ToolContext) -> ToolResult:
         url = str(args["url"]).strip()
-        parsed = urlsplit(url)
-        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
-            return fail("only valid http and https URLs are allowed")
+        try:
+            parsed = urlsplit(url)
+        except ValueError:
+            return fail("invalid URL")
+        if (
+            parsed.scheme not in {"http", "https"}
+            or not parsed.hostname
+            or parsed.username is not None
+            or parsed.password is not None
+            or any(char.isspace() or ord(char) < 32 for char in url)
+        ):
+            return fail("only valid credential-free http and https URLs are allowed")
         if ctx.dry_run:
             return ok({"would_open": url})
         opened = await asyncio.to_thread(controller.open_target, url)
