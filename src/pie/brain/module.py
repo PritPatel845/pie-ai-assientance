@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
 from pie.brain.providers import build_providers
 from pie.brain.quota import QuotaTracker
@@ -13,6 +13,7 @@ from pie.brain.types import ToolCall, ToolResult
 from pie.core.daemon import Daemon
 from pie.events import Event
 from pie.inputs.voice.executor import LegacyRuleExecutor
+from pie.tools.registry import ToolRegistry
 from pie.platform.mac import MacController
 
 _LOG = logging.getLogger(__name__)
@@ -50,7 +51,7 @@ class BrainModule:
         ) or LegacyRuleExecutor(MacController(), no_actions=self._no_actions)
 
         async def execute_rule(match: RuleMatch) -> bool:
-            registry = getattr(daemon, "tool_registry", None)
+            registry = cast(ToolRegistry | None, getattr(daemon, "tool_registry", None))
             if registry is None:
                 if self._executor is None:
                     return False
