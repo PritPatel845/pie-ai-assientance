@@ -119,7 +119,7 @@ class VoiceController(_VoiceController):
     def _make_stream_factory(self) -> Callable[..., Any]:
         if self._stream_factory is not None:
             return self._stream_factory
-        import sounddevice  # type: ignore[import-not-found]
+        import sounddevice
 
         return cast(Callable[..., Any], sounddevice.InputStream)
 
