@@ -88,6 +88,7 @@ class VoiceController(_VoiceController):
         self._active_until = 0.0
         self._last_stt_activity = self._clock()
         self._transcriber: Transcriber | None = None
+        self._stt_disabled = False
         self._last_zero_notice = 0.0
         self._all_zero_frames = 0
         self._mic_permission_missing = threading.Event()
@@ -187,12 +188,15 @@ class VoiceController(_VoiceController):
             handle.writeframes((pcm * 32767).astype("<i2").tobytes())
 
     def _handle_segment(self, segment: Segment) -> None:
+        if self._stt_disabled:
+            return
         try:
             self._save_debug_audio(segment)
             transcriber = self._ensure_transcriber()
             raw = transcriber.transcribe(segment.audio, self.language).strip()
         except Exception as exc:
-            _LOG.warning("Local speech transcription unavailable: %s", type(exc).__name__)
+            self._stt_disabled = True
+            _LOG.warning("Local speech transcription unavailable; STT disabled: %s", type(exc).__name__)
             self._publish(
                 "system.error",
                 {
