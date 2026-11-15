@@ -16,8 +16,9 @@ from pie.platform.mac import MacController
 class ActionSink:
     """Translate pure FrameProcessor actions into an injectable platform adapter."""
 
-    def __init__(self, controller: MacController, *, no_actions: bool = False) -> None:
-        self.controller, self.no_actions = controller, no_actions
+    def __init__(self, controller: MacController, *, no_actions: bool = False,
+                 profile: str = "asphalt") -> None:
+        self.controller, self.no_actions, self.profile = controller, no_actions, profile
 
     def execute(self, action) -> None:
         if self.no_actions:
@@ -44,7 +45,7 @@ class ActionSink:
             self.controller.key_event(MAC_KEY_CODES[key], action.pressed)
         elif isinstance(action, Tap):
             from pie.inputs.gesture.game import GAME_PROFILES, MAC_KEY_CODES
-            key = GAME_PROFILES.get("asphalt", {}).get(action.name, action.name)
+            key = GAME_PROFILES[self.profile].get(action.name, action.name)
             self.controller.key_event(MAC_KEY_CODES[key], True)
             self.controller.key_event(MAC_KEY_CODES[key], False)
         elif isinstance(action, MouseClick):
@@ -96,7 +97,7 @@ def run(*, camera: int = 0, no_actions: bool = False, game_profile: str = "aspha
         min_hand_presence_confidence=0.6, min_tracking_confidence=0.5,
     )
     controller = MacController()
-    sink = ActionSink(controller, no_actions=no_actions)
+    sink = ActionSink(controller, no_actions=no_actions, profile=game_profile)
     processor = FrameProcessor(arm_hold_seconds=arm_hold_seconds,
                                steer_sensitivity=steer_sensitivity)
     learning = LearningEngine(learning_dir)
