@@ -58,8 +58,19 @@ class ToolRegistry:
         return [self._tools[name].spec for name in sorted(self._tools)]
 
     def specs_for_model(self) -> list[ToolSpec]:
+        def public_schema(value: Any) -> Any:
+            if isinstance(value, dict):
+                return {
+                    key: public_schema(item)
+                    for key, item in value.items()
+                    if not (isinstance(key, str) and key.startswith("x-"))
+                }
+            if isinstance(value, list):
+                return [public_schema(item) for item in value]
+            return value
+
         return [
-            spec
+            replace(spec, parameters=public_schema(spec.parameters))
             for spec in self.list()
             if spec.tier is not Tier.BLOCKED and sys.platform in spec.platforms
         ]
