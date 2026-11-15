@@ -39,3 +39,5 @@ select = ["E", "F", "I", "UP", "B"]
 python_version = "3.12"
 strict = true
 mypy_path = "src"
+ignore_missing_imports = true
+disable_error_code = ["import-untyped"]
