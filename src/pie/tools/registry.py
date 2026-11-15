@@ -8,6 +8,7 @@ import time
 import uuid
 from collections import deque
 from collections.abc import Mapping
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
