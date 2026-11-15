@@ -237,3 +237,32 @@ def test_voice_stop_listening_uses_existing_event_topic(tmp_path: Path) -> None:
         assert received[0].payload["active"] is False
 
     asyncio.run(scenario())
+
+
+
+def test_mac_open_url_rejects_credentials_and_whitespace(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        controller = FakeController()
+        tools = {tool.spec.name: tool for tool in build_mac_tools(controller)}
+        for url in (
+            "https://user:password@example.com",
+            "https://example.com/a b",
+        ):
+            result = await tools["mac.open_url"].run({"url": url}, _context(tmp_path))
+            assert not result.ok
+        assert controller.calls == []
+
+    asyncio.run(scenario())
+
+
+def test_mac_open_app_rejects_control_characters(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        controller = FakeController()
+        tools = {tool.spec.name: tool for tool in build_mac_tools(controller)}
+        result = await tools["mac.open_app"].run(
+            {"name": "Safari\nTerminal"}, _context(tmp_path)
+        )
+        assert not result.ok
+        assert controller.calls == []
+
+    asyncio.run(scenario())
