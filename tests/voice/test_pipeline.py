@@ -108,6 +108,7 @@ def test_fake_microphone_pipeline_publishes_and_executes_in_order(
 
     asyncio.run(scenario())
 
+
 def test_brain_enabled_pipeline_publishes_without_legacy_execution(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
