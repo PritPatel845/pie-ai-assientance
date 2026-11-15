@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from pie.brain.types import AuthError, ProviderUnavailable
+from pie.brain.types import AuthError
 
 _LOG = logging.getLogger(__name__)
 
