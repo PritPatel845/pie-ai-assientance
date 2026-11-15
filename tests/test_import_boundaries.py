@@ -35,6 +35,5 @@ def test_source_tree_never_enables_subprocess_shell_true() -> None:
                 for keyword in node.keywords:
                     if keyword.arg == "shell":
                         assert not (
-                            isinstance(keyword.value, ast.Constant)
-                            and keyword.value.value is True
+                            isinstance(keyword.value, ast.Constant) and keyword.value.value is True
                         ), f"shell=True in {path}:{node.lineno}"
