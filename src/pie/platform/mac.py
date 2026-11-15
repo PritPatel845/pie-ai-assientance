@@ -170,25 +170,25 @@ class MacController:
         return True
 
     def double_click(self) -> bool:
-        import pyautogui
+        pyautogui = importlib.import_module("pyautogui")
 
         pyautogui.doubleClick(interval=0.08)
         return True
 
     def scroll(self, amount: int) -> bool:
-        import pyautogui
+        pyautogui = importlib.import_module("pyautogui")
 
         pyautogui.scroll(int(amount))
         return True
 
     def key_combo(self, *keys: str) -> bool:
-        import pyautogui
+        pyautogui = importlib.import_module("pyautogui")
 
         pyautogui.hotkey(*keys)
         return True
 
     def type_text(self, text: str) -> bool:
-        import pyautogui
+        pyautogui = importlib.import_module("pyautogui")
 
         pyautogui.write(text, interval=0.01)
         return True
