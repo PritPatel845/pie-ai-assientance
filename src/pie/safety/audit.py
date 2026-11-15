@@ -7,6 +7,7 @@ import threading
 import time
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 _LOG = logging.getLogger(__name__)
 _MAX_BYTES = 5 * 1024 * 1024
@@ -21,6 +22,14 @@ def redact(value: Any, *, tool: str = "", key: str = "") -> Any:
         return {"length": len(str(value))}
     if tool == "fs.write_text" and key == "content":
         return {"length": len(str(value))}
+    if tool == "browser.search" and key == "query":
+        return {"length": len(str(value))}
+    if tool == "mac.open_url" and key == "url":
+        try:
+            host = urlsplit(str(value)).hostname
+        except ValueError:
+            host = None
+        return {"host": host, "length": len(str(value))}
     if isinstance(value, dict):
         return {str(name): redact(item, tool=tool, key=str(name)) for name, item in value.items()}
     if isinstance(value, list | tuple):
