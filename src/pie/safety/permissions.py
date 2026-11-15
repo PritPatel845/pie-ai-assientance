@@ -8,6 +8,7 @@ from enum import IntEnum
 from typing import Any
 
 from pie.events import Event, EventBus
+from pie.safety.audit import redact
 
 
 class Tier(IntEnum):
@@ -167,7 +168,7 @@ class PermissionGate:
         async with self._lock:
             self._pending.append(pending)
 
-        safe_args = _redact(args)
+        safe_args = redact(args, tool=tool)
         self.bus.publish(
             "permission.request",
             {
@@ -215,26 +216,6 @@ class PermissionGate:
             )
             raise
 
-
-def _redact(value: Any) -> Any:
-    if isinstance(value, dict):
-        result: dict[str, Any] = {}
-        for key, item in value.items():
-            lowered = str(key).casefold()
-            result[str(key)] = (
-                "***"
-                if any(
-                    word in lowered
-                    for word in ("password", "token", "secret", "key", "authorization")
-                )
-                else _redact(item)
-            )
-        return result
-    if isinstance(value, list):
-        return [_redact(item) for item in value]
-    if isinstance(value, tuple):
-        return [_redact(item) for item in value]
-    return value
 
 
 __all__ = ["PermissionDecision", "PermissionGate", "Tier"]
