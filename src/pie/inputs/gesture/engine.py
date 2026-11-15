@@ -8,6 +8,8 @@ MODEL_URL = (
     "https://storage.googleapis.com/mediapipe-models/hand_landmarker/"
     "hand_landmarker/float16/1/hand_landmarker.task"
 )
+MODEL_MIRROR_URL = "https://huggingface.co/Leo-TX/mediapipe-hand/resolve/main/hand_landmarker.task"
+MODEL_URLS = (MODEL_URL, MODEL_MIRROR_URL)
 MODEL_BYTES = 7_819_105
 MODEL_SHA256 = "fbc2a30080c3c557093b5ddfc334698132eb341044ccee322ccf8bcf3607cde1"
 
@@ -50,22 +52,26 @@ def ensure_model(
     target = Path.home() / ".pie" / "models" / "hand_landmarker.task"
     target.parent.mkdir(parents=True, exist_ok=True)
     temporary = target.with_suffix(".task.tmp")
-    request = urllib.request.Request(MODEL_URL, headers={"User-Agent": "PieAssistant/0.1"})
-    try:
-        with (
-            urllib.request.urlopen(request, timeout=timeout) as response,
-            temporary.open("wb") as out,
-        ):
-            while chunk := response.read(1024 * 1024):
-                out.write(chunk)
-        if temporary.stat().st_size != MODEL_BYTES:
-            raise ValueError("Downloaded hand model has an unexpected byte size")
-        if sha256_file(temporary) != MODEL_SHA256:
-            raise ValueError("Downloaded hand model SHA-256 does not match the pinned model")
-        temporary.replace(target)
-    finally:
-        temporary.unlink(missing_ok=True)
-    return target
+    errors: list[str] = []
+    for url in MODEL_URLS:
+        request = urllib.request.Request(url, headers={"User-Agent": "PieAssistant/0.1"})
+        try:
+            with (
+                urllib.request.urlopen(request, timeout=timeout) as response,
+                temporary.open("wb") as out,
+            ):
+                while chunk := response.read(1024 * 1024):
+                    out.write(chunk)
+            if temporary.stat().st_size != MODEL_BYTES:
+                raise ValueError("unexpected byte size")
+            if sha256_file(temporary) != MODEL_SHA256:
+                raise ValueError("SHA-256 mismatch")
+            temporary.replace(target)
+            return target
+        except Exception as exc:
+            errors.append(f"{url}: {type(exc).__name__}: {exc}")
+            temporary.unlink(missing_ok=True)
+    raise RuntimeError("Unable to download a verified Hand Landmarker model: " + " | ".join(errors))
 
 
 def sha256_file(path: Path) -> str:
