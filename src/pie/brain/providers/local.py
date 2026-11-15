@@ -61,9 +61,7 @@ class LocalProvider:
             response = await self.client.get(f"{endpoint}/models", timeout=2.0)
             response.raise_for_status()
             payload = response.json()
-            self._models = [
-                (str(item.get("id", "")), 0) for item in payload.get("data", [])
-            ]
+            self._models = [(str(item.get("id", "")), 0) for item in payload.get("data", [])]
             self.base_url = endpoint
             return bool(self._models)
         except (httpx.HTTPError, ValueError, TypeError):
@@ -81,9 +79,7 @@ class LocalProvider:
             selected = next((name for name, _ in self._models if name == self.model), None)
             return selected or ""
         eligible = [
-            (name, size)
-            for name, size in self._models
-            if size <= self.max_ram_bytes and name
+            (name, size) for name, size in self._models if size <= self.max_ram_bytes and name
         ]
         if not eligible:
             return ""
