@@ -7,8 +7,7 @@ from typing import Any
 from pie.brain.providers import build_providers
 from pie.brain.quota import QuotaTracker
 from pie.brain.router import BrainRouter
-from pie.brain.rules import match_rule
-from pie.brain.rules import RuleMatch
+from pie.brain.rules import RuleMatch, match_rule
 from pie.brain.types import ToolCall, ToolResult
 from pie.core.daemon import Daemon
 from pie.events import Event
