@@ -101,7 +101,7 @@ def test_configured_model_over_budget_is_not_selected() -> None:
     asyncio.run(scenario())
 
 
-def test_local_completion_checks_memory_and_sends_keep_alive(
+def test_ollama_completion_defers_memory_check_and_sends_keep_alive(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     async def scenario() -> None:
@@ -112,7 +112,9 @@ def test_local_completion_checks_memory_and_sends_keep_alive(
         monkeypatch.setattr(
             local_module.psutil,
             "virtual_memory",
-            lambda: SimpleNamespace(available=4 * 1024**3),
+            # Ollama manages its own memory; PIE must not reject the request
+            # based on a conservative psutil estimate on macOS.
+            lambda: SimpleNamespace(available=512 * 1024**2),
         )
 
         reply = await provider.complete(
