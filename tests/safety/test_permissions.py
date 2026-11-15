@@ -3,10 +3,12 @@ from __future__ import annotations
 import asyncio
 
 from pie.events import EventBus
-from pie.safety.permissions import PermissionGate, Tier
+from pie.safety.permissions import PermissionDecision, PermissionGate, Tier
 
 
-def _request(gate: PermissionGate, call_id: str = "call") -> asyncio.Task:
+def _request(
+    gate: PermissionGate, call_id: str = "call"
+) -> asyncio.Task[PermissionDecision]:
     return asyncio.create_task(
         gate.request(
             call_id=call_id,
