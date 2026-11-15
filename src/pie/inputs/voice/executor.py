@@ -53,10 +53,13 @@ class LegacyRuleExecutor:
             return bool(self.controller.mute())
         if action == "settings":
             return bool(self.controller.open_system_settings())
-        if action == "volume":
-            return bool(self.controller.set_volume(int(value)))
-        if action == "scroll":
-            return bool(self.controller.scroll(int(value)))
+        if action in {"volume", "scroll"}:
+            if not isinstance(value, (int, float, str)):
+                return False
+            amount = int(value)
+            if action == "volume":
+                return bool(self.controller.set_volume(amount))
+            return bool(self.controller.scroll(amount))
         if action == "screenshot":
             return bool(self.controller.screenshot())
         if action == "lock":
