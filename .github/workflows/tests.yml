@@ -29,4 +29,6 @@ jobs:
         run: ruff format --check .
       - run: pytest -q
       - run: mypy src/pie
+      - name: Verify model downloader
+        run: bash -n scripts/download_model.sh && test -x scripts/download_model.sh
       - run: python -m pie doctor
