@@ -132,7 +132,7 @@ The parser checks exact phrases first, then volume patterns, search patterns, th
 
 ### Still blocking Phase 0S completion
 
-- `assets/hand_landmarker.task` is not in the repository. The explicit model download has not succeeded in this environment; therefore **no SHA-256 is claimed or recorded**. The code requires an explicit download via `python -m pie --download-model`, then the model must be checked for size and SHA-256 and committed.
+- `assets/hand_landmarker.task` is not in the repository. The canonical Google-hosted float16/1 model is pinned in code at **7,819,105 bytes**, SHA-256 `fbc2a30080c3c557093b5ddfc334698132eb341044ccee322ccf8bcf3607cde1`. The expected size/hash are corroborated by [model metadata](https://github.com/kiya0908/gesture-synth-weld/blob/main/mediapipe-version.json) and [the upstream MediaPipe issue](https://github.com/google-ai-edge/mediapipe/issues/6293). `ensure_model()` now verifies both before accepting or installing a model and removes partial/invalid downloads. The actual binary download still failed in this environment, so no local file has yet been independently hashed or committed.
 - The actual target Mac has not been audited here: `uname -m`, `sw_vers`, Homebrew Python 3.12 path, and imports/versions for MediaPipe 0.10.35 Tasks API, OpenCV, PyAutoGUI, Quartz, and AppKit remain unverified.
 - `scripts/manual_checks/phase0s.md` has not been performed on the target Mac. Camera preview, HUD poses, camera release, Accessibility permission, and safe cursor/pinch behaviour remain unverified.
 - macOS-specific media-key behaviour and app automation have not been verified on the target Mac.
