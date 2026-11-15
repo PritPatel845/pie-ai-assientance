@@ -205,13 +205,19 @@ def test_voice_event_adapter_publishes_contract_payloads() -> None:
         controller = VoiceController(object(), bus=bus, language="en")
         controller.publish_wake("pie")
         controller.publish_listening(True, 1234.5)
-        controller.publish_transcript("open Safari")
+        controller.publish_transcript("open Safari", raw="open Safari", addressed=True)
         await asyncio.wait_for(ready.wait(), 1)
         assert [event.topic for event in received] == [
             "input.voice.wake",
             "input.voice.listening",
             "input.voice.transcript",
         ]
-        assert received[-1].payload == {"text": "open Safari", "final": True, "lang": "en"}
+        assert received[-1].payload == {
+            "text": "open Safari",
+            "final": True,
+            "lang": "en",
+            "addressed": True,
+            "raw": "open Safari",
+        }
 
     asyncio.run(scenario())
