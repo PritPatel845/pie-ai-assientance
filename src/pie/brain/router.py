@@ -272,7 +272,7 @@ class BrainRouter:
         provider: Provider,
         error: ProviderError,
         text: str,
-        route: str,
+        route: Literal["cloud", "local"],
         source: str,
         correlation_id: str,
         remaining_clouds: list[str],
