@@ -139,10 +139,7 @@ def load_config(
             section, key = name.removeprefix("PIE_").lower().split("_", 1)
             data[section][key] = _parse_environment_value(name, raw, data[section][key])
         elif name.startswith("PIE_"):
-            remainder = name.removeprefix("PIE_").lower()
-            section = remainder.split("_", 1)[0]
-            if section in data:
-                raise ConfigError(f"Unknown environment variable: {name}")
+            raise ConfigError(f"Unknown environment variable: {name}")
 
     if cli_overrides:
         _merge(data, cli_overrides)
