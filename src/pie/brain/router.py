@@ -91,6 +91,8 @@ class BrainRouter:
     async def _handle_locked(
         self, text: str, *, source: str, correlation_id: str
     ) -> RouterResult:
+        if not self.config.enabled:
+            return self._unavailable(correlation_id, "brain is disabled in configuration")
         match = match_rule(text)
         if match is not None:
             ok = await self.rule_executor(match)
