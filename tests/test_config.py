@@ -31,9 +31,11 @@ def test_environment_boolean_spellings_and_list_override() -> None:
     assert config.voice.enabled is True
     assert config.voice.wake_words == ("pie", "hey pie")
 
+
 def test_unknown_environment_key_for_known_section_is_rejected() -> None:
     with pytest.raises(ValueError, match="PIE_GESTURE_UNKNOWN"):
         load_config(environ={"PIE_GESTURE_UNKNOWN": "1"})
+
 
 def test_config_precedence_and_path_expansion(tmp_path) -> None:
     path = tmp_path / "config.toml"
