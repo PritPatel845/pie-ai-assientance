@@ -344,11 +344,25 @@ Forbidden in Phase 1: moving actions onto events, tools/brains/UI, new runtime d
   voice activity.
 - Camera/GUI and all existing system actions remain on the caller/main thread. Event handlers
   must not execute actions.
-- CI is still being stabilized for this implementation. Do not treat Phase 1 as accepted
-  until the latest branch-head pytest, Ruff lint/format, mypy, model verification, and doctor
-  jobs all pass.
+- Latest branch-head CI is green at merge-sync commit `d1ab13693e6b5c5f1ea2b2618406034b6bc6247c`:
+  [workflow run 43680983948](https://github.com/PritPatel845/pie-ai-assientance/actions/runs/43680983948).
+  It passed Ruff lint, Ruff format, 228 pytest tests, mypy, model downloader verification,
+  and `python -m pie doctor`. The model-asset job was skipped because no model asset changed.
+- Phase 1 is not yet accepted: owner-run macOS event-stream checks, camera stop/cleanup,
+  and idle-CPU comparison still need to be performed and recorded.
 - Exact verification commands: `pytest -q`, `ruff check .`,
   `ruff format --check .`, `mypy src/pie`, `python -m pie doctor`,
   `python -m pie config show`, and `python -m pie run --print-events`.
 - Next: resolve any CI failures, add any missing acceptance tests, run the manual macOS
   checklist, measure idle CPU, and append the final Phase 1 handoff before merging PR #3.
+
+
+### Phase 1 automated verification update — 2026-11-15
+- The implementation branch now contains current `main` as its first parent, so the PR diff
+  is scoped to the 16 Phase 1 files only.
+- Latest branch-head workflow run:
+  https://github.com/PritPatel845/pie-ai-assientance/actions/runs/43680983948
+- Result: 228 passed; Ruff lint passed; Ruff format passed; mypy passed; model downloader
+  verification passed; `python -m pie doctor` passed.
+- Owner-run manual checks are still pending. Use `scripts/manual_checks/phase1.md` on the
+  target Mac. Do not merge PR #3 until those checks are recorded and reviewed.
