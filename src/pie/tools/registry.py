@@ -16,7 +16,7 @@ from jsonschema import Draft202012Validator
 from pie.events import EventBus
 from pie.safety.audit import AuditLog, redact
 from pie.safety.paths_guard import guard_paths
-from pie.safety.permissions import PermissionGate, Tier
+from pie.safety.permissions import PermissionDecision, PermissionGate, Tier
 from pie.tools.base import Tool, ToolContext, ToolResult, ToolSpec, fail
 
 _LOG = logging.getLogger(__name__)
@@ -214,16 +214,22 @@ class ToolRegistry:
             f"Allow {name}? {spec.description} Arguments: "
             f"{json.dumps(redacted_args, ensure_ascii=False, default=str)[:1000]}"
         )
+        is_dry_run = bool(
+            self._setting("tools", "dry_run", False) if dry_run is None else dry_run
+        )
         try:
-            decision = await self.permission_gate.request(
-                call_id=call_id,
-                tool=name,
-                args=safe_args,
-                tier=tier,
-                prompt=prompt,
-                timeout_s=float(self._setting("safety", "confirm_timeout_s", 20)),
-                pre_approved_by=pre_approved_by,
-            )
+            if is_dry_run:
+                decision = PermissionDecision(True, "dry_run")
+            else:
+                decision = await self.permission_gate.request(
+                    call_id=call_id,
+                    tool=name,
+                    args=safe_args,
+                    tier=tier,
+                    prompt=prompt,
+                    timeout_s=float(self._setting("safety", "confirm_timeout_s", 20)),
+                    pre_approved_by=pre_approved_by,
+                )
         except asyncio.CancelledError:
             self._publish("tool.denied", {"call_id": call_id, "reason": "cancelled"}, call_id)
             self._publish(
@@ -270,9 +276,7 @@ class ToolRegistry:
             cancel=asyncio.Event(),
             call_id=call_id,
             workdir=workspace,
-            dry_run=bool(
-                self._setting("tools", "dry_run", False) if dry_run is None else dry_run
-            ),
+            dry_run=is_dry_run,
         )
         task: asyncio.Task[ToolResult] | None = None
         try:
