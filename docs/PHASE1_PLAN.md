@@ -1,10 +1,10 @@
 # Phase 1 implementation plan (Path B / Phase 0S)
 
-Status: kickoff branch created; implementation has not started. The Phase 0S code and automated checks are green at commit 9089a89ec397aaaa66c533a361506c3799a1f2a5. The Phase 0S handoff records the target-Mac evidence and owner-reported manual checks.
+Status: Phase 1 implementation underway on this branch. Phase 0S was released with tag `pie-phase-0-done`, verified at `fa2f0c6abee719d5c5def81cd7a91723c237816a`, and PR #2 was merged into `main` at `4f1ff0f28af4f184d621ff735037a0bfa4858fc2`.
 
 ## Gate
 
-The source specification requires the pie-phase-0-done Git tag and a green pytest suite. The current Phase 0S push and PR workflows passed; the tag still needs to be created and verified before Phase 1 implementation begins.
+<badge>Gate satisfied</badge> The required `pie-phase-0-done` tag exists and points to the Phase 0S handoff commit. The final Phase 0S test suite and CI passed. Phase 1 implementation is authorized.
 
 ## Goal
 
