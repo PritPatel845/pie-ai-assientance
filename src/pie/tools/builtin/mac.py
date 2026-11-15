@@ -14,7 +14,11 @@ from pie.tools.base import FunctionTool, ToolContext, ToolResult, ToolSpec, fail
 
 
 def _empty_schema() -> dict[str, Any]:
-    return {"type": "object", "properties": {}, "additionalProperties": False}
+    return {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": False,
+    }
 
 
 def build_mac_tools(controller: MacController) -> list[FunctionTool]:
@@ -26,7 +30,8 @@ def build_mac_tools(controller: MacController) -> list[FunctionTool]:
             return fail("use mac.open_url or mac.open_path for URLs and paths")
         if ctx.dry_run:
             return ok({"would_open": name})
-        return ok({"opened": name}) if await asyncio.to_thread(controller.open_application_or_item, name) else fail("application could not be opened")
+        opened = await asyncio.to_thread(controller.open_application_or_item, name)
+        return ok({"opened": name}) if opened else fail("application could not be opened")
 
     async def open_url(args: Mapping[str, Any], ctx: ToolContext) -> ToolResult:
         url = str(args["url"]).strip()
@@ -35,35 +40,45 @@ def build_mac_tools(controller: MacController) -> list[FunctionTool]:
             return fail("only valid http and https URLs are allowed")
         if ctx.dry_run:
             return ok({"would_open": url})
-        return ok({"opened": url}) if await asyncio.to_thread(controller.open_target, url) else fail("URL could not be opened")
+        opened = await asyncio.to_thread(controller.open_target, url)
+        return ok({"opened": url}) if opened else fail("URL could not be opened")
 
     async def open_path(args: Mapping[str, Any], ctx: ToolContext) -> ToolResult:
         path = str(args["path"])
         if ctx.dry_run:
             return ok({"would_open": path})
-        return ok({"opened": path}) if await asyncio.to_thread(controller.open_target, path) else fail("path could not be opened")
+        opened = await asyncio.to_thread(controller.open_target, path)
+        return ok({"opened": path}) if opened else fail("path could not be opened")
 
     async def search(args: Mapping[str, Any], ctx: ToolContext) -> ToolResult:
         query = str(args["query"]).strip()
         url = "https://www.google.com/search?q=" + quote_plus(query)
         if ctx.dry_run:
             return ok({"would_open": url})
-        return ok({"opened": url}) if await asyncio.to_thread(controller.open_target, url) else fail("browser search could not be opened")
+        opened = await asyncio.to_thread(controller.open_target, url)
+        return ok({"opened": url}) if opened else fail("browser search could not be opened")
 
     async def set_volume(args: Mapping[str, Any], ctx: ToolContext) -> ToolResult:
         value = int(args["value"])
         if ctx.dry_run:
             return ok({"would_set_volume": value})
-        return ok({"volume": value}) if await asyncio.to_thread(controller.set_volume, value) else fail("volume change failed")
+        changed = await asyncio.to_thread(controller.set_volume, value)
+        return ok({"volume": value}) if changed else fail("volume change failed")
 
     async def mute(args: Mapping[str, Any], ctx: ToolContext) -> ToolResult:
+        del args
         if ctx.dry_run:
             return ok({"would_mute": True})
-        return ok({"muted": True}) if await asyncio.to_thread(controller.mute) else fail("mute failed")
+        changed = await asyncio.to_thread(controller.mute)
+        return ok({"muted": True}) if changed else fail("mute failed")
 
     async def screenshot(args: Mapping[str, Any], ctx: ToolContext) -> ToolResult:
         del args
-        filename = Path.home() / "Desktop" / f"Pie Screenshot {datetime.now():%Y-%m-%d %H-%M-%S}.png"
+        filename = (
+            Path.home()
+            / "Desktop"
+            / f"Pie Screenshot {datetime.now():%Y-%m-%d %H-%M-%S}.png"
+        )
         if ctx.dry_run:
             return ok({"would_save": str(filename)})
         captured = await asyncio.to_thread(controller.screenshot_to, filename)
@@ -75,16 +90,25 @@ def build_mac_tools(controller: MacController) -> list[FunctionTool]:
             with image_module.open(filename) as image:
                 deviation = stat_module.Stat(image.convert("RGB")).stddev
             if all(value < 0.01 for value in deviation):
-                return ToolResult(False, output={"path": str(filename)}, error="Screen Recording permission is probably missing", artifacts=[str(filename)])
+                return ToolResult(
+                    False,
+                    output={"path": str(filename)},
+                    error="Screen Recording permission is probably missing",
+                    artifacts=[str(filename)],
+                )
         except (ImportError, OSError):
-            return fail("screenshot captured but image validation was unavailable", output={"path": str(filename)})
+            return fail(
+                "screenshot captured but image validation was unavailable",
+                output={"path": str(filename)},
+            )
         return ok({"path": str(filename)}, artifacts=[str(filename)])
 
     async def scroll(args: Mapping[str, Any], ctx: ToolContext) -> ToolResult:
         amount = int(args["amount"])
         if ctx.dry_run:
             return ok({"would_scroll": amount})
-        return ok({"scrolled": amount}) if await asyncio.to_thread(controller.scroll, amount) else fail("scroll failed")
+        moved = await asyncio.to_thread(controller.scroll, amount)
+        return ok({"scrolled": amount}) if moved else fail("scroll failed")
 
     key_map = {
         "copy": ("command", "c"),
@@ -100,13 +124,15 @@ def build_mac_tools(controller: MacController) -> list[FunctionTool]:
         keys = key_map[combo]
         if ctx.dry_run:
             return ok({"would_press": combo})
-        return ok({"pressed": combo}) if await asyncio.to_thread(controller.key_combo, *keys) else fail("key combination failed")
+        pressed = await asyncio.to_thread(controller.key_combo, *keys)
+        return ok({"pressed": combo}) if pressed else fail("key combination failed")
 
     async def lock_screen(args: Mapping[str, Any], ctx: ToolContext) -> ToolResult:
         del args
         if ctx.dry_run:
             return ok({"would_lock": True})
-        return ok({"locked": True}) if await asyncio.to_thread(controller.lock_screen) else fail("lock screen failed")
+        locked = await asyncio.to_thread(controller.lock_screen)
+        return ok({"locked": True}) if locked else fail("lock screen failed")
 
     def close_prompt(args: Mapping[str, Any], call_id: str) -> str:
         del args
@@ -131,7 +157,8 @@ def build_mac_tools(controller: MacController) -> list[FunctionTool]:
         del args
         if ctx.dry_run:
             return ok({"would_delete_selected": True})
-        return ok({"deleted_selected_item": True}) if await asyncio.to_thread(controller.delete_selected) else fail("delete action failed")
+        deleted = await asyncio.to_thread(controller.delete_selected)
+        return ok({"deleted_selected_item": True}) if deleted else fail("delete action failed")
 
     async def type_text(args: Mapping[str, Any], ctx: ToolContext) -> ToolResult:
         text = str(args["text"])
@@ -139,45 +166,207 @@ def build_mac_tools(controller: MacController) -> list[FunctionTool]:
             return fail("control characters are not allowed")
         if ctx.dry_run:
             return ok({"would_type_length": len(text)})
-        return ok({"typed_length": len(text)}) if await asyncio.to_thread(controller.type_text, text) else fail("typing failed")
+        typed = await asyncio.to_thread(controller.type_text, text)
+        return ok({"typed_length": len(text)}) if typed else fail("typing failed")
 
-    path_schema = {"type": "string", "minLength": 1, "maxLength": 4096, "x-path": True}
+    path_schema = {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 4096,
+        "x-path": True,
+    }
     return [
-        FunctionTool(ToolSpec("mac.open_app", "Open an installed macOS application or known folder. Do not use for arbitrary shell commands.", {
-            "type": "object", "properties": {"name": {"type": "string", "minLength": 1, "maxLength": 200}},
-            "required": ["name"], "additionalProperties": False
-        }, Tier.REVERSIBLE), open_app),
-        FunctionTool(ToolSpec("mac.open_url", "Open a valid http or https URL in the default browser. Do not use for file or custom URL schemes.", {
-            "type": "object", "properties": {"url": {"type": "string", "minLength": 8, "maxLength": 2048}},
-            "required": ["url"], "additionalProperties": False
-        }, Tier.REVERSIBLE), open_url),
-        FunctionTool(ToolSpec("mac.open_path", "Open a path in Finder using the macOS open command. Do not use for protected files.", {
-            "type": "object", "properties": {"path": path_schema},
-            "required": ["path"], "additionalProperties": False
-        }, Tier.REVERSIBLE), open_path),
-        FunctionTool(ToolSpec("browser.search", "Open a web search for a user query. Do not use to submit forms or access private networks.", {
-            "type": "object", "properties": {"query": {"type": "string", "minLength": 1, "maxLength": 500}},
-            "required": ["query"], "additionalProperties": False
-        }, Tier.REVERSIBLE), search),
-        FunctionTool(ToolSpec("mac.set_volume", "Set system output volume between 0 and 100. Do not use to change unrelated audio settings.", {
-            "type": "object", "properties": {"value": {"type": "integer", "minimum": 0, "maximum": 100}},
-            "required": ["value"], "additionalProperties": False
-        }, Tier.REVERSIBLE), set_volume),
-        FunctionTool(ToolSpec("mac.mute", "Mute system output audio. Do not use to pause or stop media.", _empty_schema(), Tier.REVERSIBLE), mute),
-        FunctionTool(ToolSpec("mac.screenshot", "Capture the main display to the Desktop. Do not use when Screen Recording permission is denied.", _empty_schema(), Tier.REVERSIBLE), screenshot),
-        FunctionTool(ToolSpec("mac.scroll", "Scroll the current window by -50 to 50 units. Do not use for precise pointer movement.", {
-            "type": "object", "properties": {"amount": {"type": "integer", "minimum": -50, "maximum": 50}},
-            "required": ["amount"], "additionalProperties": False
-        }, Tier.REVERSIBLE), scroll),
-        FunctionTool(ToolSpec("mac.key_combo", "Press one allow-listed keyboard shortcut. Do not use to enter arbitrary text.", {
-            "type": "object", "properties": {"combo": {"type": "string", "enum": list(key_map)}},
-            "required": ["combo"], "additionalProperties": False
-        }, Tier.REVERSIBLE), key_combo),
-        FunctionTool(ToolSpec("mac.lock_screen", "Lock the current macOS session. Do not use as a substitute for logging out.", _empty_schema(), Tier.REVERSIBLE), lock_screen),
-        FunctionTool(ToolSpec("mac.close_app", "Quit the currently frontmost application. Do not use unless the user explicitly asks to close it.", _empty_schema(), Tier.CONFIRM), close_app, close_prompt),
-        FunctionTool(ToolSpec("mac.delete_selected", "Delete the currently selected item using the legacy macOS delete shortcut. Do not use unless the user explicitly requests deletion.", _empty_schema(), Tier.CONFIRM), delete_selected),
-        FunctionTool(ToolSpec("mac.type_text", "Type up to 500 plain characters into the focused application. Do not use for passwords or secrets.", {
-            "type": "object", "properties": {"text": {"type": "string", "maxLength": 500}},
-            "required": ["text"], "additionalProperties": False
-        }, Tier.CONFIRM), type_text),
+        FunctionTool(
+            ToolSpec(
+                "mac.open_app",
+                (
+                    "Open an installed macOS application or known folder. "
+                    "Do not use for arbitrary shell commands."
+                ),
+                {
+                    "type": "object",
+                    "properties": {
+                        "name": {"type": "string", "minLength": 1, "maxLength": 200}
+                    },
+                    "required": ["name"],
+                    "additionalProperties": False,
+                },
+                Tier.REVERSIBLE,
+            ),
+            open_app,
+        ),
+        FunctionTool(
+            ToolSpec(
+                "mac.open_url",
+                (
+                    "Open a valid http or https URL in the default browser. "
+                    "Do not use for file or custom URL schemes."
+                ),
+                {
+                    "type": "object",
+                    "properties": {
+                        "url": {"type": "string", "minLength": 8, "maxLength": 2048}
+                    },
+                    "required": ["url"],
+                    "additionalProperties": False,
+                },
+                Tier.REVERSIBLE,
+            ),
+            open_url,
+        ),
+        FunctionTool(
+            ToolSpec(
+                "mac.open_path",
+                (
+                    "Open a path in Finder using the macOS open command. "
+                    "Do not use for protected files."
+                ),
+                {
+                    "type": "object",
+                    "properties": {"path": path_schema},
+                    "required": ["path"],
+                    "additionalProperties": False,
+                },
+                Tier.REVERSIBLE,
+            ),
+            open_path,
+        ),
+        FunctionTool(
+            ToolSpec(
+                "browser.search",
+                (
+                    "Open a web search for a user query. "
+                    "Do not use to submit forms or access private networks."
+                ),
+                {
+                    "type": "object",
+                    "properties": {
+                        "query": {"type": "string", "minLength": 1, "maxLength": 500}
+                    },
+                    "required": ["query"],
+                    "additionalProperties": False,
+                },
+                Tier.REVERSIBLE,
+            ),
+            search,
+        ),
+        FunctionTool(
+            ToolSpec(
+                "mac.set_volume",
+                "Set system output volume between 0 and 100.",
+                {
+                    "type": "object",
+                    "properties": {
+                        "value": {"type": "integer", "minimum": 0, "maximum": 100}
+                    },
+                    "required": ["value"],
+                    "additionalProperties": False,
+                },
+                Tier.REVERSIBLE,
+            ),
+            set_volume,
+        ),
+        FunctionTool(
+            ToolSpec(
+                "mac.mute",
+                "Mute system output audio. Do not use to pause or stop media.",
+                _empty_schema(),
+                Tier.REVERSIBLE,
+            ),
+            mute,
+        ),
+        FunctionTool(
+            ToolSpec(
+                "mac.screenshot",
+                "Capture the main display to the Desktop.",
+                _empty_schema(),
+                Tier.REVERSIBLE,
+            ),
+            screenshot,
+        ),
+        FunctionTool(
+            ToolSpec(
+                "mac.scroll",
+                "Scroll the current window by -50 to 50 units.",
+                {
+                    "type": "object",
+                    "properties": {
+                        "amount": {"type": "integer", "minimum": -50, "maximum": 50}
+                    },
+                    "required": ["amount"],
+                    "additionalProperties": False,
+                },
+                Tier.REVERSIBLE,
+            ),
+            scroll,
+        ),
+        FunctionTool(
+            ToolSpec(
+                "mac.key_combo",
+                "Press one allow-listed keyboard shortcut.",
+                {
+                    "type": "object",
+                    "properties": {
+                        "combo": {"type": "string", "enum": list(key_map)}
+                    },
+                    "required": ["combo"],
+                    "additionalProperties": False,
+                },
+                Tier.REVERSIBLE,
+            ),
+            key_combo,
+        ),
+        FunctionTool(
+            ToolSpec(
+                "mac.lock_screen",
+                "Lock the current macOS session.",
+                _empty_schema(),
+                Tier.REVERSIBLE,
+            ),
+            lock_screen,
+        ),
+        FunctionTool(
+            ToolSpec(
+                "mac.close_app",
+                (
+                    "Quit the currently frontmost application. "
+                    "Do not use unless the user explicitly asks to close it."
+                ),
+                _empty_schema(),
+                Tier.CONFIRM,
+            ),
+            close_app,
+            close_prompt,
+        ),
+        FunctionTool(
+            ToolSpec(
+                "mac.delete_selected",
+                (
+                    "Delete the currently selected item using the legacy macOS delete shortcut. "
+                    "Do not use unless the user explicitly requests deletion."
+                ),
+                _empty_schema(),
+                Tier.CONFIRM,
+            ),
+            delete_selected,
+        ),
+        FunctionTool(
+            ToolSpec(
+                "mac.type_text",
+                (
+                    "Type up to 500 plain characters into the focused application. "
+                    "Do not use for passwords or secrets."
+                ),
+                {
+                    "type": "object",
+                    "properties": {
+                        "text": {"type": "string", "maxLength": 500}
+                    },
+                    "required": ["text"],
+                    "additionalProperties": False,
+                },
+                Tier.CONFIRM,
+            ),
+            type_text,
+        ),
     ]
