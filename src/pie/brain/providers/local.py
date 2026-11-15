@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Any, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 import httpx
 import psutil
@@ -85,7 +86,9 @@ class LocalProvider:
             raise ProviderUnavailable(self.name, "local server unavailable; start Ollama")
         model = self._choose_model()
         if not model:
-            raise ProviderUnavailable(self.name, "no installed local model within configured budget")
+            raise ProviderUnavailable(
+                self.name, "no installed local model within configured budget"
+            )
         model_size = next((size for name, size in self._models if name == model), 0)
         available = psutil.virtual_memory().available
         if available < model_size + 2 * 1024**3:
