@@ -14,7 +14,6 @@ from pie.brain.types import (
     Message,
     Provider,
     ProviderError,
-    ProviderReply,
     ProviderUnavailable,
     QuotaExhausted,
     RateLimited,
@@ -141,8 +140,7 @@ class BrainRouter:
             specs = [spec for spec in specs if spec.tier <= 1]
         deadline = self.clock() + self.config.total_timeout_s
         calls_made = 0
-        switched_from: str | None = None
-        for step in range(self.config.max_steps):
+        for _step in range(self.config.max_steps):
             remaining = deadline - self.clock()
             if remaining <= 0:
                 return RouterResult(route, provider.name, "", calls_made, False, "total timeout")
@@ -164,12 +162,20 @@ class BrainRouter:
                         reply = await asyncio.wait_for(
                             provider.complete(
                                 messages, specs, max_tokens=2048,
-                                timeout_s=min(self.config.provider_timeout_s, max(0.1, deadline-self.clock())),
+                                timeout_s=min(
+                                    self.config.provider_timeout_s,
+                                    max(0.1, deadline - self.clock()),
+                                ),
                             ),
-                            timeout=min(self.config.provider_timeout_s, max(0.1, deadline-self.clock())),
+                            timeout=min(
+                                self.config.provider_timeout_s,
+                                max(0.1, deadline - self.clock()),
+                            ),
                         )
                     except ProviderError as retry_exc:
-                        return await self._fallback(provider, retry_exc, text, route, source, correlation_id)
+                        return await self._fallback(
+                            provider, retry_exc, text, route, source, correlation_id
+                        )
                 else:
                     return await self._fallback(provider, exc, text, route, source, correlation_id)
             except ProviderError as exc:
@@ -203,7 +209,9 @@ class BrainRouter:
                 import json
                 tool_text = json.dumps(payload, ensure_ascii=False, default=str)[:4000]
                 messages.append(Message("tool", tool_text, tool_call_id=call.id))
-        return RouterResult(route, provider.name, "", calls_made, False, "maximum agent steps reached")
+        return RouterResult(
+            route, provider.name, "", calls_made, False, "maximum agent steps reached"
+        )
 
     async def _fallback(
         self, provider: Provider, error: ProviderError, text: str, route: str,
@@ -253,5 +261,9 @@ class BrainRouter:
         self._history.append((self.clock(), Message("user", text), Message("assistant", answer)))
 
     def _unavailable(self, correlation_id: str, detail: str | None) -> RouterResult:
-        self._publish("tts.say", {"text": "No AI model is available right now.", "interrupt": False}, correlation_id)
+        self._publish(
+            "tts.say",
+            {"text": "No AI model is available right now.", "interrupt": False},
+            correlation_id,
+        )
         return RouterResult("local", None, "No AI model is available right now.", 0, False, detail)
