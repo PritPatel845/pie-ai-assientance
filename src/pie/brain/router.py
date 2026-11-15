@@ -208,7 +208,18 @@ class BrainRouter:
         for _step in range(self.config.max_steps):
             remaining = deadline - self.clock()
             if remaining <= 0:
-                return RouterResult(route, provider.name, "", calls_made, False, "total timeout")
+                if provider.kind == "cloud":
+                    return await self._fallback(
+                        provider,
+                        ProviderUnavailable(provider.name, "total timeout"),
+                        text,
+                        route,
+                        source,
+                        correlation_id,
+                        deadline,
+                        remaining_clouds or [],
+                    )
+                return self._unavailable(correlation_id, "total timeout")
             self._publish(
                 "brain.request",
                 {"request_id": request_id, "text": text, "provider": provider.name},
@@ -270,6 +281,7 @@ class BrainRouter:
                             route,
                             source,
                             correlation_id,
+                            deadline,
                             remaining_clouds or [],
                         )
                 else:
@@ -302,6 +314,7 @@ class BrainRouter:
                     route,
                     source,
                     correlation_id,
+                    deadline,
                     remaining_clouds or [],
                 )
 
