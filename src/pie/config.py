@@ -69,11 +69,32 @@ class UiConfig:
 
 
 @dataclass(frozen=True, slots=True)
+class BrainConfig:
+    enabled: bool = True
+    cloud_order: tuple[str, ...] = ("anthropic", "openai")
+    cli_providers_enabled: bool = False
+    anthropic_model: str = ""
+    openai_model: str = ""
+    local_backend: str = "auto"
+    local_model: str = ""
+    max_steps: int = 8
+    total_timeout_s: int = 90
+    provider_timeout_s: int = 45
+    context_turns: int = 6
+    context_ttl_s: int = 600
+    default_cooldown_s: int = 3600
+    rate_limit_max_wait_s: int = 8
+    local_max_ram_gb: float = 6.0
+    local_keep_alive: str = "2m"
+
+
+@dataclass(frozen=True, slots=True)
 class Config:
     app: AppConfig = AppConfig()
     gesture: GestureConfig = GestureConfig()
     voice: VoiceConfig = VoiceConfig()
     ui: UiConfig = UiConfig()
+    brain: BrainConfig = BrainConfig()
 
 
 _DEFAULTS: dict[str, dict[str, Any]] = {
@@ -106,6 +127,24 @@ _DEFAULTS: dict[str, dict[str, Any]] = {
         "debug_save_audio": False,
     },
     "ui": {"host": "127.0.0.1", "port": 8765},
+    "brain": {
+        "enabled": True,
+        "cloud_order": ["anthropic", "openai"],
+        "cli_providers_enabled": False,
+        "anthropic_model": "",
+        "openai_model": "",
+        "local_backend": "auto",
+        "local_model": "",
+        "max_steps": 8,
+        "total_timeout_s": 90,
+        "provider_timeout_s": 45,
+        "context_turns": 6,
+        "context_ttl_s": 600,
+        "default_cooldown_s": 3600,
+        "rate_limit_max_wait_s": 8,
+        "local_max_ram_gb": 6.0,
+        "local_keep_alive": "2m",
+    },
 }
 _TYPES = {
     section: {key: type(value) for key, value in values.items()}
@@ -212,6 +251,7 @@ def load_config(
         _merge(data, cli_overrides)
 
     data["voice"]["wake_words"] = tuple(data["voice"]["wake_words"])
+    data["brain"]["cloud_order"] = tuple(data["brain"]["cloud_order"])
     model_path = str(data["gesture"]["model_path"])
     if model_path:
         data["gesture"]["model_path"] = str(Path(model_path).expanduser())
@@ -221,6 +261,7 @@ def load_config(
         GestureConfig(**data["gesture"]),
         VoiceConfig(**data["voice"]),
         UiConfig(**data["ui"]),
+        BrainConfig(**data["brain"]),
     )
     if not 1 <= config.gesture.state_hz <= 60:
         raise ConfigError("gesture.state_hz must be between 1 and 60")
@@ -238,6 +279,22 @@ def load_config(
         raise ConfigError("voice utterance and unload durations are invalid")
     if not 1 <= config.voice.tts_rate <= 500:
         raise ConfigError("voice.tts_rate must be between 1 and 500")
+    if config.brain.local_backend not in {"auto", "ollama", "mlx"}:
+        raise ConfigError("brain.local_backend must be auto, ollama, or mlx")
+    if not config.brain.cloud_order or any(
+        provider not in {"anthropic", "openai"} for provider in config.brain.cloud_order
+    ):
+        raise ConfigError("brain.cloud_order must contain anthropic and/or openai")
+    if min(
+        config.brain.max_steps,
+        config.brain.total_timeout_s,
+        config.brain.provider_timeout_s,
+        config.brain.context_turns,
+        config.brain.context_ttl_s,
+        config.brain.default_cooldown_s,
+        config.brain.rate_limit_max_wait_s,
+    ) < 1 or config.brain.local_max_ram_gb <= 0:
+        raise ConfigError("brain limits must be positive")
     if config.gesture.arm_hold_seconds <= 0:
         raise ConfigError("gesture.arm_hold_seconds must be positive")
     return config
