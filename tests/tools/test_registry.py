@@ -356,3 +356,30 @@ def test_rule_preapproval_cannot_bypass_other_confirm_tools(tmp_path: Path) -> N
         gate.stop()
 
     asyncio.run(scenario())
+
+
+
+def test_relative_paths_are_resolved_inside_the_sandbox(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        registry, gate, _ = _registry(tmp_path)
+        schema = {
+            "type": "object",
+            "properties": {
+                "path": {
+                    "type": "string",
+                    "x-path": True,
+                    "x-confirm-outside-sandbox": True,
+                }
+            },
+            "required": ["path"],
+            "additionalProperties": False,
+        }
+        registry.register(_tool("fs.relative", schema=schema))
+        result = await registry.execute(
+            "fs.relative", {"path": "notes.txt"}, source="text"
+        )
+        assert result.ok
+        assert result.output["path"] == str(tmp_path / "sandbox" / "notes.txt")
+        gate.stop()
+
+    asyncio.run(scenario())
