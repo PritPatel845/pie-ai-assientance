@@ -11,8 +11,8 @@ from typing import Any
 
 from pie import __version__
 from pie.config import Config, load_config
-from pie.core.daemon import Daemon, Module
-from pie.events import Event, EventBus
+from pie.core.daemon import Daemon
+from pie.events import Event
 from pie.inputs.gesture.engine import resolve_model_path
 from pie.inputs.gesture.runner import run
 from pie.logging_setup import configure_logging
