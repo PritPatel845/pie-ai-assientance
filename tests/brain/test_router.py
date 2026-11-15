@@ -316,6 +316,7 @@ def test_total_timeout_is_shared_across_provider_fallbacks(tmp_path: Path) -> No
 
     asyncio.run(scenario())
 
+
 def test_agent_tool_round_trip_is_sequential_and_truncated(tmp_path: Path) -> None:
     async def scenario() -> None:
         provider = FakeProvider(
@@ -621,6 +622,7 @@ def test_offline_fallback_does_not_speak_quota_message(tmp_path: Path) -> None:
         assert speech == []
 
     asyncio.run(scenario())
+
 
 def test_total_timeout_bounds_tool_runner(tmp_path: Path) -> None:
     async def scenario() -> None:
