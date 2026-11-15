@@ -6,6 +6,8 @@ import subprocess
 from collections.abc import Callable, Sequence
 from datetime import datetime
 from pathlib import Path
+from typing import Any
+import importlib
 
 Runner = Callable[..., subprocess.CompletedProcess[str]]
 
@@ -153,7 +155,7 @@ class MacController:
         return self.open_application("System Settings")
 
     def move_cursor(self, x: float, y: float) -> bool:
-        import pyautogui
+        pyautogui = importlib.import_module("pyautogui")
 
         width, height = self._screen_size() if self._screen_size else pyautogui.size()
         pyautogui.moveTo(
@@ -228,7 +230,7 @@ class MacController:
             self._poster.key_event(code, pressed)
             return
         try:
-            import Quartz
+            Quartz = importlib.import_module("Quartz")
         except ImportError as exc:
             raise RuntimeError("Quartz is required for game keyboard control") from exc
         event = Quartz.CGEventCreateKeyboardEvent(None, code, pressed)
