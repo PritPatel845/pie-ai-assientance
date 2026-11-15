@@ -83,6 +83,8 @@ def test_normalize_hand_is_translation_scale_and_rotation_invariant() -> None:
     first = normalize_hand(original)
     second = normalize_hand(translated_scaled)
     assert len(first) == 63
+    assert first[9 * 3] == pytest.approx(0.0, abs=1e-6)
+    assert first[9 * 3 + 1] < 0.0  # wrist-to-middle-MCP points image-up
     assert max(abs(a - b) for a, b in zip(first, second, strict=True)) < 1e-6
     assert all(math.isfinite(value) for value in first)
 
