@@ -100,6 +100,8 @@ class BrainRouter:
         explicit_local, request = wants_local(text)
         request = request or text
         cloud_names = [] if explicit_local else list(self.config.cloud_order)
+        if self.config.cli_providers_enabled and not explicit_local:
+            cloud_names.extend(("claude_cli", "codex_cli"))
         selected: Provider | None = None
         selected_index = -1
         last_error: str | None = None
@@ -138,6 +140,8 @@ class BrainRouter:
             return bool(self.config.anthropic_model)
         if name == "openai":
             return bool(self.config.openai_model)
+        if name in {"claude_cli", "codex_cli"}:
+            return self.config.cli_providers_enabled
         return True
 
     async def _agent_run(
