@@ -27,3 +27,10 @@ def test_tool_spec_requires_domain_verb_name_and_closed_object_schema() -> None:
         )
     with pytest.raises(ValueError, match="timeout"):
         ToolSpec("mac.invalid", "Invalid timeout.", schema, Tier.READ, timeout_s=0)
+
+
+def test_tool_spec_rejects_non_ascii_identifiers() -> None:
+    schema = {"type": "object", "properties": {}, "additionalProperties": False}
+    for name in ("mác.open", "mac.éject", "mac.打开", "mac.open-app"):
+        with pytest.raises(ValueError, match="name"):
+            ToolSpec(name, "Invalid identifier.", schema, Tier.READ)
