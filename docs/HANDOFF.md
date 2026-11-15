@@ -109,6 +109,7 @@ The parser checks exact phrases first, then volume patterns, search patterns, th
 ### Regression fixes recorded
 
 - Desktop hand normalization now rotates the wrist-to-middle-MCP vector toward image-up.
+- Added and tested the specified `MacController.show_voice_activation()` notification (`PIE ACTIVE`, configured duration).
 - Counter-Strike `KeyAction` names resolve through the selected profile to A/D/W/S keycodes.
 - Temple Run handles swipe left/right and palm up/down actions.
 - Runner/fist/pinch and game-key state reset on hand loss/mode changes; held keys are released.
@@ -141,5 +142,5 @@ The parser checks exact phrases first, then volume patterns, search patterns, th
 - The actual target Mac has not been audited here: `uname -m`, `sw_vers`, Homebrew Python 3.12 path, and imports/versions for MediaPipe 0.10.35 Tasks API, OpenCV, PyAutoGUI, Quartz, and AppKit remain unverified.
 - Packaging risk to resolve on the target Mac: PyPI's MediaPipe 0.10.35 metadata advertises a macOS 11+ arm64 wheel, but its dependencies include `opencv-contrib-python`, `sounddevice`, and `matplotlib`; the Phase 0S dependency contract names `opencv-python`. Do not blindly install both OpenCV wheel distributions; determine a compliant, working install strategy on the target Mac and record it before accepting the phase.
 - `scripts/manual_checks/phase0s.md` has not been performed on the target Mac. Camera preview, HUD poses, camera release, Accessibility permission, and safe cursor/pinch behaviour remain unverified.
-- macOS-specific media-key behaviour and app automation have not been verified on the target Mac.
+- macOS-specific media-key behaviour and app automation have not been verified on the target Mac. `play_media()`/`stop_media()` currently use the Music AppleScript path; the PDF also calls for Spotify/system-media-key handling and explicit `pyautogui` `playpause` verification, which remains an unresolved target-Mac item.
 - Phase 0S is **not accepted**. Do not create `pie-phase-0-done` or begin Phase 1 until the model and Mac/manual acceptance gates are satisfied.
