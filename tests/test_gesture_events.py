@@ -38,3 +38,24 @@ def test_gesture_event_tracker_handles_no_hand_reset(monkeypatch) -> None:
     assert tracker.update([[object()]], 2.0) == ("pinch",)
     assert tracker.update([], 2.1) == ()
     assert tracker.update([[object()]], 2.2) == ()
+
+
+def test_palm_push_event_requires_open_palm_and_forward_depth(monkeypatch) -> None:
+    monkeypatch.setattr(runner, "is_pinch", lambda hand: False)
+    monkeypatch.setattr(runner, "is_open_palm", lambda hand: True)
+    for name in (
+        "is_fist",
+        "is_thumb_up",
+        "is_thumb_down",
+        "is_two_finger",
+        "is_three_finger",
+        "is_four_finger",
+    ):
+        monkeypatch.setattr(runner, name, lambda hand: False)
+    tracker = runner.GestureEventTracker()
+    hand = [type("Point", (), {"z": -0.12})()]
+    assert tracker.update([hand], 1.0) == ("open_palm",)
+    tracker.update([], 1.1)
+    hand[0].z = -0.13
+    # The repeated open-palm edge is debounced; the new palm-push edge is emitted.
+    assert tracker.update([hand], 1.2) == ("palm_push",)

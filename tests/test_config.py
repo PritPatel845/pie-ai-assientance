@@ -68,3 +68,28 @@ def test_default_wake_words_are_longest_first() -> None:
         "jay r",
         "jarvis",
     )
+
+
+def test_phase3a_safety_and_tool_defaults_are_additive() -> None:
+    config = load_config(environ={})
+    assert config.gesture.bindings_via_tools is True
+    assert config.gesture.bindings == {
+        "thumb_up": "media.play",
+        "thumb_down": "media.pause",
+        "palm_push": "mac.mute",
+    }
+    assert config.safety.confirm_timeout_s == 20
+    assert config.safety.max_calls_per_10s == 10
+    assert config.tools.dry_run is False
+    assert config.tools.disabled == ()
+    assert config.tools.result_max_chars == 20000
+
+
+def test_gesture_binding_config_rejects_unknown_gesture(tmp_path) -> None:
+    path = tmp_path / "config.toml"
+    path.write_text(
+        '[gesture.bindings]\nunknown_gesture = "mac.mute"\n',
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="gesture.bindings"):
+        load_config(path)

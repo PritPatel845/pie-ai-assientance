@@ -3,17 +3,18 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
 from pie.brain.providers import build_providers
 from pie.brain.quota import QuotaTracker
 from pie.brain.router import BrainRouter
-from pie.brain.rules import RuleMatch
+from pie.brain.rules import RuleMatch, rule_preapproved_by, rule_to_tool_call
 from pie.brain.types import ToolCall, ToolResult
 from pie.core.daemon import Daemon
 from pie.events import Event
 from pie.inputs.voice.executor import LegacyRuleExecutor
 from pie.platform.mac import MacController
+from pie.tools.registry import ToolRegistry
 
 _LOG = logging.getLogger(__name__)
 
@@ -50,19 +51,44 @@ class BrainModule:
         ) or LegacyRuleExecutor(MacController(), no_actions=self._no_actions)
 
         async def execute_rule(match: RuleMatch) -> bool:
-            if self._executor is None:
-                return False
-            return self._executor.run(match.action, match.value)
+            registry = cast(ToolRegistry | None, getattr(daemon, "tool_registry", None))
+            if registry is None:
+                if self._executor is None:
+                    return False
+                return self._executor.run(match.action, match.value)
+            call = rule_to_tool_call(match)
+            result = await registry.execute(
+                call.name,
+                call.args,
+                source="rule",
+                correlation_id=call.id,
+                pre_approved_by=rule_preapproved_by(match),
+            )
+            return result.ok
+
+        async def execute_tool(call: ToolCall, source: str) -> ToolResult:
+            del source
+            registry = getattr(daemon, "tool_registry", None)
+            if registry is None:
+                return await _no_tool(call, "agent")
+            result = await registry.execute(
+                call.name,
+                call.args,
+                source="agent",
+                correlation_id=call.id,
+            )
+            return ToolResult(result.ok, output=result.output, error=result.error)
 
         self._providers = build_providers(daemon.config.brain)
+        registry = getattr(daemon, "tool_registry", None)
         self.router = BrainRouter(
             daemon.config.brain,
             daemon.bus,
             self._providers,
             QuotaTracker(default_cooldown_s=daemon.config.brain.default_cooldown_s),
             execute_rule,
-            lambda: [],
-            _no_tool,
+            registry.specs_for_model if registry is not None else lambda: [],
+            execute_tool,
         )
         self._unsubscribers = [
             daemon.bus.subscribe(

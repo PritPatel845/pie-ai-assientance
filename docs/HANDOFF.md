@@ -536,3 +536,64 @@ python -m pie brain test anthropic
 python -m pie brain ask "what is 2+2"
 python -m pie quota show
 ```
+
+
+## Phase 2 owner acceptance and Phase 3A implementation — 2026-11-15
+
+### Phase 2 owner acceptance
+The owner explicitly declared Phase 2 complete after target-Mac manual verification:
+- Voice wake/capture/transcription and local Ollama inference produced a spoken answer.
+- With Ollama stopped and port 11434 refusing connections, `pie brain ask` returned `Route: local | Provider: none` and `No AI model is available right now.` without crashing.
+- After Ollama restarted, `pie brain status` reported local health `ready`, model `llama3.2:3b`, measured latency about 41 ms, and a new request correctly answered Paris.
+- OpenAI credentials remain intentionally unconfigured; no paid cloud credentials were required for the owner's accepted local-first Phase 2 workflow.
+
+This is an owner-accepted completion and supersedes the earlier handoff sentence that blocked Phase 3A pending cloud-provider setup. It is not evidence of a live cloud-provider credential test or the fake slow-provider cancellation harness; those checks were waived by the owner's local-first acceptance. The release tag `pie-phase-2b-done` has not yet been created.
+
+### Phase 3 scope and current branch
+The original Phase 3 build specification divides the work into:
+- Phase 3A: safe tool registry, permission gate, audit, and built-in macOS tools.
+- Phase 3B: MCP tool export/import.
+- Phase 3C: everyday work automation and coding/research integrations.
+- Phase 3D: specialist application integrations.
+
+Phase 3A is being implemented on `phase-3a-tool-registry`, PR #9:
+https://github.com/PritPatel845/pie-ai-assientance/pull/9
+
+### Phase 3A work currently present on the branch
+- Added shared tool contracts, permission tiers, JSON Schema validation, and a registry execution boundary.
+- Added FIFO voice / armed-gesture / UI confirmation handling, stale-consent rejection, timeout-deny behaviour, and prompt-rate limiting.
+- Added protected-path checks, symlink resolution, sandbox tier escalation, redacted JSONL audit logging, file permissions, and log rotation.
+- Added initial system, filesystem, macOS, browser-search, media, and voice built-ins.
+- Connected BrainRouter deterministic rules and model tool calls to the registry.
+- Added armed gesture-to-tool bindings; cursor, click, scroll, depth-volume, and held game-key controls remain direct.
+- Added `pie tool list`, `pie tool run`, and `pie audit tail` CLI paths.
+- Added automated safety, permission, registry, built-in, config, CLI, and deterministic phrase-mapping tests.
+- Added `scripts/manual_checks/phase3a.md` and the Phase 3A additive contract details.
+
+### Phase 3A status — automated gates passed; target-Mac acceptance pending
+
+Current branch head: `33b718e5c1faf6d1b45d3e02c87826b3280e2668`.
+Current CI run: [#43745617134](https://github.com/PritPatel845/pie-ai-assientance/actions/runs/43745617134) — **all jobs passed**:
+- Ruff lint and Ruff format passed.
+- `pytest -q`: **476 passed**.
+- `mypy src/pie`: passed.
+- Model downloader / maintenance-script verification passed.
+- `python -m pie doctor`: exited successfully on the Linux CI runner.
+
+Integration fixes made while closing CI:
+- Filesystem built-ins now explicitly support macOS, Linux, and Windows; the prior implicit macOS-only default was inappropriate for generic filesystem operations.
+- The CLI's mutually exclusive `--voice` / `--no-voice` parser uses `args.voice`; the tool runner now receives `no_voice=args.voice is False`.
+- Strict mypy issues in deterministic rule arguments, path iterator typing, registry model-spec typing, and BrainModule's registry reference were corrected.
+- Ruff formatting/import-order checks pass on all 104 Python files.
+
+PR #9 remains **open as a draft**. The automated CI result is not evidence of macOS-specific permissions, microphone, gesture, or AppleScript behaviour.
+
+### Remaining Phase 3A acceptance work
+The owner must complete the target-Mac checklist in `scripts/manual_checks/phase3a.md`, especially:
+1. Filesystem sandbox writes, overwrite confirmation, protected paths, and symlink escape.
+2. Confirmation bound to the frontmost app, delete/type safeguards, stale-consent denial, timeout, and prompt rate limiting.
+3. Deterministic voice routing and armed gesture gating.
+4. `--no-actions`, `--no-voice`, disabled tools, shutdown cancellation, and audit redaction, mode `0600`, and rotation.
+5. Record exact manual outcomes and any failures here before requesting final review.
+
+Do not merge PR #9 or start Phase 3B until the target-Mac checklist passes and its evidence is recorded. Phase 3C and 3D remain unstarted.

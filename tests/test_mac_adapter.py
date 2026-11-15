@@ -106,3 +106,24 @@ def test_screenshot_uses_macos_system_binary() -> None:
     assert calls[0][0][2].endswith(".png")
     assert "/Desktop/Pie Screenshot " in calls[0][0][2]
     assert calls[0][1]["shell"] is False
+
+
+def test_frontmost_app_is_read_through_fixed_osascript() -> None:
+    calls = []
+
+    def fake(argv, **kwargs):
+        calls.append((argv, kwargs))
+        return subprocess.CompletedProcess(argv, 0, stdout="Finder\n", stderr="")
+
+    controller = MacController(runner=fake)
+    assert controller.frontmost_app() == "Finder"
+    assert calls[0][0][0:2] == ["/usr/bin/osascript", "-e"]
+    assert calls[0][1]["shell"] is False
+
+
+def test_frontmost_app_returns_none_when_automation_is_denied() -> None:
+    def fake(argv, **kwargs):
+        return subprocess.CompletedProcess(argv, 1, stdout="", stderr="not authorized")
+
+    controller = MacController(runner=fake)
+    assert controller.frontmost_app() is None

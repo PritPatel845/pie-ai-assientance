@@ -4,7 +4,7 @@ import json
 import os
 import sys
 import tomllib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from importlib import resources
 from pathlib import Path
 from typing import Any
@@ -31,6 +31,14 @@ class GestureConfig:
     steer_sensitivity: float = 0.004
     state_hz: int = 10
     model_path: str = ""
+    bindings: dict[str, str] = field(
+        default_factory=lambda: {
+            "thumb_up": "media.play",
+            "thumb_down": "media.pause",
+            "palm_push": "mac.mute",
+        }
+    )
+    bindings_via_tools: bool = True
 
 
 @dataclass(frozen=True, slots=True)
@@ -89,12 +97,31 @@ class BrainConfig:
 
 
 @dataclass(frozen=True, slots=True)
+class SafetyConfig:
+    sandbox_dir: str = "~/PieWorkspace"
+    allowed_folders: tuple[str, ...] = ("~/Desktop", "~/Documents", "~/Downloads", "~/PieWorkspace")
+    confirm_timeout_s: int = 20
+    max_calls_per_10s: int = 10
+    max_confirm_prompts_per_min: int = 3
+    audit_path: str = "~/.pie/logs/audit.jsonl"
+
+
+@dataclass(frozen=True, slots=True)
+class ToolsConfig:
+    dry_run: bool = False
+    disabled: tuple[str, ...] = ()
+    result_max_chars: int = 20000
+
+
+@dataclass(frozen=True, slots=True)
 class Config:
     app: AppConfig = AppConfig()
     gesture: GestureConfig = GestureConfig()
     voice: VoiceConfig = VoiceConfig()
     ui: UiConfig = UiConfig()
     brain: BrainConfig = BrainConfig()
+    safety: SafetyConfig = SafetyConfig()
+    tools: ToolsConfig = ToolsConfig()
 
 
 _DEFAULTS: dict[str, dict[str, Any]] = {
@@ -106,6 +133,12 @@ _DEFAULTS: dict[str, dict[str, Any]] = {
         "steer_sensitivity": 0.004,
         "state_hz": 10,
         "model_path": "",
+        "bindings": {
+            "thumb_up": "media.play",
+            "thumb_down": "media.pause",
+            "palm_push": "mac.mute",
+        },
+        "bindings_via_tools": True,
     },
     "voice": {
         "enabled": True,
@@ -145,6 +178,15 @@ _DEFAULTS: dict[str, dict[str, Any]] = {
         "local_max_ram_gb": 6.0,
         "local_keep_alive": "2m",
     },
+    "safety": {
+        "sandbox_dir": "~/PieWorkspace",
+        "allowed_folders": ["~/Desktop", "~/Documents", "~/Downloads", "~/PieWorkspace"],
+        "confirm_timeout_s": 20,
+        "max_calls_per_10s": 10,
+        "max_confirm_prompts_per_min": 3,
+        "audit_path": "~/.pie/logs/audit.jsonl",
+    },
+    "tools": {"dry_run": False, "disabled": [], "result_max_chars": 20000},
 }
 _TYPES = {
     section: {key: type(value) for key, value in values.items()}
@@ -191,6 +233,14 @@ def _parse_environment_value(name: str, raw: str, current: Any) -> Any:
             return float(raw)
         except ValueError as exc:
             raise ConfigError(f"{name} must be float") from exc
+    if isinstance(current, dict):
+        try:
+            value = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            raise ConfigError(f"{name} must be a JSON object") from exc
+        if not isinstance(value, dict):
+            raise ConfigError(f"{name} must be a JSON object")
+        return value
     if isinstance(current, list):
         try:
             value = json.loads(raw)
@@ -252,6 +302,14 @@ def load_config(
 
     data["voice"]["wake_words"] = tuple(data["voice"]["wake_words"])
     data["brain"]["cloud_order"] = tuple(data["brain"]["cloud_order"])
+    data["safety"]["allowed_folders"] = tuple(data["safety"]["allowed_folders"])
+    data["tools"]["disabled"] = tuple(data["tools"]["disabled"])
+    bindings = data["gesture"]["bindings"]
+    if not isinstance(bindings, dict) or any(
+        key not in {"thumb_up", "thumb_down", "palm_push"} or not isinstance(value, str)
+        for key, value in bindings.items()
+    ):
+        raise ConfigError("gesture.bindings must map supported gesture names to tool names")
     model_path = str(data["gesture"]["model_path"])
     if model_path:
         data["gesture"]["model_path"] = str(Path(model_path).expanduser())
@@ -262,6 +320,8 @@ def load_config(
         VoiceConfig(**data["voice"]),
         UiConfig(**data["ui"]),
         BrainConfig(**data["brain"]),
+        SafetyConfig(**data["safety"]),
+        ToolsConfig(**data["tools"]),
     )
     if not 1 <= config.gesture.state_hz <= 60:
         raise ConfigError("gesture.state_hz must be between 1 and 60")
@@ -299,6 +359,9 @@ def load_config(
         raise ConfigError("brain limits must be positive")
     if config.gesture.arm_hold_seconds <= 0:
         raise ConfigError("gesture.arm_hold_seconds must be positive")
+    if min(config.safety.confirm_timeout_s, config.safety.max_calls_per_10s,
+           config.safety.max_confirm_prompts_per_min, config.tools.result_max_chars) < 1:
+        raise ConfigError("safety and tools limits must be positive")
     return config
 
 # fmt: on

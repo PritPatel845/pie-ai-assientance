@@ -125,11 +125,14 @@ The result is a frozen `Config` dataclass with frozen nested dataclasses. Unknow
 | Section | Keys and defaults |
 |---|---|
 | `[app]` | `name='pie'`, `log_level='INFO'` |
-| `[gesture]` | `camera=0`, `preview=true`, `arm_hold_seconds=2.0`, `steer_sensitivity=0.004`, `state_hz=10`, `model_path=''` (empty = `assets/hand_landmarker.task`, then `~/.pie/models`, then download) |
+| `[gesture]` | `camera=0`, `preview=true`, `arm_hold_seconds=2.0`, `steer_sensitivity=0.004`, `state_hz=10`, `model_path=''`, `bindings_via_tools=true` |
+| `[gesture.bindings]` (Phase 3A) | `thumb_up='media.play'`, `thumb_down='media.pause'`, `palm_push='mac.mute'` |
+| `[safety]` (Phase 3A) | `sandbox_dir='~/PieWorkspace'`, `allowed_folders=['~/Desktop','~/Documents','~/Downloads','~/PieWorkspace']`, `confirm_timeout_s=20`, `max_calls_per_10s=10`, `max_confirm_prompts_per_min=3`, `audit_path='~/.pie/logs/audit.jsonl'` |
+| `[tools]` (Phase 3A) | `dry_run=false`, `disabled=[]`, `result_max_chars=20000` |
 | `[voice]` | `enabled=true`, `wake_words=['pie','hey pie','pi','jr','j r','jay r','jarvis']`, `listen_seconds=20`, `language='en'`, `stt_backend='auto'`, `stt_model='base.en'`, `input_device=''`, `vad_threshold=0.015`, `vad_min_speech_ms=150`, `vad_end_silence_ms=600`, `vad_max_utterance_s=12`, `stt_idle_unload_s=300`, `tts_enabled=true`, `tts_voice='Samantha'`, `tts_rate=185`, `allow_cloud_stt=false`, `debug_save_audio=false` (Phase 2A additions) |
 | `[ui]` | `host='127.0.0.1'`, `port=8765` |
 | `[brain]` (Phase 2B) | `enabled=true`, `cloud_order=['anthropic','openai']`, `cli_providers_enabled=false`, `anthropic_model=''`, `openai_model=''`, `local_backend='auto'` (`auto\|ollama\|mlx`), `local_model=''`, `max_steps=8`, `total_timeout_s=90`, `provider_timeout_s=45`, `context_turns=6`, `context_ttl_s=600`, `default_cooldown_s=3600`, `rate_limit_max_wait_s=8`, `local_max_ram_gb=6.0`, `local_keep_alive='2m'` |
-| Later phases | `[brain]`, `[safety]`, `[tools]` and other phase-owned keys are additive only. |
+| Later phases | Additional phase-owned keys are additive only; existing keys are never renamed or removed. |
 
 ## 6. Permission tiers — frozen
 
@@ -145,8 +148,13 @@ The result is a frozen `Config` dataclass with frozen nested dataclasses. Unknow
 - `Tool` protocol: `spec: ToolSpec`; `async run(args: Mapping[str, Any], ctx: ToolContext) -> ToolResult`.
 - `ToolContext`: `config`, `bus`, `cancel: asyncio.Event`, `call_id`, `workdir: Path`, `dry_run: bool`.
 - Arguments are validated against the schema before `run()`. `run()` never raises to its caller; it returns `ToolResult(ok=False, error=...)`. Every tool honours `ctx.dry_run` (perform everything except the side effect); long tools check `ctx.cancel`.
-- `ToolRegistry`: `register(tool)`, `get(name)`, `list()`, `execute(name, args, *, source, correlation_id)`.
-- `execute()` is the only execution path: validate → permission gate → tool events → run with timeout → audit record.
+- `ToolRegistry`: `register(tool)`, `get(name)`, `list()`, `specs_for_model()`, `execute(name, args, *, source, correlation_id=None, pre_approved_by=None, provider=None, dry_run=None)`.
+- `execute()` is the only execution path: platform/disabled check → JSON Schema Draft 2020-12 validation → path guard → rate limit → permission gate → tool events → timeout-bounded run → output limit → audit record.
+- Tool schema extensions: `x-path=true` marks filesystem paths; `x-confirm-if-exists=true` and `x-confirm-outside-sandbox=true` raise the effective tier to `CONFIRM`. Relative paths resolve under `safety.sandbox_dir`; protected paths are denied, not confirmable.
+- Deterministic rules may supply `pre_approved_by='voice_phrase'` only from the rule path. The registry discards this field for agent, gesture, text, and MCP sources. Only the exact explicit delete confirmation phrases are pre-approved; ambiguous delete requests still prompt.
+- `PermissionGate` serializes requests FIFO. Only an addressed final voice `yes/no`, an armed thumb-up/thumb-down, or the UI permission response can resolve the oldest request. Stale events are ignored; timeout and prompt-rate-limit deny.
+- `AuditLog` writes redacted JSONL records at mode `0600`, rotates five 5 MB files, and logs a warning rather than blocking execution if the audit write fails.
+- No arbitrary shell tool is registered. `--no-actions` and `tools.dry_run=true` skip tool execution entirely.
 
 ## 8. Brain contract — frozen (`src/pie/brain/`)
 
@@ -170,7 +178,7 @@ TCC permissions attach to the executable that runs Python (Terminal, iTerm, VS C
 
 ## 10. Existing behaviour to preserve
 
-- Arm by holding an open palm for 2 seconds. Index finger moves the cursor. Pinch (distance/hand size < 0.48) = double click, 0.7-second debounce. Three fingers = double click. Two-finger horizontal move = scroll. Open palm with z < -0.12 = mute. Fist = run `JARVIS_VOICE_COMMAND`. Thumb up = play; thumb down = stop. Hand depth z → volume = clamp(72 - z*180, 0, 100).
+- Arm by holding an open palm for 2 seconds. Index finger moves the cursor. Pinch (distance/hand size < 0.48) = double click, 0.7-second debounce. Three fingers = double click. Two-finger horizontal move = scroll. Open palm with z < -0.12 = palm-push mute binding. Fist emits the legacy voice-command action but it is suppressed in the tool-bound runtime; environment-provided AppleScript is never executed. Thumb up/down use the configured media bindings. Hand depth z → volume = clamp(72 - z*180, 0, 100).
 - Voice: wake word followed by a bounded command set (`parse_voice_command`); never arbitrary shell.
 - Games: profiles `asphalt`, `temple-run`, `counter-strike`; keys 1/2/3 switch; `g` toggles.
 - CLI flags: `--camera`, `--no-actions`, `--game-profile`, `--steer-sensitivity`, `--voice/--no-voice`, `--voice-background`, `--learning-dir`, `--voice-listen-seconds`.
@@ -179,3 +187,31 @@ TCC permissions attach to the executable that runs Python (Terminal, iTerm, VS C
 ---
 
 This file is the authoritative contract. Later phases read it first. Any required change to frozen sections 3–8 must be proposed in `docs/CONTRACT_CHANGE_REQUEST.md` and approved before implementation.
+
+
+## 11. Phase 3A built-in tool catalogue — additive
+
+| Tool | Tier | Behaviour / limits |
+|---|---:|---|
+| `system.time` | READ | Local date, time, timezone |
+| `mac.frontmost_app` | READ | Frontmost app name only |
+| `fs.list_dir` | READ / CONFIRM outside allowed roots | At most 200 entries; no recursive scan |
+| `fs.read_text` | READ / CONFIRM outside allowed roots | UTF-8 text, at most 100 KB; binary files refused |
+| `fs.write_text` | REVERSIBLE / CONFIRM on overwrite or outside sandbox | UTF-8 text, at most 100 KB; no shell |
+| `mac.open_app` | REVERSIBLE | Alias table plus Spotlight application fallback |
+| `mac.open_url` | REVERSIBLE | Only valid HTTP(S) URLs |
+| `mac.open_path` | REVERSIBLE / CONFIRM outside allowed roots | Opens through Finder; protected paths denied |
+| `browser.search` | REVERSIBLE | Opens a web search; does not submit forms |
+| `mac.set_volume` | REVERSIBLE | Integer 0–100 |
+| `mac.mute` | REVERSIBLE | Mutes output audio |
+| `mac.screenshot` | REVERSIBLE | Main display to Desktop; blank image reports likely Screen Recording permission failure |
+| `mac.scroll` | REVERSIBLE | Integer -50–50 |
+| `mac.key_combo` | REVERSIBLE | Allow-list: copy, paste, undo, redo, select-all, hide-app |
+| `mac.lock_screen` | REVERSIBLE | Locks the current session |
+| `mac.close_app` | CONFIRM | Prompt names the frontmost app; app identity is rechecked before quit |
+| `mac.delete_selected` | CONFIRM | Legacy macOS delete shortcut |
+| `mac.type_text` | CONFIRM | Up to 500 plain characters; control characters refused |
+| `media.play` / `media.pause` | REVERSIBLE | Active media session only |
+| `voice.stop_listening` | READ | Ends the active voice window without stopping Pie |
+
+Discrete thumb-up, thumb-down, and palm-push gestures publish events and use `[gesture.bindings]` through the registry while the system is armed. Setting `bindings_via_tools=false` is an explicit legacy compatibility opt-out that restores direct media actions. Continuous cursor movement, click, scroll, volume-from-depth, and held game keys remain direct-manipulation controls. The unregistered environment-provided voice command is disabled; it must not execute AppleScript or shell content outside the registry.

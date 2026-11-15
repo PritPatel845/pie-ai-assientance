@@ -68,6 +68,7 @@ class GestureEventTracker:
             "fist": is_fist(hand),
             "thumb_up": is_thumb_up(hand),
             "thumb_down": is_thumb_down(hand),
+            "palm_push": is_open_palm(hand) and getattr(hand[0], "z", 0.0) < -0.12,
             "two_finger": is_two_finger(hand),
             "three_finger": is_three_finger(hand),
             "four_finger": is_four_finger(hand),
@@ -88,9 +89,15 @@ class ActionSink:
     """Translate pure FrameProcessor actions into an injectable platform adapter."""
 
     def __init__(
-        self, controller: MacController, *, no_actions: bool = False, profile: str = "asphalt"
+        self,
+        controller: MacController,
+        *,
+        no_actions: bool = False,
+        profile: str = "asphalt",
+        bindings_via_tools: bool = False,
     ) -> None:
         self.controller, self.no_actions, self.profile = controller, no_actions, profile
+        self.bindings_via_tools = bindings_via_tools
 
     def set_profile(self, profile: str) -> None:
         from pie.inputs.gesture.game import GAME_PROFILES
@@ -107,13 +114,17 @@ class ActionSink:
         elif isinstance(action, DoubleClick):
             self.controller.double_click()
         elif isinstance(action, Mute):
-            self.controller.mute()
+            if not self.bindings_via_tools:
+                self.controller.mute()
         elif isinstance(action, PlayMedia):
-            self.controller.play_media()
+            if not self.bindings_via_tools:
+                self.controller.play_media()
         elif isinstance(action, StopMedia):
-            self.controller.stop_media()
+            if not self.bindings_via_tools:
+                self.controller.stop_media()
         elif isinstance(action, RunVoiceCommand):
-            self.controller.run_voice_command()
+            # Environment-provided AppleScript is not a registered safe tool.
+            return
         elif isinstance(action, Scroll):
             self.controller.scroll(action.amount)
         elif isinstance(action, SetVolume):
@@ -204,6 +215,7 @@ def run(
     bus: EventBus | None = None,
     stop: StopSignal | None = None,
     state_hz: int = 10,
+    gesture_bindings_via_tools: bool = False,
 ) -> None:
     try:
         cv2 = importlib.import_module("cv2")
@@ -231,7 +243,12 @@ def run(
             min_tracking_confidence=0.5,
         )
         controller = MacController()
-        sink = ActionSink(controller, no_actions=no_actions, profile=game_profile)
+        sink = ActionSink(
+            controller,
+            no_actions=no_actions,
+            profile=game_profile,
+            bindings_via_tools=gesture_bindings_via_tools,
+        )
         processor = FrameProcessor(
             arm_hold_seconds=arm_hold_seconds, steer_sensitivity=steer_sensitivity
         )
@@ -239,6 +256,7 @@ def run(
         previous_time = time.monotonic()
         fps = 0.0
         last_state_at = float("-inf")
+        last_state_armed: bool | None = None
         gesture_events = GestureEventTracker()
         if bus is not None:
             bus.publish(
@@ -260,30 +278,11 @@ def run(
                 result = landmarker.detect_for_video(image, timestamp_ms)
                 hands = result.hand_landmarks or []
                 frame_result = processor.process(hands)
-                if bus is not None:
-                    for name in gesture_events.update(hands, time.monotonic()):
-                        hand_label = "unknown"
-                        handedness = getattr(result, "handedness", None)
-                        if handedness and handedness[0]:
-                            hand_label = str(handedness[0][0].category_name).lower()
-                        bus.publish(
-                            "input.gesture.event",
-                            {"name": name, "hand": hand_label, "confidence": 1.0},
-                            source="gesture",
-                        )
-                elif not hands:
-                    gesture_events.update((), time.monotonic())
-                for action in frame_result.actions:
-                    sink.execute(action)
-                if hands:
-                    learning.record_hand_sample(hands[0], frame_result.gesture)
-                    draw_hand(frame, hands[0], cv2)
-                now = time.monotonic()
-                elapsed = now - previous_time
-                if elapsed > 0:
-                    fps = 0.9 * fps + 0.1 / elapsed if fps else 1.0 / elapsed
-                previous_time = now
-                if bus is not None and now - last_state_at >= 1.0 / state_hz:
+                frame_now = time.monotonic()
+                if bus is not None and (
+                    last_state_armed != frame_result.armed
+                    or frame_now - last_state_at >= 1.0 / state_hz
+                ):
                     bus.publish(
                         "input.gesture.state",
                         {
@@ -295,7 +294,31 @@ def run(
                         },
                         source="gesture",
                     )
-                    last_state_at = now
+                    last_state_at = frame_now
+                    last_state_armed = frame_result.armed
+                if bus is not None:
+                    for name in gesture_events.update(hands, frame_now):
+                        hand_label = "unknown"
+                        handedness = getattr(result, "handedness", None)
+                        if handedness and handedness[0]:
+                            hand_label = str(handedness[0][0].category_name).lower()
+                        bus.publish(
+                            "input.gesture.event",
+                            {"name": name, "hand": hand_label, "confidence": 1.0},
+                            source="gesture",
+                        )
+                elif not hands:
+                    gesture_events.update((), frame_now)
+                for action in frame_result.actions:
+                    sink.execute(action)
+                if hands:
+                    learning.record_hand_sample(hands[0], frame_result.gesture)
+                    draw_hand(frame, hands[0], cv2)
+                now = time.monotonic()
+                elapsed = now - previous_time
+                if elapsed > 0:
+                    fps = 0.9 * fps + 0.1 / elapsed if fps else 1.0 / elapsed
+                previous_time = now
                 if preview:
                     draw_hud(frame, frame_result, fps, cv2, no_actions=no_actions)
                     cv2.namedWindow("Pie Air Control", cv2.WINDOW_NORMAL)

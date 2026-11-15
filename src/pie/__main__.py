@@ -45,7 +45,7 @@ class VoiceModule:
             no_actions=self.no_actions,
             bus=daemon.bus,
             config=daemon.config.voice,
-            brain_enabled=daemon.config.brain.enabled,
+            brain_enabled=True,
         )
         self.controller.start()
 
@@ -124,11 +124,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "command",
         nargs="?",
-        choices=("run", "doctor", "config", "brain", "quota"),
+        choices=("run", "doctor", "config", "brain", "quota", "tool", "audit"),
         default="run",
     )
     parser.add_argument("config_action", nargs="?")
-    parser.add_argument("brain_args", nargs="*")
+    parser.add_argument("brain_args", nargs=argparse.REMAINDER)
     return parser
 
 
@@ -152,7 +152,8 @@ def _effective_config(args: argparse.Namespace) -> Config:
             else config.voice.listen_seconds
         ),
     )
-    return replace(config, gesture=gesture, voice=voice)
+    tools = replace(config.tools, dry_run=True) if args.no_actions else config.tools
+    return replace(config, gesture=gesture, voice=voice, tools=tools)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -165,6 +166,26 @@ def main(argv: list[str] | None = None) -> int:
 
         try:
             return run_quota_command(args.config_action, args.brain_args, args.config)
+        except (OSError, RuntimeError, ValueError) as exc:
+            parser.error(str(exc))
+    if args.command == "tool":
+        from pie.tools.cli import run_tool_command
+
+        try:
+            return run_tool_command(
+                args.config_action,
+                args.brain_args,
+                args.config,
+                no_voice=args.voice is False,
+                no_actions=args.no_actions,
+            )
+        except (OSError, RuntimeError, ValueError, TimeoutError) as exc:
+            parser.error(str(exc))
+    if args.command == "audit":
+        from pie.tools.cli import run_audit_command
+
+        try:
+            return run_audit_command(args.config_action, args.brain_args, args.config)
         except (OSError, RuntimeError, ValueError) as exc:
             parser.error(str(exc))
     if args.command == "brain":
@@ -191,6 +212,11 @@ def main(argv: list[str] | None = None) -> int:
         daemon = Daemon(config)
         if not args.voice_background:
             daemon.register_module(GestureModule())
+        from pie.inputs.gesture.bindings import GestureBindingsModule
+        from pie.tools.module import ToolsModule
+
+        daemon.register_module(ToolsModule())
+        daemon.register_module(GestureBindingsModule())
         voice_module: VoiceModule | None = None
         if config.voice.enabled:
             voice_module = VoiceModule(no_actions=args.no_actions)
@@ -225,6 +251,7 @@ def main(argv: list[str] | None = None) -> int:
                 bus=daemon.bus,
                 stop=daemon.stop_flag,
                 state_hz=config.gesture.state_hz,
+                gesture_bindings_via_tools=config.gesture.bindings_via_tools,
             )
 
         daemon.run_main(main_thread)

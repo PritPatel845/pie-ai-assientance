@@ -15,7 +15,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from pie.config import VoiceConfig
-from pie.events import EventBus
+from pie.events import Event, EventBus
 from pie.inputs.voice.executor import VoiceController as _VoiceController
 from pie.inputs.voice.stt import Transcriber, create_transcriber, is_hallucination
 from pie.inputs.voice.tts import Speaker
@@ -92,6 +92,15 @@ class VoiceController(_VoiceController):
         self._stt_disabled = False
         self._all_zero_frames = 0
         self._mic_permission_missing = threading.Event()
+        self._unsubscribe_tool_stop = (
+            bus.subscribe("input.voice.listening", self._on_listening_event, name="voice-tool-stop")
+            if bus is not None
+            else None
+        )
+
+    def _on_listening_event(self, event: Event) -> None:
+        if event.source == "tool" and not bool(event.payload.get("active", True)):
+            self._active_until = 0.0
 
     @property
     def echo_guard(self) -> bool:
@@ -367,6 +376,9 @@ class VoiceController(_VoiceController):
         if self._speaker is not None:
             self._speaker.stop()
         self.publish_listening(False, 0.0)
+        if self._unsubscribe_tool_stop is not None:
+            self._unsubscribe_tool_stop()
+            self._unsubscribe_tool_stop = None
 
 
 __all__ = ["VoiceController"]

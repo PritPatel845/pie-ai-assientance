@@ -26,6 +26,7 @@ class Module(Protocol):
 class Daemon:
     def __init__(self, config: Config) -> None:
         self.config = config
+        self.tool_registry: Any | None = None
         self.state = RuntimeState()
         self.stop_flag = StopFlag()
         self.loop: asyncio.AbstractEventLoop | None = None
