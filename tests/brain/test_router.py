@@ -614,3 +614,39 @@ def test_offline_fallback_does_not_speak_quota_message(tmp_path: Path) -> None:
         assert speech == []
 
     asyncio.run(scenario())
+
+def test_total_timeout_bounds_tool_runner(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        provider = FakeProvider(
+            "anthropic",
+            "cloud",
+            replies=[
+                ProviderReply("", (ToolCall("call", "test.slow", {}),)),
+                ProviderReply("must not be reached"),
+            ],
+        )
+
+        async def slow_runner(call: ToolCall, source: str) -> ToolResult:
+            await asyncio.sleep(0.2)
+            return ToolResult(True, output="late")
+
+        router = BrainRouter(
+            BrainConfig(
+                anthropic_model="claude-test",
+                total_timeout_s=0.03,
+                provider_timeout_s=0.03,
+            ),
+            EventBus(asyncio.get_running_loop()),
+            {"anthropic": provider},
+            QuotaTracker(tmp_path / "quota.json"),
+            _rule_executor,
+            lambda: [ToolSpec("test.slow", "slow fake tool", {})],
+            slow_runner,
+        )
+        result = await router.handle("run slow tool", source="test")
+
+        assert not result.ok
+        assert result.error == "total timeout"
+        assert len(provider.seen_messages) == 1
+
+    asyncio.run(scenario())
