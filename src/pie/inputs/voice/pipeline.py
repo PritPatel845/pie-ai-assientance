@@ -62,8 +62,11 @@ class VoiceController(_VoiceController):
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
         self._capture_thread: threading.Thread | None = None
+        self._stt_thread: threading.Thread | None = None
         self._audio_queue: queue.Queue[AudioBlock] = queue.Queue(maxsize=200)
+        self._stt_queue: queue.Queue[Segment | None] = queue.Queue(maxsize=20)
         self._dropped_blocks = 0
+        self._dropped_segments = 0
         self._speaker = (
             Speaker(
                 bus,
@@ -174,8 +177,22 @@ class VoiceController(_VoiceController):
             self._active_until = 0.0
             self.publish_listening(False, 0.0)
 
+    def _save_debug_audio(self, segment: Segment) -> None:
+        if not self.config.debug_save_audio:
+            return
+        directory = Path.home() / ".pie" / "debug_audio"
+        directory.mkdir(parents=True, exist_ok=True)
+        filename = directory / f"utterance-{datetime.now():%Y%m%d-%H%M%S-%f}.wav"
+        pcm = np.clip(segment.audio, -1.0, 1.0)
+        with wave.open(str(filename), "wb") as handle:
+            handle.setnchannels(1)
+            handle.setsampwidth(2)
+            handle.setframerate(_SAMPLE_RATE)
+            handle.writeframes((pcm * 32767).astype("<i2").tobytes())
+
     def _handle_segment(self, segment: Segment) -> None:
         try:
+            self._save_debug_audio(segment)
             transcriber = self._ensure_transcriber()
             raw = transcriber.transcribe(segment.audio, self.language).strip()
         except Exception as exc:
@@ -190,16 +207,6 @@ class VoiceController(_VoiceController):
             )
             return
         self._last_stt_activity = self._clock()
-        if self.config.debug_save_audio:
-            directory = Path.home() / ".pie" / "debug_audio"
-            directory.mkdir(parents=True, exist_ok=True)
-            filename = directory / f"utterance-{datetime.now():%Y%m%d-%H%M%S-%f}.wav"
-            pcm = np.clip(segment.audio, -1.0, 1.0)
-            with wave.open(str(filename), "wb") as handle:
-                handle.setnchannels(1)
-                handle.setsampwidth(2)
-                handle.setframerate(_SAMPLE_RATE)
-                handle.writeframes((pcm * 32767).astype("<i2").tobytes())
         rms = float(np.sqrt(np.mean(np.square(segment.audio, dtype=np.float64))))
         if is_hallucination(raw, rms=rms, threshold=self.config.vad_threshold):
             return
@@ -224,12 +231,6 @@ class VoiceController(_VoiceController):
             try:
                 block = self._audio_queue.get(timeout=0.2)
             except queue.Empty:
-                if self._transcriber is not None and (
-                    self._clock() - self._last_stt_activity >= self.config.stt_idle_unload_s
-                ):
-                    self._transcriber.close()
-                    self._transcriber = None
-                    self._last_stt_activity = self._clock()
                 continue
             if self._all_zero_frames >= 3 * _SAMPLE_RATE:
                 now = self._clock()
@@ -250,9 +251,40 @@ class VoiceController(_VoiceController):
                 self._mic_permission_missing.set()
                 continue
             for segment in self._vad.feed(block):
-                self._handle_segment(segment)
+                try:
+                    self._stt_queue.put_nowait(segment)
+                except queue.Full:
+                    try:
+                        self._stt_queue.get_nowait()
+                    except queue.Empty:
+                        pass
+                    self._dropped_segments += 1
+                    try:
+                        self._stt_queue.put_nowait(segment)
+                    except queue.Full:
+                        self._dropped_segments += 1
             if self._dropped_blocks and self._dropped_blocks % 50 == 0:
                 _LOG.warning("Voice input queue dropped %d audio blocks", self._dropped_blocks)
+
+
+    def _process_stt(self) -> None:
+        while not self._stop.is_set():
+            try:
+                segment = self._stt_queue.get(timeout=0.2)
+            except queue.Empty:
+                if self._transcriber is not None and (
+                    self._clock() - self._last_stt_activity >= self.config.stt_idle_unload_s
+                ):
+                    self._transcriber.close()
+                    self._transcriber = None
+                    self._last_stt_activity = self._clock()
+                continue
+            if segment is None:
+                return
+            self._handle_segment(segment)
+            self._last_stt_activity = self._clock()
+            if self._dropped_segments and self._dropped_segments % 10 == 0:
+                _LOG.warning("Voice STT queue dropped %d utterances", self._dropped_segments)
 
     def _capture(self) -> None:
         retry_window = 0.0
@@ -321,6 +353,10 @@ class VoiceController(_VoiceController):
                 },
                 source="voice",
             )
+        self._stt_thread = threading.Thread(
+            target=self._process_stt, name="pie-stt", daemon=True
+        )
+        self._stt_thread.start()
         self._thread = threading.Thread(target=self._process_audio, name="pie-voice", daemon=True)
         self._thread.start()
         self._capture_thread = threading.Thread(
@@ -336,6 +372,17 @@ class VoiceController(_VoiceController):
         if self._thread is not None:
             self._thread.join(timeout=2)
             self._thread = None
+        if self._stt_thread is not None:
+            try:
+                self._stt_queue.put_nowait(None)
+            except queue.Full:
+                try:
+                    self._stt_queue.get_nowait()
+                except queue.Empty:
+                    pass
+                self._stt_queue.put_nowait(None)
+            self._stt_thread.join(timeout=2)
+            self._stt_thread = None
         if self._transcriber is not None:
             self._transcriber.close()
             self._transcriber = None
