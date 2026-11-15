@@ -4,7 +4,7 @@ Status: Phase 1 implementation underway on this branch. Phase 0S was released wi
 
 ## Gate
 
-<badge>Gate satisfied</badge> The required `pie-phase-0-done` tag exists and points to the Phase 0S handoff commit. The final Phase 0S test suite and CI passed. Phase 1 implementation is authorized.
+Gate satisfied. The required `pie-phase-0-done` tag exists and points to the Phase 0S handoff commit. The final Phase 0S test suite and CI passed. Phase 1 implementation is authorized.
 
 ## Goal
 
