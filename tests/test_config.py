@@ -1,3 +1,5 @@
+"""Strict TOML/environment configuration follows Phase 0S §3.9 (PDF p. 23)."""
+
 from __future__ import annotations
 
 import pytest
