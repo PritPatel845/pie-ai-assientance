@@ -2,14 +2,14 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-DEST="\${1:-$ROOT/assets/hand_landmarker.task}"
+DEST="${1:-$ROOT/assets/hand_landmarker.task}"
 URL="https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task"
 MIRROR_URL="https://huggingface.co/Leo-TX/mediapipe-hand/resolve/main/hand_landmarker.task"
 EXPECTED_BYTES=7819105
 EXPECTED_SHA256="fbc2a30080c3c557093b5ddfc334698132eb341044ccee322ccf8bcf3607cde1"
 
 mkdir -p "$(dirname "$DEST")"
-TEMP="\${DEST}.tmp"
+TEMP="${DEST}.tmp"
 trap 'rm -f "$TEMP"' EXIT
 
 VERIFIED=0
