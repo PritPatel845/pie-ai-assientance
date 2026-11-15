@@ -31,7 +31,7 @@ def test_addressed_voice_yes_approves_fifo_request() -> None:
         await asyncio.sleep(0.01)
         bus.publish(
             "input.voice.transcript",
-            {"final": True, "addressed": True, "text": "yes"},
+            {"final": True, "addressed": True, "text": "yes."},
             source="voice",
         )
         decision = await task
