@@ -78,7 +78,7 @@ Branch: phase-0s-implementation. Target Python >=3.12,<3.13 on Apple Silicon mac
 | `[voice]` | `enabled`, `wake_words`, `listen_seconds`, `language` | `true`, `["pie","hey pie","pi","jr","j r","jay r","jarvis"]`, `20`, `"en"` |
 | `[ui]` | `host`, `port` | `127.0.0.1`, `8765` |
 
-Precedence is: packaged/repository defaults < `~/.pie/config.toml` < typed `PIE_<SECTION>_<KEY>` environment variables < `cli_overrides`. Unknown TOML keys and unknown environment names for a known section raise `ConfigError`. Boolean environment values accept `true/false/1/0/yes/no`; list values accept JSON arrays. `gesture.model_path` expands `~`. Loading configuration does not create directories.
+Precedence is: repository default TOML < `~/.pie/config.toml` < typed `PIE_<SECTION>_<KEY>` environment variables < `cli_overrides`. Unknown TOML keys and unknown environment names for a known section raise `ConfigError`. Boolean environment values accept `true/false/1/0/yes/no`; list values accept JSON arrays. `gesture.model_path` expands `~`. Loading configuration does not create directories.
 
 ### Gesture precedence and profiles
 
