@@ -19,6 +19,7 @@ def match_rule(text: str) -> RuleMatch | None:
 
 
 _LOCAL_PHRASES = (
+    "use the local model",
     "use local model",
     "use local",
     "locally",
