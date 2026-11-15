@@ -101,7 +101,7 @@ class VoiceController(_VoiceController):
         self._publish("input.voice.listening", {"active": active, "until": until})
 
     def publish_transcript(
-        self, text: str, *, raw: str, addressed: bool, final: bool = True
+        self, text: str, *, raw: str | None = None, addressed: bool = True, final: bool = True
     ) -> None:
         self._publish(
             "input.voice.transcript",
@@ -110,7 +110,7 @@ class VoiceController(_VoiceController):
                 "final": final,
                 "lang": self.language,
                 "addressed": addressed,
-                "raw": raw,
+                "raw": text if raw is None else raw,
             },
         )
 
