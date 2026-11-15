@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 import logging
 import signal
 import threading
@@ -19,7 +20,7 @@ class Module(Protocol):
     name: str
 
     def start(self, daemon: "Daemon") -> None: ...
-    def stop(self) -> None: ...
+    def stop(self) -> object: ...
 
 
 class Daemon:
@@ -104,9 +105,19 @@ class Daemon:
         self.stop_flag.set()
         for module in reversed(self._started):
             try:
-                result = module.stop()
-                if asyncio.iscoroutine(result):
-                    asyncio.run_coroutine_threadsafe(asyncio.wait_for(result, 3.0), self.loop).result(3.2)  # type: ignore[arg-type]
+                if self.loop is None or not self.loop.is_running():
+                    module.stop()
+                    continue
+
+                async def stop_one(target: Module = module) -> None:
+                    result = await self.loop.run_in_executor(None, target.stop)
+                    if inspect.isawaitable(result):
+                        await result
+
+                future = asyncio.run_coroutine_threadsafe(
+                    asyncio.wait_for(stop_one(), timeout=3.0), self.loop
+                )
+                future.result(timeout=3.2)
             except Exception:
                 _LOG.exception("module %s failed to stop", module.name)
         self._started.clear()
