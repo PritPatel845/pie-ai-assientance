@@ -161,7 +161,7 @@ class FrameProcessor:
         self._steering_center = None
 
     def _release_keys(self) -> list[Action]:
-        actions = [KeyAction(name, False) for name in sorted(self._held)]
+        actions: list[Action] = [KeyAction(name, False) for name in sorted(self._held)]
         self._held.clear()
         return actions
 
