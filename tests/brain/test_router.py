@@ -18,7 +18,7 @@ from pie.brain.types import (
     ToolSpec,
 )
 from pie.config import BrainConfig
-from pie.events import EventBus
+from pie.events import Event, EventBus
 
 
 class FakeProvider:
