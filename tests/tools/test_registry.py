@@ -204,7 +204,7 @@ def test_explicit_rule_preapproval_is_accepted(tmp_path: Path) -> None:
         registry.register(_tool("mac.delete_selected", tier=Tier.CONFIRM))
         result = await registry.execute(
             "mac.delete_selected",
-            {"value": "hello"},
+            {},
             source="rule",
             pre_approved_by="voice_phrase",
         )
@@ -330,6 +330,32 @@ def test_same_tool_calls_are_serialized(tmp_path: Path) -> None:
         )
         assert all(result.ok for result in results)
         assert maximum == 1
+        gate.stop()
+
+    asyncio.run(scenario())
+
+
+
+def test_rule_preapproval_cannot_bypass_other_confirm_tools(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        registry, gate, bus = _registry(tmp_path)
+        registry.register(_tool("mac.type_text", tier=Tier.CONFIRM))
+        task = asyncio.create_task(
+            registry.execute(
+                "mac.type_text",
+                {"value": "hello"},
+                source="rule",
+                pre_approved_by="voice_phrase",
+            )
+        )
+        await asyncio.sleep(0.01)
+        assert not task.done()
+        bus.publish(
+            "input.voice.transcript",
+            {"final": True, "addressed": True, "text": "yes"},
+            source="voice",
+        )
+        assert (await task).ok
         gate.stop()
 
     asyncio.run(scenario())
