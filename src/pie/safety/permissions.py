@@ -63,7 +63,9 @@ class PermissionGate:
             self.bus.subscribe(
                 "input.voice.transcript", self._on_voice, name="permission-voice"
             ),
-            self.bus.subscribe("input.gesture.*", self._on_gesture_event, name="permission-gesture"),
+            self.bus.subscribe(
+                "input.gesture.*", self._on_gesture_event, name="permission-gesture"
+            ),
             self.bus.subscribe("ui.command", self._on_ui, name="permission-ui"),
         ]
 
@@ -180,7 +182,10 @@ class PermissionGate:
         )
         self.bus.publish(
             "tts.say",
-            {"text": f"{prompt} Say yes or no, or give a thumbs up or thumbs down.", "interrupt": False},
+            {
+                "text": f"{prompt} Say yes or no, or give a thumbs up or thumbs down.",
+                "interrupt": False,
+            },
             source="permission_gate",
         )
         try:
