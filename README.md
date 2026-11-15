@@ -9,8 +9,15 @@ macOS action adapters, game profiles, a phrase parser, and local learning persis
 - Python 3.12
 - Install package and development tools: `python -m pip install -e ".[dev,mac]"`
 
+**Packaging validation is still open:** MediaPipe 0.10.35 publishes a macOS arm64 wheel,
+but its PyPI metadata also declares `opencv-contrib-python` while this project pins
+`opencv-python`. Do not separately install or upgrade either OpenCV distribution until
+the target-Mac install is checked; see `docs/HANDOFF.md`. The Linux CI job intentionally
+does not claim to validate the macOS extra.
+
 The camera runtime uses MediaPipe Tasks and the Hand Landmarker model. The model is not
-silently downloaded: run `python -m pie --download-model` as an explicit network action.
+silently downloaded: run `scripts/download_model.sh` to verify it into `assets/`, or run
+`python -m pie --download-model` as an explicit network action into `~/.pie/models/`.
 
 ## Commands
 ```bash
