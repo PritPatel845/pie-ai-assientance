@@ -4,7 +4,7 @@ import asyncio
 from collections.abc import Sequence
 from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
-from typing import Any
+from typing import Any, cast
 
 from pie.brain.keys import get_api_key
 from pie.brain.types import (
@@ -62,8 +62,10 @@ class AnthropicProvider:
                     model=self.model,
                     max_tokens=max_tokens,
                     system=system,
-                    messages=history,
-                    tools=tool_defs or None,
+                    # SDK TypedDict unions are stricter than our provider-neutral payloads.
+                    # The structures are built above to match the Anthropic wire schema.
+                    messages=cast(Any, history),
+                    tools=cast(Any, tool_defs or None),
                 ),
                 timeout=timeout_s,
             )
