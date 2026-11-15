@@ -31,7 +31,6 @@ def test_audit_cli_preserves_tail_options() -> None:
     assert args.brain_args == ["-n", "25"]
 
 
-
 def test_global_no_actions_and_no_voice_flags_are_preserved() -> None:
     args = build_parser().parse_args(
         ["--no-actions", "--no-voice", "tool", "run", "mac.close_app"]
