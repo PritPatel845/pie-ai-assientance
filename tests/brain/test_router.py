@@ -567,7 +567,11 @@ def test_initial_quota_fallback_speaks_only_the_quota_message(tmp_path: Path) ->
         router = BrainRouter(
             BrainConfig(anthropic_model="claude-test", openai_model="gpt-test"),
             bus,
-            {"local": local},
+            {
+                "anthropic": FakeProvider("anthropic", "cloud"),
+                "openai": FakeProvider("openai", "cloud"),
+                "local": local,
+            },
             quota,
             _rule_executor,
             lambda: [],
