@@ -514,3 +514,103 @@ def test_system_prompt_contains_required_safety_rules() -> None:
         "at most two sentences",
     ):
         assert phrase.casefold() in SYSTEM_PROMPT.casefold()
+
+def test_local_failure_publishes_unavailable_speech(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        bus = EventBus(asyncio.get_running_loop())
+        speech: list[Event] = []
+        spoken = asyncio.Event()
+
+        async def collect(event: Event) -> None:
+            speech.append(event)
+            spoken.set()
+
+        bus.subscribe("tts.say", collect, name="local-failure-speech")
+        local = FakeProvider("local", "local", error=ProviderUnavailable("local", "offline"))
+        router = BrainRouter(
+            BrainConfig(),
+            bus,
+            {"local": local},
+            QuotaTracker(tmp_path / "quota.json"),
+            _rule_executor,
+            lambda: [],
+            _tool_runner,
+        )
+
+        result = await router.handle("use local explain gravity", source="test")
+        await asyncio.wait_for(spoken.wait(), timeout=1.0)
+
+        assert not result.ok
+        assert speech[0].payload["text"] == "No AI model is available right now."
+
+    asyncio.run(scenario())
+
+
+def test_initial_quota_fallback_speaks_only_the_quota_message(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        bus = EventBus(asyncio.get_running_loop())
+        speech: list[Event] = []
+        spoken = asyncio.Event()
+
+        async def collect(event: Event) -> None:
+            speech.append(event)
+            spoken.set()
+
+        bus.subscribe("tts.say", collect, name="quota-fallback-speech")
+        quota = QuotaTracker(tmp_path / "quota.json")
+        quota.mark_exhausted("anthropic", reset_at=9999999999.0)
+        quota.mark_exhausted("openai", reset_at=9999999999.0)
+        local = FakeProvider("local", "local", text="local answer")
+        router = BrainRouter(
+            BrainConfig(anthropic_model="claude-test", openai_model="gpt-test"),
+            bus,
+            {"local": local},
+            quota,
+            _rule_executor,
+            lambda: [],
+            _tool_runner,
+        )
+
+        result = await router.handle("explain gravity", source="test")
+        await asyncio.wait_for(spoken.wait(), timeout=1.0)
+
+        assert result.provider == "local"
+        assert len(speech) == 1
+        assert speech[0].payload["text"] == (
+            "Cloud credits are used up, switching to the local model."
+        )
+
+    asyncio.run(scenario())
+
+
+def test_offline_fallback_does_not_speak_quota_message(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        bus = EventBus(asyncio.get_running_loop())
+        speech: list[Event] = []
+
+        async def collect(event: Event) -> None:
+            speech.append(event)
+
+        bus.subscribe("tts.say", collect, name="offline-fallback-speech")
+        providers = {
+            "anthropic": FakeProvider("anthropic", "cloud", healthy=False),
+            "openai": FakeProvider("openai", "cloud", healthy=False),
+            "local": FakeProvider("local", "local"),
+        }
+        router = BrainRouter(
+            BrainConfig(anthropic_model="claude-test", openai_model="gpt-test"),
+            bus,
+            providers,  # type: ignore[arg-type]
+            QuotaTracker(tmp_path / "quota.json"),
+            _rule_executor,
+            lambda: [],
+            _tool_runner,
+        )
+
+        result = await router.handle("explain gravity", source="test")
+        await asyncio.sleep(0)
+
+        assert result.ok
+        assert speech == []
+
+    asyncio.run(scenario())
