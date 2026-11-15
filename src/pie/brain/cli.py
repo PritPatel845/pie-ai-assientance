@@ -187,6 +187,4 @@ def run_brain_command(action: str | None, arguments: list[str], config_path: Pat
         return 0
     if action == "quota":
         return run_quota_command(arguments[0] if arguments else None, arguments[1:], config_path)
-    raise ValueError(
-        "usage: pie brain <status|test <provider>|ask <prompt>|set-key <provider>>"
-    )
+    raise ValueError("usage: pie brain <status|test <provider>|ask <prompt>|set-key <provider>>")
