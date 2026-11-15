@@ -7,13 +7,15 @@ macOS action adapters, game profiles, a phrase parser, and local learning persis
 ## Requirements
 - macOS on Apple Silicon
 - Python 3.12
-- Install package and development tools: `python -m pip install -e ".[dev,mac]"`
+- For pure-module development and tests: `python -m pip install -e ".[dev]"`
 
-**Packaging validation is still open:** MediaPipe 0.10.35 publishes a macOS arm64 wheel,
-but its PyPI metadata also declares `opencv-contrib-python` while this project pins
-`opencv-python`. Do not separately install or upgrade either OpenCV distribution until
-the target-Mac install is checked; see `docs/HANDOFF.md`. The Linux CI job intentionally
-does not claim to validate the macOS extra.
+**Do not install the `[mac]` extra yet.** Packaging validation is blocked: MediaPipe
+0.10.35 declares `opencv-contrib-python`, while Pie's frozen dependency pins
+`opencv-python`. Both distributions provide the same `cv2` namespace, and OpenCV says
+to install only one. Installing `.[mac]` would attempt to install both. The target-Mac
+audit now reports the installed distributions and MediaPipe's declared requirement.
+An approved dependency-contract resolution and a tested macOS installation are required
+before camera runtime setup; see `docs/HANDOFF.md`. Linux CI does not validate the macOS extra.
 
 The verified MediaPipe Hand Landmarker model is bundled at `assets/hand_landmarker.task`
 for offline-first startup. Runtime path resolution checks the configured model path, the
