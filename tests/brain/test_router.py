@@ -85,9 +85,7 @@ def test_cloud_quota_falls_through_to_next_cloud_before_local(tmp_path: Path) ->
         anthropic = FakeProvider("anthropic", "cloud", error=QuotaExhausted("anthropic"))
         openai = FakeProvider("openai", "cloud", text="from openai")
         local = FakeProvider("local", "local")
-        router = _router(
-            {"anthropic": anthropic, "openai": openai, "local": local}, tmp_path
-        )
+        router = _router({"anthropic": anthropic, "openai": openai, "local": local}, tmp_path)
 
         result = await router.handle("explain gravity", source="test")
 
