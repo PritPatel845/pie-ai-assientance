@@ -14,7 +14,12 @@ def test_cli_flags_defer_to_config_when_omitted() -> None:
 
 def test_main_uses_config_values_without_cli_overrides(monkeypatch, capsys) -> None:
     config = Config(
-        gesture=GestureConfig(camera=2, preview=False, arm_hold_seconds=1.5, steer_sensitivity=0.012),
+        gesture=GestureConfig(
+            camera=2,
+            preview=False,
+            arm_hold_seconds=1.5,
+            steer_sensitivity=0.012,
+        ),
         voice=VoiceConfig(enabled=False, listen_seconds=25),
     )
     calls: dict[str, object] = {}
