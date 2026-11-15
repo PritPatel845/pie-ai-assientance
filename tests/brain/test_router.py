@@ -7,9 +7,9 @@ from typing import Literal
 from pie.brain.quota import QuotaTracker
 from pie.brain.router import BrainRouter
 from pie.brain.types import (
+    AuthError,
     Message,
     ProviderReply,
-    AuthError,
     ProviderUnavailable,
     QuotaExhausted,
     RateLimited,
