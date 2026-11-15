@@ -50,6 +50,16 @@ class EnergyVad:
         self._started_at = 0
         self._noise_floor = 0.003
 
+    def reset(self) -> None:
+        """Discard buffered audio so playback or device changes cannot form speech."""
+        self._pre_roll.clear()
+        self._pre_roll_count = 0
+        self._candidate.clear()
+        self._candidate_count = 0
+        self._speech.clear()
+        self._speech_count = 0
+        self._silence_count = 0
+
     @staticmethod
     def _rms(block: Audio) -> float:
         if block.size == 0:
