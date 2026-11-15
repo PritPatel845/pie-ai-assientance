@@ -375,7 +375,7 @@ class ToolRegistry:
         summary = (
             f"text result ({len(result.output)} characters)"
             if isinstance(result.output, str)
-            else result.error or "completed"
+            else "failed" if result.error else "completed"
         )
         self._publish(
             "tool.finished",
