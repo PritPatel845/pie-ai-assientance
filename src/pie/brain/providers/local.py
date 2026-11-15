@@ -120,9 +120,7 @@ class LocalProvider:
             )
             return selected[0] if selected else ""
         eligible = [
-            (name, size)
-            for name, size in self._models
-            if 0 < size <= self.max_ram_bytes and name
+            (name, size) for name, size in self._models if 0 < size <= self.max_ram_bytes and name
         ]
         if not eligible:
             return ""
