@@ -16,6 +16,7 @@ from numpy.typing import NDArray
 _LOG = logging.getLogger(__name__)
 Audio = NDArray[np.float32]
 _MODEL_REPOS = {"base.en": "mlx-community/whisper-base.en-mlx"}
+_MAX_MODEL_BYTES = 1_000_000_000
 
 
 class Transcriber(Protocol):
@@ -75,7 +76,19 @@ class MlxWhisperTranscriber:
             downloader = hub.snapshot_download
         downloaded = downloader(repo_id=repo_id, cache_dir=str(self.cache_dir))
         self._model_path = Path(downloaded)
-        _LOG.info("Speech model %s is ready", self.model)
+        model_bytes = sum(
+            item.stat().st_size for item in self._model_path.rglob("*") if item.is_file()
+        )
+        if model_bytes > _MAX_MODEL_BYTES:
+            self._model_path = None
+            raise RuntimeError(
+                f"Speech model exceeds the 1 GB memory/disk budget ({model_bytes} bytes)"
+            )
+        _LOG.info(
+            "Speech model %s is ready (%.1f MB on disk)",
+            self.model,
+            model_bytes / 1_000_000,
+        )
         return self._model_path
 
     def transcribe(self, audio: Audio, language: str) -> str:
