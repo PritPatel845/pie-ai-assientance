@@ -183,6 +183,19 @@ class ToolRegistry:
             if errors:
                 location = ".".join(str(part) for part in errors[0].absolute_path) or "arguments"
                 raise ValueError(f"{location}: {errors[0].message}")
+            workspace_root = Path(
+                str(self._setting("safety", "sandbox_dir", "~/PieWorkspace"))
+            ).expanduser()
+            for key, property_schema in spec.parameters.get("properties", {}).items():
+                raw_path = safe_args.get(key)
+                if (
+                    isinstance(property_schema, dict)
+                    and property_schema.get("x-path") is True
+                    and isinstance(raw_path, str)
+                    and not raw_path.startswith("~")
+                    and not Path(raw_path).is_absolute()
+                ):
+                    safe_args[key] = str(workspace_root / raw_path)
             path_tier = guard_paths(
                 safe_args,
                 spec.parameters,
