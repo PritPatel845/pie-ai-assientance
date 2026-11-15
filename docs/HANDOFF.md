@@ -493,3 +493,46 @@ python -m pie doctor
 python scripts/manual_checks/record_and_transcribe.py --seconds 5
 python -m pie run --voice-background --print-events
 ```
+
+
+## Phase 2B implementation progress — 2026-11-15
+
+### Branch and scope
+- Implementation is isolated on `phase-2b-implementation`; PR #5 targets `main`.
+- Phase 2B builds the fault-tolerant routing layer only. No real tools are exposed; the model receives an empty tool list until Phase 3A.
+- The voice pipeline now has a single-execution switch: with `brain.enabled=true`, it publishes addressed transcripts and does not separately execute legacy commands. `BrainModule` is the sole consumer of addressed voice transcripts and typed `input.text.command` events. Deterministic matches call the shared `LegacyRuleExecutor.run(action, value)` seam exactly once. With brain disabled, the Phase 2A legacy path remains active.
+
+### Implemented
+- Deterministic rules and explicit local directives, including `use the local model`.
+- Cloud chain in configured order, one bounded retry for short rate limits, and cloud-to-cloud fallback before local fallback.
+- Error mapping for authentication, rate-limit, quota/billing, connection, timeout, and server errors.
+- Thread-safe quota tracker with injectable clock, atomic temporary-file replacement, expiry, reset, and corrupt-file recovery.
+- Local OpenAI-compatible provider: Ollama probe, optional configured MLX endpoint, configured-model selection or largest installed Ollama model within the configured size budget, available-memory check, keep-alive hint, and no auto-start.
+- Key lookup order: system Keychain via `keyring`, then environment variable. `pie brain set-key` reads with `getpass`; key material is not printed or logged.
+- Claude CLI and Codex CLI provider classes are deliberately **safe stubs**. No sandbox flags were verified, so they return `ProviderUnavailable("unsafe: cannot sandbox")`; they never launch a shell or CLI.
+- `BrainModule` connects voice and typed input to the router; shutdown closes provider clients.
+- CLI: `pie brain status`, `pie brain test <provider>`, `pie brain ask "text"`, `pie brain set-key <provider>`, and `pie quota show|reset <provider|all>`.
+- Router emits request/response/switch/quota events, keeps short in-memory context with TTL, supports stop/cancel, and speaks only the contracted quota-switch message on quota fallback. If no model is available it returns a failed result and publishes the contracted unavailable message.
+
+### Current boundaries and limitations
+- Phase 2B remains chat-only. Tool calls from a model are not executed; tool registry and reversible actions belong to Phase 3A.
+- Claude CLI and Codex CLI are intentionally disabled stubs until their installed CLI help can be checked for flags that guarantee no file or shell access.
+- The local provider expects an already-running Ollama service or a configured OpenAI-compatible MLX server at `PIE_MLX_BASE_URL`. It never starts a local model server. Ollama reports model disk sizes; an MLX-compatible endpoint may not report model size, so the exact size is unknown in that mode.
+- No cloud model identifier is hard-coded. The owner must set `anthropic_model` / `openai_model` in the user config and add keys using `pie brain set-key` or environment variables.
+- CI uses fake providers only. Real API credentials, a running local model, offline fallback, voice command handoff, and local model memory/latency still require manual verification on the target Mac.
+
+### Manual verification
+See `scripts/manual_checks/phase2b.md`. Do not merge PR #5 or create `pie-phase-2b-done` until the complete fallback matrix, one-execution voice handoff, configured cloud/local path, and target-Mac checks are verified.
+
+### Exact automated commands
+```bash
+pytest -q
+ruff check .
+ruff format --check .
+mypy src/pie
+python -m pie doctor
+python -m pie brain status
+python -m pie brain test anthropic
+python -m pie brain ask "what is 2+2"
+python -m pie quota show
+```
