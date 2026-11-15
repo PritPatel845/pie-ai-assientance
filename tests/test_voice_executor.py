@@ -48,7 +48,7 @@ def test_voice_controller_redacts_type_history(tmp_path) -> None:
         ("hide app", ("hide_frontmost",)),
         ("undo", ("key_combo", "command", "z")),
         ("open https://example.com", ("open_target", "https://example.com")),
-        ("open ~/Documents", ("open_target", str(Path("~/Documents").expanduser()))),
+        ("open ~/Documents", ("open_target", str(Path("~/documents").expanduser()))),
         ("open safari", ("open_application_or_item", "safari")),
         ("search two words", ("open_target", "https://www.google.com/search?q=two+words")),
         ("type hello world", ("type_text", "hello world")),
