@@ -142,8 +142,11 @@ class FrameProcessor:
             self.profile = profile
         self._disarm()
         self._previous.clear()
+        self._previous_x = None
         self._previous_index = None
         self._previous_game = "GAME READY"
+        self._last_volume = None
+        self._last_volume_at = float("-inf")
         return actions
 
     def reset(self) -> list[Action]:
