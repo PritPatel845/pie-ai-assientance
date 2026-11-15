@@ -18,10 +18,12 @@ def _empty_schema() -> dict[str, Any]:
 
 
 def build_mac_tools(controller: MacController) -> list[FunctionTool]:
-    confirmed_app: str | None = None
+    confirmed_apps: dict[str, str] = {}
 
     async def open_app(args: Mapping[str, Any], ctx: ToolContext) -> ToolResult:
         name = str(args["name"]).strip()
+        if "://" in name or name.startswith(("/", "~", ".")):
+            return fail("use mac.open_url or mac.open_path for URLs and paths")
         if ctx.dry_run:
             return ok({"would_open": name})
         return ok({"opened": name}) if await asyncio.to_thread(controller.open_application_or_item, name) else fail("application could not be opened")
@@ -106,15 +108,17 @@ def build_mac_tools(controller: MacController) -> list[FunctionTool]:
             return ok({"would_lock": True})
         return ok({"locked": True}) if await asyncio.to_thread(controller.lock_screen) else fail("lock screen failed")
 
-    def close_prompt(args: Mapping[str, Any]) -> str:
-        nonlocal confirmed_app
+    def close_prompt(args: Mapping[str, Any], call_id: str) -> str:
         del args
-        confirmed_app = controller.frontmost_app()
-        label = confirmed_app or "unknown frontmost application"
+        app = controller.frontmost_app()
+        if app:
+            confirmed_apps[call_id] = app
+        label = app or "unknown frontmost application"
         return f"Close {label}? This will quit the currently frontmost application."
 
     async def close_app(args: Mapping[str, Any], ctx: ToolContext) -> ToolResult:
         del args
+        confirmed_app = confirmed_apps.pop(ctx.call_id, None)
         if ctx.dry_run:
             return ok({"would_close": confirmed_app})
         current = await asyncio.to_thread(controller.frontmost_app)
