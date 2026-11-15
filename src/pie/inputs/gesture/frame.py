@@ -104,7 +104,11 @@ class FrameProcessor:
     """Pure gesture state machine. All OS effects are returned as typed actions."""
 
     def __init__(
-        self, *, arm_hold_seconds: float = 2.0, steer_sensitivity: float = 0.004, clock: Callable[[], float] | None = None
+        self,
+        *,
+        arm_hold_seconds: float = 2.0,
+        steer_sensitivity: float = 0.004,
+        clock: Callable[[], float] | None = None,
     ) -> None:
         import time
 
