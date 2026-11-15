@@ -11,8 +11,9 @@ from pie.inputs.gesture.features import Landmark, normalize_hand
 
 
 class LearningEngine:
-    def __init__(self, base_dir: Path | str | None = None,
-                 clock: Callable[[], float] = time.monotonic) -> None:
+    def __init__(
+        self, base_dir: Path | str | None = None, clock: Callable[[], float] = time.monotonic
+    ) -> None:
         self.base_dir = Path(base_dir) if base_dir else Path.home() / ".pie" / "learning"
         self.base_dir.mkdir(parents=True, exist_ok=True)
         self._clock = clock
@@ -36,8 +37,11 @@ class LearningEngine:
 
     def record_hand_sample(self, hand: Sequence[Landmark], gesture: str) -> dict[str, object]:
         now = self._clock()
-        sample: dict[str, object] = {"time": now, "gesture": gesture,
-                                     "signature": normalize_hand(hand)}
+        sample: dict[str, object] = {
+            "time": now,
+            "gesture": gesture,
+            "signature": normalize_hand(hand),
+        }
         if now - self._last_sample >= 0.25:
             self._samples.append(sample)
             self._last_sample = now
@@ -53,12 +57,19 @@ class LearningEngine:
         return list(self._samples)
 
     def profile_snapshot(self) -> dict[str, object]:
-        return {"user_id": "local", "gesture_patterns": len(self._samples),
-                "voice_patterns": len(self._voice), "comfort": {}}
+        return {
+            "user_id": "local",
+            "gesture_patterns": len(self._samples),
+            "voice_patterns": len(self._voice),
+            "comfort": {},
+        }
 
     def adaptation_plan(self) -> dict[str, object]:
-        return {"recommended_actions": [], "profile_summary": self.profile_snapshot(),
-                "suggestions": []}
+        return {
+            "recommended_actions": [],
+            "profile_summary": self.profile_snapshot(),
+            "suggestions": [],
+        }
 
     def suggested_features(self, limit: int = 5) -> list[str]:
         del limit

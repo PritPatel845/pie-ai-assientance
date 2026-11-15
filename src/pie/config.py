@@ -47,14 +47,26 @@ class Config:
 
 _DEFAULTS: dict[str, dict[str, Any]] = {
     "app": {"name": "pie", "log_level": "INFO"},
-    "gesture": {"camera": 0, "preview": True, "arm_hold_seconds": 2.0,
-                "steer_sensitivity": 0.004, "state_hz": 10, "model_path": ""},
-    "voice": {"enabled": True, "wake_words": ["pie", "hey pie", "pi", "jr", "j r", "jay r", "jarvis"],
-              "listen_seconds": 20, "language": "en"},
+    "gesture": {
+        "camera": 0,
+        "preview": True,
+        "arm_hold_seconds": 2.0,
+        "steer_sensitivity": 0.004,
+        "state_hz": 10,
+        "model_path": "",
+    },
+    "voice": {
+        "enabled": True,
+        "wake_words": ["pie", "hey pie", "pi", "jr", "j r", "jay r", "jarvis"],
+        "listen_seconds": 20,
+        "language": "en",
+    },
     "ui": {"host": "127.0.0.1", "port": 8765},
 }
-_TYPES = {section: {key: type(value) for key, value in values.items()}
-          for section, values in _DEFAULTS.items()}
+_TYPES = {
+    section: {key: type(value) for key, value in values.items()}
+    for section, values in _DEFAULTS.items()
+}
 
 
 def _merge(target: dict[str, dict[str, Any]], source: dict[str, Any]) -> None:
@@ -76,8 +88,12 @@ def _merge(target: dict[str, dict[str, Any]], source: dict[str, Any]) -> None:
             target[section][key] = value
 
 
-def load_config(path: Path | None = None, *, environ: dict[str, str] | None = None,
-                cli_overrides: dict[str, dict[str, Any]] | None = None) -> Config:
+def load_config(
+    path: Path | None = None,
+    *,
+    environ: dict[str, str] | None = None,
+    cli_overrides: dict[str, dict[str, Any]] | None = None,
+) -> Config:
     data = {section: dict(values) for section, values in _DEFAULTS.items()}
     user_path = path or Path.home() / ".pie" / "config.toml"
     if user_path.is_file():
@@ -105,8 +121,12 @@ def load_config(path: Path | None = None, *, environ: dict[str, str] | None = No
     if cli_overrides:
         _merge(data, cli_overrides)
     data["voice"]["wake_words"] = tuple(data["voice"]["wake_words"])
-    config = Config(AppConfig(**data["app"]), GestureConfig(**data["gesture"]),
-                    VoiceConfig(**data["voice"]), UiConfig(**data["ui"]))
+    config = Config(
+        AppConfig(**data["app"]),
+        GestureConfig(**data["gesture"]),
+        VoiceConfig(**data["voice"]),
+        UiConfig(**data["ui"]),
+    )
     if config.gesture.state_hz < 1 or config.gesture.state_hz > 60:
         raise ValueError("gesture.state_hz must be between 1 and 60")
     if config.ui.port < 1 or config.ui.port > 65535:

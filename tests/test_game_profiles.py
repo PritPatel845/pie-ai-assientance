@@ -1,4 +1,5 @@
 """Game profile key mappings follow Phase 0S section 3.2."""
+
 from __future__ import annotations
 
 from pie.inputs.gesture.game import GAME_PROFILES, MAC_KEY_CODES, GameController

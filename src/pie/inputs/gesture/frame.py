@@ -1,12 +1,20 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import Literal
 
 from pie.inputs.gesture.features import (
-    Landmark, classify_desktop, is_fist, is_four_finger, is_open_palm, is_pinch, is_three_finger,
-    is_thumb_down, is_thumb_up, is_two_finger,
+    Landmark,
+    classify_desktop,
+    is_fist,
+    is_four_finger,
+    is_open_palm,
+    is_pinch,
+    is_three_finger,
+    is_thumb_down,
+    is_thumb_up,
+    is_two_finger,
 )
 from pie.inputs.gesture.game import GAME_PROFILES, game_gesture
 
@@ -68,7 +76,19 @@ class MouseClick:
     pass
 
 
-Action = MoveCursor | DoubleClick | Mute | PlayMedia | StopMedia | RunVoiceCommand | Scroll | SetVolume | KeyAction | Tap | MouseClick
+Action = (
+    MoveCursor
+    | DoubleClick
+    | Mute
+    | PlayMedia
+    | StopMedia
+    | RunVoiceCommand
+    | Scroll
+    | SetVolume
+    | KeyAction
+    | Tap
+    | MouseClick
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -83,10 +103,11 @@ class FrameResult:
 class FrameProcessor:
     """Pure gesture state machine. All OS effects are returned as typed actions."""
 
-    def __init__(self, *, arm_hold_seconds: float = 2.0,
-                 steer_sensitivity: float = 0.004,
-                 clock=None) -> None:
+    def __init__(
+        self, *, arm_hold_seconds: float = 2.0, steer_sensitivity: float = 0.004, clock=None
+    ) -> None:
         import time
+
         self.arm_hold_seconds = arm_hold_seconds
         self.steer_sensitivity = steer_sensitivity
         self._clock = clock or time.monotonic
@@ -104,7 +125,9 @@ class FrameProcessor:
         self._previous_game = "GAME READY"
         self._previous_index: Landmark | None = None
 
-    def set_mode(self, mode: Literal["desktop", "game"], profile: str | None = None) -> list[Action]:
+    def set_mode(
+        self, mode: Literal["desktop", "game"], profile: str | None = None
+    ) -> list[Action]:
         if mode not in ("desktop", "game"):
             raise ValueError("mode must be desktop or game")
         if profile is not None and profile not in GAME_PROFILES:
@@ -190,8 +213,11 @@ class FrameProcessor:
                 self._previous_x = float(hand[8].x)
             else:
                 self._previous_x = None
-            if (self._last_volume is None or abs(volume - self._last_volume) >= 2
-                    or timestamp - self._last_volume_at >= 0.2):
+            if (
+                self._last_volume is None
+                or abs(volume - self._last_volume) >= 2
+                or timestamp - self._last_volume_at >= 0.2
+            ):
                 actions.append(SetVolume(volume))
                 self._last_volume = volume
                 self._last_volume_at = timestamp
@@ -202,11 +228,31 @@ class FrameProcessor:
             style = profile["style"]
             if style == "racing":
                 drifting = is_two_finger(hand)
-                self._key("left", is_three_finger(hand) or
-                          (drifting and self._steering_center is not None and hand[9].x - self._steering_center < -self.steer_sensitivity), actions)
-                self._key("right", is_four_finger(hand) or
-                          (drifting and self._steering_center is not None and hand[9].x - self._steering_center > self.steer_sensitivity), actions)
-                self._key("accelerate", (is_three_finger(hand) or is_four_finger(hand)) and not drifting, actions)
+                self._key(
+                    "left",
+                    is_three_finger(hand)
+                    or (
+                        drifting
+                        and self._steering_center is not None
+                        and hand[9].x - self._steering_center < -self.steer_sensitivity
+                    ),
+                    actions,
+                )
+                self._key(
+                    "right",
+                    is_four_finger(hand)
+                    or (
+                        drifting
+                        and self._steering_center is not None
+                        and hand[9].x - self._steering_center > self.steer_sensitivity
+                    ),
+                    actions,
+                )
+                self._key(
+                    "accelerate",
+                    (is_three_finger(hand) or is_four_finger(hand)) and not drifting,
+                    actions,
+                )
                 self._key("brake", is_fist(hand) or drifting, actions)
                 if is_pinch(hand) and rising:
                     actions.append(Tap("nitro"))
@@ -235,11 +281,17 @@ class FrameProcessor:
 
         self._previous_index = hand[8]
         current = set()
-        if is_pinch(hand): current.add("pinch")
-        if is_three_finger(hand): current.add("three")
-        if is_open_palm(hand) and hand[9].z < -0.12: current.add("mute")
-        if is_fist(hand): current.add("fist")
-        if is_thumb_up(hand): current.add("thumb_up")
-        if is_thumb_down(hand): current.add("thumb_down")
+        if is_pinch(hand):
+            current.add("pinch")
+        if is_three_finger(hand):
+            current.add("three")
+        if is_open_palm(hand) and hand[9].z < -0.12:
+            current.add("mute")
+        if is_fist(hand):
+            current.add("fist")
+        if is_thumb_up(hand):
+            current.add("thumb_up")
+        if is_thumb_down(hand):
+            current.add("thumb_down")
         self._previous = current
         return FrameResult(gesture, depth, volume, self.armed, actions)

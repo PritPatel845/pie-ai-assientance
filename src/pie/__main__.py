@@ -38,9 +38,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="pie", description="Pie hand-gesture and voice assistant")
     parser.add_argument("--version", action="version", version=f"Pie {__version__}")
     parser.add_argument("--camera", type=int, default=0)
-    parser.add_argument("--no-actions", action="store_true", help="Preview and classify without OS actions")
-    parser.add_argument("--game-profile", choices=("asphalt", "temple-run", "counter-strike"),
-                        default="asphalt")
+    parser.add_argument(
+        "--no-actions", action="store_true", help="Preview and classify without OS actions"
+    )
+    parser.add_argument(
+        "--game-profile", choices=("asphalt", "temple-run", "counter-strike"), default="asphalt"
+    )
     parser.add_argument("--steer-sensitivity", type=float, default=0.004)
     voice = parser.add_mutually_exclusive_group()
     voice.add_argument("--voice", dest="voice", action="store_true", default=True)
@@ -66,17 +69,22 @@ def main(argv: list[str] | None = None) -> int:
         configure_logging(config.app.log_level)
         if args.download_model:
             from pie.inputs.gesture.engine import ensure_model
+
             model_file = ensure_model(config.gesture.model_path or None, download=True)
             print(f"Hand model ready: {model_file}")
             return 0
         if args.voice:
             print("Voice capture arrives in Phase 2A; phrase parsing is available now.")
-        run(camera=args.camera if args.camera is not None else config.gesture.camera,
-            no_actions=args.no_actions, game_profile=args.game_profile,
+        run(
+            camera=args.camera if args.camera is not None else config.gesture.camera,
+            no_actions=args.no_actions,
+            game_profile=args.game_profile,
             steer_sensitivity=args.steer_sensitivity,
             arm_hold_seconds=config.gesture.arm_hold_seconds,
-            model_path=config.gesture.model_path, preview=config.gesture.preview,
-            learning_dir=args.learning_dir)
+            model_path=config.gesture.model_path,
+            preview=config.gesture.preview,
+            learning_dir=args.learning_dir,
+        )
         return 0
     except (OSError, RuntimeError, ValueError) as exc:
         parser.error(str(exc))

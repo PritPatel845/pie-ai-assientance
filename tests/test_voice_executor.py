@@ -27,6 +27,7 @@ def test_no_actions_does_not_touch_adapter() -> None:
 
 def test_voice_controller_redacts_type_history(tmp_path) -> None:
     from pie.inputs.gesture.learning import LearningEngine
+
     learning = LearningEngine(tmp_path)
     controller = VoiceController(FakeController(), learning_engine=learning)
     controller.execute("type my secret")

@@ -16,10 +16,12 @@ def configure_logging(level: str = "INFO") -> None:
     root.addHandler(console)
     try:
         directory = logs_dir(create=True)
-        file_handler = RotatingFileHandler(directory / "pie.log", maxBytes=2_000_000,
-                                           backupCount=5, encoding="utf-8")
-        file_handler.setFormatter(logging.Formatter(
-            "%(asctime)s %(levelname)s %(name)s: %(message)s"))
+        file_handler = RotatingFileHandler(
+            directory / "pie.log", maxBytes=2_000_000, backupCount=5, encoding="utf-8"
+        )
+        file_handler.setFormatter(
+            logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
+        )
         root.addHandler(file_handler)
     except OSError:
         root.warning("File logging unavailable; continuing with console logging")

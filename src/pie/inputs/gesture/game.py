@@ -4,8 +4,14 @@ from collections.abc import Sequence
 from typing import Protocol
 
 from pie.inputs.gesture.features import (
-    Landmark, is_fist, is_four_finger, is_open_palm, is_pinch, is_three_finger,
-    is_thumb_up, is_two_finger,
+    Landmark,
+    is_fist,
+    is_four_finger,
+    is_open_palm,
+    is_pinch,
+    is_three_finger,
+    is_thumb_up,
+    is_two_finger,
 )
 
 
@@ -15,16 +21,42 @@ class Point(Protocol):
 
 
 GAME_PROFILES: dict[str, dict[str, str]] = {
-    "asphalt": {"style": "racing", "left": "left", "right": "right",
-                "accelerate": "up", "brake": "down", "nitro": "space"},
-    "temple-run": {"style": "runner", "left": "left", "right": "right",
-                   "jump": "up", "slide": "down"},
-    "counter-strike": {"style": "fps", "left": "a", "right": "d", "forward": "w",
-                       "back": "s", "jump": "space"},
+    "asphalt": {
+        "style": "racing",
+        "left": "left",
+        "right": "right",
+        "accelerate": "up",
+        "brake": "down",
+        "nitro": "space",
+    },
+    "temple-run": {
+        "style": "runner",
+        "left": "left",
+        "right": "right",
+        "jump": "up",
+        "slide": "down",
+    },
+    "counter-strike": {
+        "style": "fps",
+        "left": "a",
+        "right": "d",
+        "forward": "w",
+        "back": "s",
+        "jump": "space",
+    },
 }
 PROFILE_KEYS = {"1": "asphalt", "2": "temple-run", "3": "counter-strike"}
-MAC_KEY_CODES = {"a": 0, "s": 1, "d": 2, "w": 13, "space": 49,
-                 "left": 123, "right": 124, "down": 125, "up": 126}
+MAC_KEY_CODES = {
+    "a": 0,
+    "s": 1,
+    "d": 2,
+    "w": 13,
+    "space": 49,
+    "left": 123,
+    "right": 124,
+    "down": 125,
+    "up": 126,
+}
 
 
 def game_gesture(hand: Sequence[Landmark], previous_index: Point | None, index: Point) -> str:

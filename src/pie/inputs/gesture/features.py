@@ -35,8 +35,9 @@ def is_open_palm(hand: Sequence[Landmark]) -> bool:
 
 
 def is_thumb_extended(hand: Sequence[Landmark]) -> bool:
-    return (distance(hand[4], hand[0]) > distance(hand[3], hand[0])
-            or distance(hand[4], hand[5]) > distance(hand[3], hand[5]))
+    return distance(hand[4], hand[0]) > distance(hand[3], hand[0]) or distance(
+        hand[4], hand[5]
+    ) > distance(hand[3], hand[5])
 
 
 def is_four_finger(hand: Sequence[Landmark]) -> bool:
@@ -48,13 +49,20 @@ def is_fist(hand: Sequence[Landmark]) -> bool:
 
 
 def is_two_finger(hand: Sequence[Landmark]) -> bool:
-    return (finger_extended(hand, 8, 6) and finger_extended(hand, 12, 10)
-            and not finger_extended(hand, 16, 14))
+    return (
+        finger_extended(hand, 8, 6)
+        and finger_extended(hand, 12, 10)
+        and not finger_extended(hand, 16, 14)
+    )
 
 
 def is_three_finger(hand: Sequence[Landmark]) -> bool:
-    return (finger_extended(hand, 8, 6) and finger_extended(hand, 12, 10)
-            and finger_extended(hand, 16, 14) and not finger_extended(hand, 20, 18))
+    return (
+        finger_extended(hand, 8, 6)
+        and finger_extended(hand, 12, 10)
+        and finger_extended(hand, 16, 14)
+        and not finger_extended(hand, 20, 18)
+    )
 
 
 def is_thumb_up(hand: Sequence[Landmark]) -> bool:
@@ -96,6 +104,7 @@ def normalize_hand(hand: Sequence[Landmark]) -> list[float]:
     values: list[float] = []
     for point in hand:
         x, y = point.x - wrist.x, point.y - wrist.y
-        values.extend(((c * x - s * y) / scale, (s * x + c * y) / scale,
-                       (point.z - wrist.z) / scale))
+        values.extend(
+            ((c * x - s * y) / scale, (s * x + c * y) / scale, (point.z - wrist.z) / scale)
+        )
     return values

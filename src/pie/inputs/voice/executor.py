@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import shlex
 from urllib.parse import quote_plus
 
 from pie.inputs.voice.commands import parse_voice_command
@@ -32,10 +31,15 @@ class LegacyRuleExecutor:
                 return bool(self.controller.open_target(target))
             if target.startswith(("/", "~", ".")):
                 from pathlib import Path
+
                 return bool(self.controller.open_target(str(Path(target).expanduser())))
             return bool(self.controller.open_application_or_item(target))
         if action == "search":
-            return bool(self.controller.open_target("https://www.google.com/search?q=" + quote_plus(str(value))))
+            return bool(
+                self.controller.open_target(
+                    "https://www.google.com/search?q=" + quote_plus(str(value))
+                )
+            )
         if action == "type":
             return bool(self.controller.type_text(str(value)))
         if action == "play":
@@ -64,8 +68,14 @@ class LegacyRuleExecutor:
 
 
 class VoiceController:
-    def __init__(self, controller, *, no_actions: bool = False, listen_seconds: int = 20,
-                 learning_engine=None) -> None:
+    def __init__(
+        self,
+        controller,
+        *,
+        no_actions: bool = False,
+        listen_seconds: int = 20,
+        learning_engine=None,
+    ) -> None:
         if listen_seconds < 5:
             raise ValueError("listen_seconds must be at least 5")
         self.learning_engine = learning_engine
