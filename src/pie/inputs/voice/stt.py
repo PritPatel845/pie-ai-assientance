@@ -58,8 +58,20 @@ class MlxWhisperTranscriber:
         self._model_path: Path | None = None
         self._lock = threading.Lock()
 
+    @staticmethod
+    def _validate_model_size(model_path: Path) -> int:
+        model_bytes = sum(
+            item.stat().st_size for item in model_path.rglob("*") if item.is_file()
+        )
+        if model_bytes > _MAX_MODEL_BYTES:
+            raise RuntimeError(
+                f"Speech model exceeds the 1 GB memory/disk budget ({model_bytes} bytes)"
+            )
+        return model_bytes
+
     def _ensure_model(self) -> Path:
         if self._model_path is not None and self._model_path.is_dir():
+            self._validate_model_size(self._model_path)
             return self._model_path
         repo_id = _MODEL_REPOS.get(self.model)
         if repo_id is None:
@@ -67,6 +79,7 @@ class MlxWhisperTranscriber:
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         target = self.cache_dir / self.model
         if target.is_dir() and any(target.iterdir()):
+            self._validate_model_size(target)
             self._model_path = target
             return target
         _LOG.info("Downloading local speech model %s to %s", self.model, target)
@@ -76,14 +89,10 @@ class MlxWhisperTranscriber:
             downloader = hub.snapshot_download
         downloaded = downloader(repo_id=repo_id, cache_dir=str(self.cache_dir))
         self._model_path = Path(downloaded)
-        model_bytes = sum(
-            item.stat().st_size for item in self._model_path.rglob("*") if item.is_file()
-        )
+        model_bytes = self._validate_model_size(self._model_path)
         if model_bytes > _MAX_MODEL_BYTES:
             self._model_path = None
-            raise RuntimeError(
-                f"Speech model exceeds the 1 GB memory/disk budget ({model_bytes} bytes)"
-            )
+            raise RuntimeError("Speech model exceeds the 1 GB memory/disk budget")
         _LOG.info(
             "Speech model %s is ready (%.1f MB on disk)",
             self.model,
