@@ -70,10 +70,17 @@ class PermissionGate:
             unsubscribe()
         self._unsubscribers.clear()
         self._started = False
-        for pending in tuple(self._pending):
-            if not pending.future.done():
-                pending.future.set_result(PermissionDecision(False, "shutdown"))
-        self._pending.clear()
+
+        def cancel_pending() -> None:
+            for pending in tuple(self._pending):
+                if not pending.future.done():
+                    pending.future.set_result(PermissionDecision(False, "shutdown"))
+            self._pending.clear()
+
+        if self.bus.loop.is_running() and not self.bus.loop.is_closed():
+            self.bus.loop.call_soon_threadsafe(cancel_pending)
+        else:
+            cancel_pending()
 
     async def _resolve_oldest(self, event: Event, allow: bool, by: str) -> None:
         async with self._lock:
