@@ -42,7 +42,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: \${{ github.ref_name }}
+          ref: ${{ github.ref_name }}
       - name: Download and verify offline-first hand model
         run: |
           if [[ -f assets/hand_landmarker.task ]] && \
@@ -61,4 +61,4 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "assets: add verified Hand Landmarker model [verified-model]"
-          git push origin "HEAD:\${{ github.ref_name }}"
+          git push origin "HEAD:${{ github.ref_name }}"
