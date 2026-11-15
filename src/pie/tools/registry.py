@@ -198,7 +198,11 @@ class ToolRegistry:
             return result
         self._calls.append(now)
 
-        if pre_approved_by is not None and source != "rule":
+        if not (
+            source == "rule"
+            and name == "mac.delete_selected"
+            and pre_approved_by == "voice_phrase"
+        ):
             pre_approved_by = None
         redacted_args = redact(safe_args, tool=name)
         self._publish(
