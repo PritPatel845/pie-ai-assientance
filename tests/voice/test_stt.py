@@ -56,3 +56,43 @@ def test_mlx_adapter_rejects_unknown_model(tmp_path: Path) -> None:
     adapter = MlxWhisperTranscriber("unknown", cache_dir=tmp_path)
     with pytest.raises(ValueError, match="Unsupported"):
         adapter.transcribe(np.zeros(100, dtype=np.float32), "en")
+
+
+
+def test_pipeline_uses_one_dedicated_stt_worker() -> None:
+    import threading
+
+    from pie.config import VoiceConfig
+    from pie.inputs.voice.pipeline import VoiceController
+    from pie.inputs.voice.vad import Segment
+
+    completed = threading.Event()
+    worker_names: list[str] = []
+
+    class FakeTranscriber:
+        name = "fake"
+
+        def transcribe(self, audio: np.ndarray, language: str) -> str:
+            worker_names.append(threading.current_thread().name)
+            completed.set()
+            return ""
+
+        def close(self) -> None:
+            return None
+
+    controller = VoiceController(
+        object(),
+        config=VoiceConfig(enabled=True, tts_enabled=False, stt_idle_unload_s=300),
+        transcriber_factory=lambda *args, **kwargs: FakeTranscriber(),
+    )
+    controller._stt_thread = threading.Thread(
+        target=controller._process_stt, name="pie-stt", daemon=True
+    )
+    controller._stt_thread.start()
+    controller._stt_queue.put(
+        Segment(np.ones(1600, dtype=np.float32), started_at=0.0, ended_at=0.1)
+    )
+    assert completed.wait(1)
+    controller._stop.set()
+    controller._stt_thread.join(timeout=1)
+    assert worker_names == ["pie-stt"]
