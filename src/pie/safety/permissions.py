@@ -195,6 +195,18 @@ class PermissionGate:
                 source="permission_gate",
             )
             return PermissionDecision(False, "timeout")
+        except asyncio.CancelledError:
+            async with self._lock:
+                try:
+                    self._pending.remove(pending)
+                except ValueError:
+                    pass
+            self.bus.publish(
+                "permission.response",
+                {"call_id": call_id, "allow": False, "by": "cancelled"},
+                source="permission_gate",
+            )
+            raise
 
 
 def _redact(value: Any) -> Any:
