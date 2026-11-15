@@ -1,10 +1,15 @@
 from __future__ import annotations
 
+import json
 import os
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+
+class ConfigError(ValueError):
+    """Raised when a configuration source contains an invalid value."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,20 +77,49 @@ _TYPES = {
 def _merge(target: dict[str, dict[str, Any]], source: dict[str, Any]) -> None:
     unknown_sections = set(source) - set(target)
     if unknown_sections:
-        raise ValueError(f"Unknown config section(s): {', '.join(sorted(unknown_sections))}")
+        names = ", ".join(sorted(unknown_sections))
+        raise ConfigError(f"Unknown config section(s): {names}")
     for section, values in source.items():
         if not isinstance(values, dict):
-            raise ValueError(f"Config section {section} must be a table")
+            raise ConfigError(f"Config section {section} must be a table")
         unknown = set(values) - set(target[section])
         if unknown:
-            raise ValueError(f"Unknown config key(s) in {section}: {', '.join(sorted(unknown))}")
+            names = ", ".join(sorted(unknown))
+            raise ConfigError(f"Unknown config key(s) in {section}: {names}")
         for key, value in values.items():
             expected = _TYPES[section][key]
             if expected is int and isinstance(value, bool):
-                raise ValueError(f"{section}.{key} must be int")
+                raise ConfigError(f"{section}.{key} must be int")
             if not isinstance(value, expected):
-                raise ValueError(f"{section}.{key} must be {expected.__name__}")
+                raise ConfigError(f"{section}.{key} must be {expected.__name__}")
             target[section][key] = value
+
+
+def _parse_environment_value(name: str, raw: str, current: Any) -> Any:
+    if isinstance(current, bool):
+        lowered = raw.lower()
+        if lowered not in {"true", "false", "1", "0", "yes", "no"}:
+            raise ConfigError(f"{name} must be bool (true/false/1/0/yes/no)")
+        return lowered in {"true", "1", "yes"}
+    if isinstance(current, int):
+        try:
+            return int(raw)
+        except ValueError as exc:
+            raise ConfigError(f"{name} must be int") from exc
+    if isinstance(current, float):
+        try:
+            return float(raw)
+        except ValueError as exc:
+            raise ConfigError(f"{name} must be float") from exc
+    if isinstance(current, list):
+        try:
+            value = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            raise ConfigError(f"{name} must be a JSON array") from exc
+        if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+            raise ConfigError(f"{name} must be a JSON array of strings")
+        return value
+    return raw
 
 
 def load_config(
@@ -95,42 +129,51 @@ def load_config(
     cli_overrides: dict[str, dict[str, Any]] | None = None,
 ) -> Config:
     data = {section: dict(values) for section, values in _DEFAULTS.items()}
+    root_defaults = Path(__file__).resolve().parents[2] / "config" / "pie.default.toml"
+    if root_defaults.is_file():
+        with root_defaults.open("rb") as handle:
+            _merge(data, tomllib.load(handle))
+
     user_path = path or Path.home() / ".pie" / "config.toml"
     if user_path.is_file():
         with user_path.open("rb") as handle:
             _merge(data, tomllib.load(handle))
+
     env = os.environ if environ is None else environ
-    for section, values in data.items():
-        for key, old in tuple(values.items()):
-            env_key = f"PIE_{section.upper()}_{key.upper()}"
-            if env_key not in env:
-                continue
-            raw = env[env_key]
-            if isinstance(old, bool):
-                if raw.lower() not in {"true", "false"}:
-                    raise ValueError(f"{env_key} must be true or false")
-                values[key] = raw.lower() == "true"
-            elif isinstance(old, int):
-                values[key] = int(raw)
-            elif isinstance(old, float):
-                values[key] = float(raw)
-            elif isinstance(old, list):
-                raise ValueError(f"{env_key} does not support list overrides")
-            else:
-                values[key] = raw
+    known_env = {
+        f"PIE_{section.upper()}_{key.upper()}"
+        for section, values in data.items()
+        for key in values
+    }
+    for name, raw in env.items():
+        if name in known_env:
+            section, key = name.removeprefix("PIE_").lower().split("_", 1)
+            data[section][key] = _parse_environment_value(name, raw, data[section][key])
+            continue
+        if name.startswith("PIE_"):
+            suffix = name.removeprefix("PIE_").lower()
+            section = suffix.split("_", 1)[0]
+            if section in data:
+                raise ConfigError(f"Unknown environment variable: {name}")
+
     if cli_overrides:
         _merge(data, cli_overrides)
+
     data["voice"]["wake_words"] = tuple(data["voice"]["wake_words"])
+    model_path = str(data["gesture"]["model_path"])
+    if model_path:
+        data["gesture"]["model_path"] = str(Path(model_path).expanduser())
+
     config = Config(
         AppConfig(**data["app"]),
         GestureConfig(**data["gesture"]),
         VoiceConfig(**data["voice"]),
         UiConfig(**data["ui"]),
     )
-    if config.gesture.state_hz < 1 or config.gesture.state_hz > 60:
-        raise ValueError("gesture.state_hz must be between 1 and 60")
-    if config.ui.port < 1 or config.ui.port > 65535:
-        raise ValueError("ui.port must be between 1 and 65535")
+    if not 1 <= config.gesture.state_hz <= 60:
+        raise ConfigError("gesture.state_hz must be between 1 and 60")
+    if not 1 <= config.ui.port <= 65535:
+        raise ConfigError("ui.port must be between 1 and 65535")
     if config.voice.listen_seconds < 5:
-        raise ValueError("voice.listen_seconds must be at least 5")
+        raise ConfigError("voice.listen_seconds must be at least 5")
     return config
