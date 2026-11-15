@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Sequence\nfrom typing import Any, Protocol
 from pathlib import Path
 
-from pie.inputs.gesture.engine import ensure_model
+from pie.inputs.gesture.engine import ensure_model\nfrom pie.inputs.gesture.features import Landmark
 from pie.inputs.gesture.frame import (
     DoubleClick,
     FrameProcessor,
@@ -23,7 +23,7 @@ from pie.inputs.gesture.learning import LearningEngine
 from pie.platform.mac import MacController
 
 
-class ActionSink:
+class Capture(Protocol):\n    def isOpened(self) -> bool: ...\n    def read(self) -> tuple[bool, Any]: ...\n    def release(self) -> None: ...\n\n\nclass ActionSink:
     """Translate pure FrameProcessor actions into an injectable platform adapter."""
 
     def __init__(
@@ -31,7 +31,7 @@ class ActionSink:
     ) -> None:
         self.controller, self.no_actions, self.profile = controller, no_actions, profile
 
-    def execute(self, action) -> None:
+    def execute(self, action: Action) -> None:
         if self.no_actions:
             return
         if isinstance(action, MoveCursor):
@@ -67,7 +67,7 @@ class ActionSink:
             self.controller.mouse_click()
 
 
-def draw_hand(frame, landmarks, cv2) -> None:
+def draw_hand(frame: Any, landmarks: Sequence[Landmark], cv2: Any) -> None:
     height, width = frame.shape[:2]
     points = [(int(p.x * width), int(p.y * height)) for p in landmarks]
     for start, end in (
@@ -98,7 +98,7 @@ def draw_hand(frame, landmarks, cv2) -> None:
         cv2.circle(frame, point, 4, (245, 190, 100), -1)
 
 
-def draw_hud(frame, result, fps: float, cv2, *, no_actions: bool) -> None:
+def draw_hud(frame: Any, result: FrameResult, fps: float, cv2: Any, *, no_actions: bool) -> None:
     status = "DISABLED" if no_actions else ("ARMED" if result.armed else "WAITING TO ARM")
     lines = [
         f"PIE | {result.gesture}",
