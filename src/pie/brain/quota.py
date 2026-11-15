@@ -68,7 +68,7 @@ class QuotaTracker:
             until = item.get("exhausted_until")
             if until is None:
                 return True
-            if isinstance(until, bool) or not isinstance(until, (int, float)):
+            if isinstance(until, bool) or not isinstance(until, int | float):
                 return False
             return float(until) <= current
 
