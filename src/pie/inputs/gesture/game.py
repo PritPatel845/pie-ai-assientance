@@ -74,7 +74,7 @@ def game_gesture(hand: Sequence[Landmark], previous_index: Point | None, index: 
         return "FOUR FINGER / RIGHT"
     if is_open_palm(hand) and previous_index is not None:
         dx, dy = index.x - previous_index.x, index.y - previous_index.y
-        if abs(dx) > 0.05:
+        if abs(dx) > 0.055:
             return "SWIPE RIGHT" if dx > 0 else "SWIPE LEFT"
         if dy < -0.055:
             return "PALM UP / JUMP"
