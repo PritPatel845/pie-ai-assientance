@@ -259,6 +259,17 @@ class VoiceController(_VoiceController):
     def _process_audio(self) -> None:
         while not self._stop.is_set():
             self._expire_window()
+            if self.echo_guard:
+                # Discard audio captured before playback began and clear VAD pre-roll.
+                # Otherwise queued TTS audio can be joined to the user's later "yes".
+                while True:
+                    try:
+                        self._audio_queue.get_nowait()
+                    except queue.Empty:
+                        break
+                self._vad.reset()
+                self._stop.wait(0.02)
+                continue
             try:
                 block = self._audio_queue.get(timeout=0.2)
             except queue.Empty:
