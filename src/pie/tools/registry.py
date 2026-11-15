@@ -302,7 +302,12 @@ class ToolRegistry:
             )
             self._publish(
                 "tool.finished",
-                {"call_id": call_id, "ok": False, "summary": "cancelled", "duration_s": self.clock() - started},
+                {
+                    "call_id": call_id,
+                    "ok": False,
+                    "summary": "cancelled",
+                    "duration_s": self.clock() - started,
+                },
                 call_id,
             )
             raise
