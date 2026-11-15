@@ -160,13 +160,18 @@ class ToolRegistry:
             )
             tier = max(tier, path_tier)
             for key, property_schema in spec.parameters.get("properties", {}).items():
-                if (
-                    isinstance(property_schema, dict)
-                    and property_schema.get("x-confirm-if-exists") is True
-                    and isinstance(safe_args.get(key), str)
-                    and Path(str(safe_args[key])).expanduser().exists()
-                ):
+                if not isinstance(property_schema, dict) or not isinstance(safe_args.get(key), str):
+                    continue
+                candidate = Path(str(safe_args[key])).expanduser()
+                if property_schema.get("x-confirm-if-exists") is True and candidate.exists():
                     tier = max(tier, Tier.CONFIRM)
+                if property_schema.get("x-confirm-outside-sandbox") is True:
+                    sandbox = Path(str(self._setting("safety", "sandbox_dir", "~/PieWorkspace"))).expanduser().resolve()
+                    resolved = candidate.resolve()
+                    try:
+                        resolved.relative_to(sandbox)
+                    except ValueError:
+                        tier = max(tier, Tier.CONFIRM)
         except (ValueError, TypeError) as exc:
             result = fail(str(exc))
             self._audit(
@@ -199,7 +204,7 @@ class ToolRegistry:
             call_id,
         )
         prompt_builder = getattr(spec_tool, "confirmation_prompt", None)
-        custom_prompt = prompt_builder(redacted_args) if callable(prompt_builder) else None
+        custom_prompt = prompt_builder(redacted_args, call_id) if callable(prompt_builder) else None
         prompt = custom_prompt or (
             f"Allow {name}? {spec.description} Arguments: "
             f"{json.dumps(redacted_args, ensure_ascii=False, default=str)[:1000]}"
