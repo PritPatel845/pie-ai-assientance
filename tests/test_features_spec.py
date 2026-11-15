@@ -123,7 +123,7 @@ def test_thumb_extension_true_and_false_cases() -> None:
         ),
         (make_hand(), "OPEN PALM"),
         (
-            make_hand(extended=(False, False, False, False), thumb=(0.4, 0.75, 0.0)),
+            make_hand(extended=(False, False, False, False), thumb=(0.35, 0.75, 0.0)),
             "FIST / VOICE",
         ),
         (
