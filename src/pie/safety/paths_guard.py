@@ -26,7 +26,10 @@ def _normal_path(value: str) -> str:
         raise PathGuardError("control characters are not allowed in paths")
     if normalised.startswith("~") and not normalised.startswith("~/"):
         raise PathGuardError("named-user home paths are not allowed")
-    parts = [part.rstrip(" .") for part in normalised.split(os.sep)]
+    parts = [
+        part if part in {".", ".."} else part.rstrip(" .")
+        for part in normalised.split(os.sep)
+    ]
     normalised = os.sep.join(parts)
     if not normalised:
         raise PathGuardError("path must not be empty")
