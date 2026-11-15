@@ -24,8 +24,15 @@ def test_gesture_events_are_rising_edge_and_debounced(monkeypatch) -> None:
 
 def test_gesture_event_tracker_handles_no_hand_reset(monkeypatch) -> None:
     monkeypatch.setattr(runner, "is_pinch", lambda hand: True)
-    for name in ("is_open_palm", "is_fist", "is_thumb_up", "is_thumb_down",
-                 "is_two_finger", "is_three_finger", "is_four_finger"):
+    for name in (
+        "is_open_palm",
+        "is_fist",
+        "is_thumb_up",
+        "is_thumb_down",
+        "is_two_finger",
+        "is_three_finger",
+        "is_four_finger",
+    ):
         monkeypatch.setattr(runner, name, lambda hand: False)
     tracker = runner.GestureEventTracker()
     assert tracker.update([[object()]], 2.0) == ("pinch",)
