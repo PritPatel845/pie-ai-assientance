@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Sequence
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
-from collections.abc import Sequence
 from typing import Any
 
 from pie.brain.keys import get_api_key
