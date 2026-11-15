@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 PYTHON="${PIE_PYTHON:-$ROOT/.venv/bin/python}"
+cd "$ROOT"
 
 echo '=== Pie Phase 0S macOS environment audit (read-only; no camera or microphone access) ==='
 echo "Repository: $ROOT"
