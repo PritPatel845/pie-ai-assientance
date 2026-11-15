@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib
 import logging
 import queue
+import re
 import threading
 import time
 import wave
@@ -243,7 +244,24 @@ class VoiceController(_VoiceController):
             return
         command = self._wake.check(raw)
         now = self._clock()
-        addressed = command is not None or now < self._active_until
+        permission_window = now < self._active_until
+        if permission_window:
+            # The wake-word matcher can return the remainder with punctuation
+            # (for example, "no."). Normalize only a complete yes/no response.
+            # Whisper can also render the spoken wake word "Pie" as "Bye".
+            if command is not None:
+                confirmation = command.casefold().strip().strip(" ,.!?;:")
+                if confirmation in {"yes", "no"}:
+                    command = confirmation
+            else:
+                # Never search arbitrary sentences for approval keywords.
+                match = re.fullmatch(
+                    r"(?:pie|pi|pai|pye|bye)[,.:;!?\s]+(yes|no)[.!?]*",
+                    raw.casefold().strip(),
+                )
+                if match is not None:
+                    command = match.group(1)
+        addressed = command is not None or permission_window
         if command is not None:
             wake_word = raw[: max(1, len(raw) - len(command))].strip(" ,.!?")
             self.publish_wake(wake_word or self.config.wake_words[0])
