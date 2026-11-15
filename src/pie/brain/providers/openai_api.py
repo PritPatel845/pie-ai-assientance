@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, cast
 
 from pie.brain.keys import get_api_key
 from pie.brain.providers.anthropic_api import _raise_vendor_error
@@ -76,9 +76,11 @@ class OpenAIProvider:
             response = await asyncio.wait_for(
                 self.client.chat.completions.create(
                     model=self.model,
-                    messages=rows,
+                    # SDK TypedDict unions are stricter than our provider-neutral payloads.
+                    # The structures are built above to match the OpenAI chat-completions schema.
+                    messages=cast(Any, rows),
                     max_tokens=max_tokens,
-                    tools=tool_defs or None,
+                    tools=cast(Any, tool_defs or None),
                 ),
                 timeout=timeout_s,
             )
