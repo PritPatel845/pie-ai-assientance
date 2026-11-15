@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Sequence
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
 from typing import Any
 
@@ -104,8 +104,8 @@ def _raise_vendor_error(provider: str, exc: Exception) -> None:
             try:
                 retry_at = parsedate_to_datetime(str(retry_after))
                 if retry_at.tzinfo is None:
-                    retry_at = retry_at.replace(tzinfo=timezone.utc)
-                retry = max(0.0, (retry_at - datetime.now(timezone.utc)).total_seconds())
+                    retry_at = retry_at.replace(tzinfo=UTC)
+                retry = max(0.0, (retry_at - datetime.now(UTC)).total_seconds())
             except (TypeError, ValueError, OverflowError):
                 retry = 0.0
     if "authentication" in name.lower() or "permission" in name.lower():
