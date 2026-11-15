@@ -15,10 +15,10 @@ from pie.core.daemon import Daemon
 from pie.events import Event
 from pie.inputs.gesture.engine import resolve_model_path
 from pie.inputs.gesture.runner import run
-from pie.logging_setup import configure_logging
 from pie.inputs.voice.pipeline import VoiceController
-from pie.platform.mac import MacController
+from pie.logging_setup import configure_logging
 from pie.paths import learning_dir, logs_dir, models_dir, pie_home, state_dir
+from pie.platform.mac import MacController
 
 
 class GestureModule:
