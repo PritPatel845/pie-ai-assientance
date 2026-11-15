@@ -291,9 +291,7 @@ def test_path_outside_sandbox_requires_confirmation(tmp_path: Path) -> None:
         }
         registry.register(_tool("fs.test", tier=Tier.READ, schema=schema))
         task = asyncio.create_task(
-            registry.execute(
-                "fs.test", {"path": str(tmp_path / "outside.txt")}, source="agent"
-            )
+            registry.execute("fs.test", {"path": str(tmp_path / "outside.txt")}, source="agent")
         )
         await asyncio.sleep(0.01)
         bus.publish(
@@ -376,9 +374,7 @@ def test_relative_paths_are_resolved_inside_the_sandbox(tmp_path: Path) -> None:
             "additionalProperties": False,
         }
         registry.register(_tool("fs.relative", schema=schema))
-        result = await registry.execute(
-            "fs.relative", {"path": "notes.txt"}, source="text"
-        )
+        result = await registry.execute("fs.relative", {"path": "notes.txt"}, source="text")
         assert result.ok
         assert result.output["path"] == str(tmp_path / "sandbox" / "notes.txt")
         gate.stop()
