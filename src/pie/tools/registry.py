@@ -212,15 +212,29 @@ class ToolRegistry:
             f"Allow {name}? {spec.description} Arguments: "
             f"{json.dumps(redacted_args, ensure_ascii=False, default=str)[:1000]}"
         )
-        decision = await self.permission_gate.request(
-            call_id=call_id,
-            tool=name,
-            args=safe_args,
-            tier=tier,
-            prompt=prompt,
-            timeout_s=float(self._setting("safety", "confirm_timeout_s", 20)),
-            pre_approved_by=pre_approved_by,
-        )
+        try:
+            decision = await self.permission_gate.request(
+                call_id=call_id,
+                tool=name,
+                args=safe_args,
+                tier=tier,
+                prompt=prompt,
+                timeout_s=float(self._setting("safety", "confirm_timeout_s", 20)),
+                pre_approved_by=pre_approved_by,
+            )
+        except asyncio.CancelledError:
+            self._publish("tool.denied", {"call_id": call_id, "reason": "cancelled"}, call_id)
+            self._publish(
+                "tool.finished",
+                {"call_id": call_id, "ok": False, "summary": "cancelled", "duration_s": self.clock() - started},
+                call_id,
+            )
+            self._audit(
+                call_id=call_id, correlation_id=correlation_id, source=source, tool=name,
+                args=safe_args, tier=tier, decision="denied", by="cancelled", ok=False,
+                error="cancelled", started=started, provider=provider,
+            )
+            raise
         if not decision.allow:
             self._publish(
                 "tool.denied", {"call_id": call_id, "reason": decision.by}, call_id
