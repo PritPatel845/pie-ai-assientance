@@ -201,9 +201,9 @@ def test_agent_cannot_self_approve_confirm_tier_tool(tmp_path: Path) -> None:
 def test_explicit_rule_preapproval_is_accepted(tmp_path: Path) -> None:
     async def scenario() -> None:
         registry, gate, _ = _registry(tmp_path)
-        registry.register(_tool(tier=Tier.CONFIRM))
+        registry.register(_tool("mac.delete_selected", tier=Tier.CONFIRM))
         result = await registry.execute(
-            "test.echo",
+            "mac.delete_selected",
             {"value": "hello"},
             source="rule",
             pre_approved_by="voice_phrase",
