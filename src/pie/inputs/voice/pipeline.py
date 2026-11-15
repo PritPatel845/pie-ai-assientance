@@ -11,7 +11,6 @@ import numpy as np
 
 from pie.config import VoiceConfig
 from pie.events import EventBus
-from pie.inputs.voice.commands import extract_wake_command
 from pie.inputs.voice.executor import VoiceController as _VoiceController
 from pie.inputs.voice.stt import Transcriber, create_transcriber, is_hallucination
 from pie.inputs.voice.tts import Speaker
@@ -56,6 +55,7 @@ class VoiceController(_VoiceController):
         self._wall_clock = wall_clock
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
+        self._capture_thread: threading.Thread | None = None
         self._audio_queue: queue.Queue[np.ndarray] = queue.Queue(maxsize=200)
         self._dropped_blocks = 0
         self._speaker = Speaker(
@@ -184,12 +184,10 @@ class VoiceController(_VoiceController):
             self.execute(command_text.strip())
 
     def _process_audio(self) -> None:
-        last_audio = self._clock()
         while not self._stop.is_set():
             self._expire_window()
             try:
                 block = self._audio_queue.get(timeout=0.2)
-                last_audio = self._clock()
             except queue.Empty:
                 if self._transcriber is not None and (
                     self._clock() - self._last_stt_activity >= self.config.stt_idle_unload_s
@@ -213,7 +211,6 @@ class VoiceController(_VoiceController):
                 self._handle_segment(segment)
             if self._dropped_blocks and self._dropped_blocks % 50 == 0:
                 _LOG.warning("Voice input queue dropped %d audio blocks", self._dropped_blocks)
-        del last_audio
 
     def _capture(self) -> None:
         retry_window = 0.0
@@ -263,14 +260,16 @@ class VoiceController(_VoiceController):
             )
         self._thread = threading.Thread(target=self._process_audio, name="pie-voice", daemon=True)
         self._thread.start()
-        capture = threading.Thread(target=self._capture, name="pie-microphone", daemon=True)
-        capture.start()
-        self._capture_thread = capture
+        self._capture_thread = threading.Thread(
+            target=self._capture, name="pie-microphone", daemon=True
+        )
+        self._capture_thread.start()
 
     def stop(self) -> None:
         self._stop.set()
-        if hasattr(self, "_capture_thread"):
+        if self._capture_thread is not None:
             self._capture_thread.join(timeout=2)
+            self._capture_thread = None
         if self._thread is not None:
             self._thread.join(timeout=2)
             self._thread = None
