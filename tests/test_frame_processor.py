@@ -2,7 +2,13 @@
 
 from dataclasses import dataclass
 
-from pie.inputs.gesture.frame import FrameProcessor, KeyAction, MoveCursor, SetVolume, Tap
+from pie.inputs.gesture.frame import (
+    FrameProcessor,
+    KeyAction,
+    MoveCursor,
+    SetVolume,
+    Tap,
+)
 
 
 @dataclass
@@ -16,7 +22,9 @@ def hand(*, extended=(True, True, True, True), thumb_y=0.3, z=0.0, shift=0.0):
     points = [P(0.5 + shift, 0.7, z) for _ in range(21)]
     points[0] = P(0.5 + shift, 0.8, z)
     points[9] = P(0.5 + shift, 0.5, z)
-    for (tip, pip), is_up in zip(((8, 6), (12, 10), (16, 14), (20, 18)), extended, strict=False):
+    for (tip, pip), is_up in zip(
+        ((8, 6), (12, 10), (16, 14), (20, 18)), extended, strict=False
+    ):
         points[pip] = P(0.5 + shift, 0.6, z)
         points[tip] = P(0.5 + shift, 0.3 if is_up else 0.68, z)
     points[4] = P(0.35 + shift, thumb_y, z)
@@ -67,6 +75,7 @@ def test_runner_profile_maps_swipe_right() -> None:
     result = processor.process([hand(shift=0.1)], 0.1)
     assert Tap("right") in result.actions
 
+
 def test_runner_profile_maps_palm_up_to_jump() -> None:
     processor = FrameProcessor()
     processor.set_mode("game", "temple-run")
@@ -76,6 +85,7 @@ def test_runner_profile_maps_palm_up_to_jump() -> None:
     palm_up[8] = P(0.5, 0.2, 0.0)
     result = processor.process([palm_up], 0.1)
     assert Tap("jump") in result.actions
+
 
 def test_fps_profile_emits_forward_key_action() -> None:
     processor = FrameProcessor()
