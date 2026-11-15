@@ -54,3 +54,86 @@ Branch: phase-0s-implementation. Target Python >=3.12,<3.13 on Apple Silicon mac
 3. Verify model download size and SHA-256; add the model only after verification.
 4. Run manual hardware checks on the target Mac.
 5. Only after every gate passes, tag Phase 0S and start Phase 1 from that tag.
+
+
+## Phase 0S acceptance ledger — 2026-11-15
+
+### Automated verification
+
+- GitHub Actions run for code commit `4a21cfb947661d0b94dce7061b9c6408023aceb2`: https://github.com/PritPatel845/pie-ai-assientance/actions/runs/43669831353
+- `pytest -q`: **144 passed**.
+- `ruff check .`: passed.
+- `ruff format --check .`: passed.
+- `mypy src/pie`: passed; no issues in 20 source files.
+- `python -m pie doctor`: exited successfully on the CI runner.
+- CI is Linux/Python 3.12. It is not evidence of macOS/Apple Silicon or camera/permission compatibility.
+- `scripts/start_pie.command` Git mode verified as `100755` after commit `21ce135253450391fe6e293363a1181ba1a3c47b`.
+
+### Configuration reference
+
+| Section | Keys | Defaults |
+|---|---|---|
+| `[app]` | `name`, `log_level` | `pie`, `INFO` |
+| `[gesture]` | `camera`, `preview`, `arm_hold_seconds`, `steer_sensitivity`, `state_hz`, `model_path` | `0`, `true`, `2.0`, `0.004`, `10`, `""` |
+| `[voice]` | `enabled`, `wake_words`, `listen_seconds`, `language` | `true`, `["pie","hey pie","pi","jr","j r","jay r","jarvis"]`, `20`, `"en"` |
+| `[ui]` | `host`, `port` | `127.0.0.1`, `8765` |
+
+Precedence is: packaged/repository defaults < `~/.pie/config.toml` < typed `PIE_<SECTION>_<KEY>` environment variables < `cli_overrides`. Unknown TOML keys and unknown environment names for a known section raise `ConfigError`. Boolean environment values accept `true/false/1/0/yes/no`; list values accept JSON arrays. `gesture.model_path` expands `~`. Loading configuration does not create directories.
+
+### Gesture precedence and profiles
+
+Desktop classification is first-match in this exact order:
+
+1. `THUMB UP / PLAY`
+2. `THUMB DOWN / STOP`
+3. `PINCH / OPEN`
+4. `THREE FINGER / OPEN`
+5. `OPEN PALM`
+6. `FIST / VOICE`
+7. `TWO-FINGER SWIPE`
+8. `INDEX / POINTER`
+
+Game gesture recognition checks pinch, thumb-up, two-finger, fist, three-finger, four-finger, then open-palm swipe/palm-up/palm-down; otherwise `GAME READY`.
+
+Built-in profiles:
+- `asphalt`: `racing`; left/right arrows, accelerate up, brake down, nitro space.
+- `temple-run`: `runner`; left/right arrows, jump up, slide down.
+- `counter-strike`: `fps`; A/D/W/S and space.
+
+To add a profile in this foundation, add a unique entry to `GAME_PROFILES` in `src/pie/inputs/gesture/game.py` with one supported style (`racing`, `runner`, `fps`) and its action-to-key mapping. Ensure every mapped key exists in `MAC_KEY_CODES`; add it to the profile selector/CLI only if it is intended to be selectable, then add profile and `FrameProcessor` regression tests. The current phase does not yet support user-editable profile files.
+
+### Voice parser precedence
+
+The parser checks exact phrases first, then volume patterns, search patterns, then `open/launch/start`, then `type/write/enter`. Matching is lower-cased and whitespace-collapsed. Hostile command-looking text remains plain argument data; it is not executed as shell input. Wake-word matching is anchored at the beginning and requires a word/punctuation boundary; `pizza` and `pied` do not match.
+
+### Regression fixes recorded
+
+- Desktop hand normalization now rotates the wrist-to-middle-MCP vector toward image-up.
+- Counter-Strike `KeyAction` names resolve through the selected profile to A/D/W/S keycodes.
+- Temple Run handles swipe left/right and palm up/down actions.
+- Runner/fist/pinch and game-key state reset on hand loss/mode changes; held keys are released.
+- Clean-room Path B no longer copies `~/.jarvis_learning`.
+- Config environment parsing and strict unknown-key checks are covered by regression tests.
+- Ruff CI is read-only; it never formats and pushes commits from a pull-request merge checkout.
+- `FrameProcessor` action-list annotations satisfy strict mypy.
+- Wake-word punctuation boundaries are covered by a table-driven test.
+- Learning ring-buffer test isolates the bounded-buffer assertion from periodic disk-flush I/O.
+
+### Exact verification commands
+
+```bash
+.venv/bin/python -m pytest -q
+.venv/bin/ruff check .
+.venv/bin/ruff format --check .
+.venv/bin/mypy src/pie
+.venv/bin/python -m pie doctor
+.venv/bin/python -m pie --no-actions --no-voice
+```
+
+### Still blocking Phase 0S completion
+
+- `assets/hand_landmarker.task` is not in the repository. The explicit model download has not succeeded in this environment; therefore **no SHA-256 is claimed or recorded**. The code requires an explicit download via `python -m pie --download-model`, then the model must be checked for size and SHA-256 and committed.
+- The actual target Mac has not been audited here: `uname -m`, `sw_vers`, Homebrew Python 3.12 path, and imports/versions for MediaPipe 0.10.35 Tasks API, OpenCV, PyAutoGUI, Quartz, and AppKit remain unverified.
+- `scripts/manual_checks/phase0s.md` has not been performed on the target Mac. Camera preview, HUD poses, camera release, Accessibility permission, and safe cursor/pinch behaviour remain unverified.
+- macOS-specific media-key behaviour and app automation have not been verified on the target Mac.
+- Phase 0S is **not accepted**. Do not create `pie-phase-0-done` or begin Phase 1 until the model and Mac/manual acceptance gates are satisfied.
