@@ -26,8 +26,8 @@ Branch: phase-0s-implementation. Target Python >=3.12,<3.13 on Apple Silicon mac
 - The target Mac audit has not been run: Apple Silicon architecture, macOS version, Homebrew
   Python 3.12, MediaPipe Tasks imports, Quartz/AppKit, and PyAutoGUI key support remain
   unverified on the actual device.
-- The offline-first model is now committed at `assets/hand_landmarker.task` and CI verified
-  its exact size and SHA-256. See the acceptance ledger below.
+- The offline-first model is now committed at `assets/hand_landmarker.task` and CI verifies
+  its exact size and SHA-256 on every test run. See the acceptance ledger below.
 - Linux/Python 3.12 CI is green (205 tests, Ruff, strict mypy, and doctor); this does not
   establish macOS or camera compatibility.
 - Real camera preview, HUD poses, camera release, Accessibility permission, and safe cursor
@@ -63,15 +63,15 @@ Branch: phase-0s-implementation. Target Python >=3.12,<3.13 on Apple Silicon mac
 
 ### Automated verification
 
-- GitHub Actions run for code commit `10bcda0091280d30863bdd1ebaf82d42b63e6633`: https://github.com/PritPatel845/pie-ai-assientance/actions/runs/43673002508 (push and pull-request runs both passed).
-- `pytest -q`: **205 passed**.
+- GitHub Actions run for code commit `10bcda0091280d30863bdd1ebaf82d42b63e6633`: https://github.com/PritPatel845/pie-ai-assientance/actions/runs/43673193185 (push and pull-request runs both passed).
+- `pytest -q`: **206 passed**.
 - `ruff check .`: passed.
 - `ruff format --check .`: passed.
 - `mypy src/pie`: passed; no issues in 20 source files.
 - `python -m pie doctor`: exited successfully on the CI runner.
 - CI is Linux/Python 3.12. It is not evidence of macOS/Apple Silicon or camera/permission compatibility.
 - `scripts/start_pie.command`, `scripts/download_model.sh`, and `scripts/manual_checks/audit_macos.command` are executable (`100755`). CI syntax-checks both maintenance scripts and verifies their executable bits.
-- The model-asset job downloaded the official Google model, verified its exact 7,819,105-byte size and SHA-256, then committed it as `9e173f61fc8cae8883932c879a5623666f38ae51`.
+- The model-asset job downloaded the official Google model, verified its exact 7,819,105-byte size and SHA-256, then committed it as `9e173f61fc8cae8883932c879a5623666f38ae51`. A regression test now re-verifies the bundled binary on every test run.
 
 ### Configuration reference
 
