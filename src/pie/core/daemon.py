@@ -111,8 +111,11 @@ class Daemon:
                     module.stop()
                     continue
 
-                async def stop_one(target: Module = module) -> None:
-                    result = await loop.run_in_executor(None, target.stop)
+                async def stop_one(
+                    target: Module = module,
+                    event_loop: asyncio.AbstractEventLoop = loop,
+                ) -> None:
+                    result = await event_loop.run_in_executor(None, target.stop)
                     if inspect.isawaitable(result):
                         await result
 
