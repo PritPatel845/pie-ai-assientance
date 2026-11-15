@@ -200,6 +200,7 @@ def test_volume_filter_emits_on_two_point_change_or_elapsed_interval() -> None:
     elapsed = processor.process([one_step], 0.22)
     assert SetVolume(71) in elapsed.actions
 
+
 def arm_game(processor: FrameProcessor) -> None:
     palm = hand()
     processor.process([palm], 0.0)
@@ -227,7 +228,8 @@ def test_unarmed_desktop_emits_no_actions_for_every_pose() -> None:
         assert result.actions == []
 
 
-def test_racing_profile_emits_exact_key_states_for_three_and_four_finger_poses() -> None:
+def test_racing_profile_emits_exact_key_states_for_three_and_four_finger_poses(
+) -> None:
     processor = FrameProcessor()
     processor.set_mode("game", "asphalt")
     arm_game(processor)
