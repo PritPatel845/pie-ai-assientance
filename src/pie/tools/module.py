@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 from pie.core.daemon import Daemon
 from pie.platform.mac import MacController
