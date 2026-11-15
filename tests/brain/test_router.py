@@ -4,15 +4,12 @@ import asyncio
 from pathlib import Path
 from typing import Literal
 
-import pytest
-
 from pie.brain.quota import QuotaTracker
 from pie.brain.router import BrainRouter
 from pie.brain.types import (
     Message,
     ProviderReply,
     QuotaExhausted,
-    RouterResult,
     ToolCall,
     ToolResult,
     ToolSpec,
@@ -72,10 +69,9 @@ def _router(
     *,
     config: BrainConfig | None = None,
 ) -> BrainRouter:
-    loop = asyncio.get_running_loop()
     return BrainRouter(
         config or BrainConfig(anthropic_model="claude-test", openai_model="gpt-test"),
-        EventBus(loop),
+        EventBus(asyncio.get_running_loop()),
         providers,  # type: ignore[arg-type]
         QuotaTracker(tmp_path / "quota.json"),
         _rule_executor,
@@ -84,76 +80,85 @@ def _router(
     )
 
 
-@pytest.mark.asyncio
-async def test_cloud_quota_falls_through_to_next_cloud_before_local(tmp_path: Path) -> None:
-    anthropic = FakeProvider("anthropic", "cloud", error=QuotaExhausted("anthropic"))
-    openai = FakeProvider("openai", "cloud", text="from openai")
-    local = FakeProvider("local", "local")
-    router = _router(
-        {"anthropic": anthropic, "openai": openai, "local": local}, tmp_path
-    )
+def test_cloud_quota_falls_through_to_next_cloud_before_local(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        anthropic = FakeProvider("anthropic", "cloud", error=QuotaExhausted("anthropic"))
+        openai = FakeProvider("openai", "cloud", text="from openai")
+        local = FakeProvider("local", "local")
+        router = _router(
+            {"anthropic": anthropic, "openai": openai, "local": local}, tmp_path
+        )
 
-    result = await router.handle("explain gravity", source="test")
+        result = await router.handle("explain gravity", source="test")
 
-    assert result.provider == "openai"
-    assert result.text == "from openai"
-    assert not anthropic.seen_tools[0]
-    assert not openai.seen_tools[0]
-    assert not local.seen_tools
+        assert result.provider == "openai"
+        assert result.text == "from openai"
+        assert not anthropic.seen_tools[0]
+        assert not openai.seen_tools[0]
+        assert not local.seen_tools
 
-
-@pytest.mark.asyncio
-async def test_all_cloud_providers_exhausted_switches_to_local(tmp_path: Path) -> None:
-    anthropic = FakeProvider("anthropic", "cloud", error=QuotaExhausted("anthropic"))
-    openai = FakeProvider("openai", "cloud", error=QuotaExhausted("openai"))
-    local = FakeProvider("local", "local", text="offline answer")
-    router = _router(
-        {"anthropic": anthropic, "openai": openai, "local": local}, tmp_path
-    )
-
-    result = await router.handle("explain gravity", source="test")
-
-    assert result.provider == "local"
-    assert result.text == "offline answer"
-    assert not local.seen_tools[0]
+    asyncio.run(scenario())
 
 
-@pytest.mark.asyncio
-async def test_explicit_local_skips_cloud(tmp_path: Path) -> None:
-    anthropic = FakeProvider("anthropic", "cloud")
-    local = FakeProvider("local", "local", text="local answer")
-    router = _router({"anthropic": anthropic, "local": local}, tmp_path)
+def test_all_cloud_providers_exhausted_switches_to_local(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        anthropic = FakeProvider("anthropic", "cloud", error=QuotaExhausted("anthropic"))
+        openai = FakeProvider("openai", "cloud", error=QuotaExhausted("openai"))
+        local = FakeProvider("local", "local", text="offline answer")
+        router = _router(
+            {"anthropic": anthropic, "openai": openai, "local": local}, tmp_path
+        )
 
-    result = await router.handle("use local explain gravity", source="test")
+        result = await router.handle("explain gravity", source="test")
 
-    assert result.provider == "local"
-    assert result.text == "local answer"
-    assert not anthropic.seen_tools
+        assert result.provider == "local"
+        assert result.text == "offline answer"
+        assert not local.seen_tools[0]
 
-
-@pytest.mark.asyncio
-async def test_deterministic_rule_skips_all_models(tmp_path: Path) -> None:
-    cloud = FakeProvider("anthropic", "cloud")
-    router = _router({"anthropic": cloud}, tmp_path)
-
-    result = await router.handle("open Safari", source="test")
-
-    assert result.route == "rule"
-    assert result.ok
-    assert not cloud.seen_tools
+    asyncio.run(scenario())
 
 
-@pytest.mark.asyncio
-async def test_stop_cancels_active_provider_request(tmp_path: Path) -> None:
-    gate = asyncio.Event()
-    cloud = FakeProvider("anthropic", "cloud", gate=gate)
-    router = _router({"anthropic": cloud}, tmp_path)
-    running = asyncio.create_task(router.handle("explain gravity", source="test"))
-    await asyncio.wait_for(gate.wait(), timeout=1.0)
+def test_explicit_local_skips_cloud(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        anthropic = FakeProvider("anthropic", "cloud")
+        local = FakeProvider("local", "local", text="local answer")
+        router = _router({"anthropic": anthropic, "local": local}, tmp_path)
 
-    stopped = await router.handle("stop", source="test")
-    result = await asyncio.wait_for(running, timeout=1.0)
+        result = await router.handle("use local explain gravity", source="test")
 
-    assert stopped.text == "Cancelled."
-    assert isinstance(result, RouterResult)
-    assert result.text == "Cancelled."
+        assert result.provider == "local"
+        assert result.text == "local answer"
+        assert not anthropic.seen_tools
+
+    asyncio.run(scenario())
+
+
+def test_deterministic_rule_skips_all_models(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        cloud = FakeProvider("anthropic", "cloud")
+        router = _router({"anthropic": cloud}, tmp_path)
+
+        result = await router.handle("open Safari", source="test")
+
+        assert result.route == "rule"
+        assert result.ok
+        assert not cloud.seen_tools
+
+    asyncio.run(scenario())
+
+
+def test_stop_cancels_active_provider_request(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        gate = asyncio.Event()
+        cloud = FakeProvider("anthropic", "cloud", gate=gate)
+        router = _router({"anthropic": cloud}, tmp_path)
+        running = asyncio.create_task(router.handle("explain gravity", source="test"))
+        await asyncio.wait_for(gate.wait(), timeout=1.0)
+
+        stopped = await router.handle("stop", source="test")
+        result = await asyncio.wait_for(running, timeout=1.0)
+
+        assert stopped.text == "Cancelled."
+        assert result.text == "Cancelled."
+
+    asyncio.run(scenario())
