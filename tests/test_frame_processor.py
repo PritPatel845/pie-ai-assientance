@@ -195,8 +195,7 @@ def test_volume_filter_emits_on_two_point_change_or_elapsed_interval() -> None:
     assert SetVolume(72) in first.actions
     one_step = hand(z=0.005)
     assert not any(
-        isinstance(action, SetVolume)
-        for action in processor.process([one_step], 0.1).actions
+        isinstance(action, SetVolume) for action in processor.process([one_step], 0.1).actions
     )
     elapsed = processor.process([one_step], 0.22)
     assert SetVolume(71) in elapsed.actions
