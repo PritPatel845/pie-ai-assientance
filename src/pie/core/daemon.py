@@ -6,7 +6,7 @@ import logging
 import signal
 import threading
 from collections.abc import Callable
-from typing import Protocol, cast
+from typing import Any, Protocol, cast
 
 from pie import __version__
 from pie.config import Config
@@ -37,6 +37,7 @@ class Daemon:
         self._lifecycle_lock = threading.RLock()
         self._started_once = False
         self._stopped = False
+        self._previous_signals: dict[int, Any] = {}
 
     def register_module(self, module: Module) -> None:
         with self._lifecycle_lock:
@@ -77,6 +78,7 @@ class Daemon:
             self.bus.publish("system.started", {"version": __version__}, source="daemon")
             if threading.current_thread() is threading.main_thread():
                 for signum in (signal.SIGINT, signal.SIGTERM):
+                    self._previous_signals[signum] = signal.getsignal(signum)
                     signal.signal(signum, self._signal_stop)
         except Exception as exc:
             self.stop()
@@ -126,6 +128,10 @@ class Daemon:
             except Exception:
                 _LOG.exception("module %s failed to stop", module.name)
         self._started.clear()
+        if threading.current_thread() is threading.main_thread():
+            for signum, handler in self._previous_signals.items():
+                signal.signal(signum, handler)
+            self._previous_signals.clear()
         if self.loop is not None and self.loop.is_running():
             self.loop.call_soon_threadsafe(self.loop.stop)
         if self._thread is not None and self._thread is not threading.current_thread():
