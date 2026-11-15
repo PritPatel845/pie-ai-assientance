@@ -90,9 +90,13 @@ def rule_to_tool_call(match: RuleMatch) -> ToolCall:
     elif action == "settings":
         name, args = "mac.open_app", {"name": "System Settings"}
     elif action == "volume":
-        name, args = "mac.set_volume", {"value": int(value)}
+        if not isinstance(value, int):
+            raise ValueError("volume rule requires an integer")
+        name, args = "mac.set_volume", {"value": value}
     elif action == "scroll":
-        name, args = "mac.scroll", {"amount": int(value)}
+        if not isinstance(value, int):
+            raise ValueError("scroll rule requires an integer")
+        name, args = "mac.scroll", {"amount": value}
     elif action == "screenshot":
         name, args = "mac.screenshot", {}
     elif action == "lock":
