@@ -143,6 +143,7 @@ class FrameProcessor:
         self._disarm()
         self._previous.clear()
         self._previous_index = None
+        self._previous_game = "GAME READY"
         return actions
 
     def reset(self) -> list[Action]:
@@ -151,6 +152,7 @@ class FrameProcessor:
         self._previous.clear()
         self._previous_x = None
         self._previous_index = None
+        self._previous_game = "GAME READY"
         return actions
 
     def _disarm(self) -> None:
@@ -180,6 +182,7 @@ class FrameProcessor:
             self._previous.clear()
             self._previous_x = None
             self._previous_index = None
+            self._previous_game = "GAME READY"
             self._last_volume = None
             return FrameResult("NO HAND", None, None, False, actions)
 
@@ -270,6 +273,14 @@ class FrameProcessor:
                     actions.append(Tap("right"))
                 elif rising and label == "THUMB UP / JUMP":
                     actions.append(Tap("jump"))
+                elif rising and label == "SWIPE LEFT":
+                    actions.append(Tap("left"))
+                elif rising and label == "SWIPE RIGHT":
+                    actions.append(Tap("right"))
+                elif rising and label == "PALM UP / JUMP":
+                    actions.append(Tap("jump"))
+                elif rising and label == "PALM DOWN / SLIDE":
+                    actions.append(Tap("slide"))
                 if is_fist(hand):
                     self._key("slide", True, actions)
                 else:
