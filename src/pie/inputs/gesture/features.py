@@ -105,6 +105,6 @@ def normalize_hand(hand: Sequence[Landmark]) -> list[float]:
     for point in hand:
         x, y = point.x - wrist.x, point.y - wrist.y
         values.extend(
-            ((c * x - s * y) / scale, (s * x + c * y) / scale, (point.z - wrist.z) / scale)
+            ((c * x + s * y) / scale, (-s * x + c * y) / scale, (point.z - wrist.z) / scale)
         )
     return values
