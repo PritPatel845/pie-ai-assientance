@@ -22,9 +22,7 @@ def hand(*, extended=(True, True, True, True), thumb_y=0.3, z=0.0, shift=0.0):
     points = [P(0.5 + shift, 0.7, z) for _ in range(21)]
     points[0] = P(0.5 + shift, 0.8, z)
     points[9] = P(0.5 + shift, 0.5, z)
-    for (tip, pip), is_up in zip(
-        ((8, 6), (12, 10), (16, 14), (20, 18)), extended, strict=False
-    ):
+    for (tip, pip), is_up in zip(((8, 6), (12, 10), (16, 14), (20, 18)), extended, strict=False):
         points[pip] = P(0.5 + shift, 0.6, z)
         points[tip] = P(0.5 + shift, 0.3 if is_up else 0.68, z)
     points[4] = P(0.35 + shift, thumb_y, z)
