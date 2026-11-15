@@ -6,9 +6,9 @@ VOICE_WAKE_WORDS = ("hey pie", "pie", "pi", "jr", "j r", "jay r", "jarvis")
 
 
 def extract_wake_command(text: str) -> str | None:
-    cleaned = re.sub(r"\\s+", " ", text.strip().lower())
+    cleaned = re.sub(r"\s+", " ", text.strip().lower())
     for wake in sorted(VOICE_WAKE_WORDS, key=len, reverse=True):
-        pattern = rf"^(?:hey\\s+)?{re.escape(wake)}(?=$|[\\s,.!?])"
+        pattern = rf"^(?:hey\s+)?{re.escape(wake)}(?=$|[\s,.!?])"
         match = re.match(pattern, cleaned)
         if match:
             return cleaned[match.end():].lstrip(" ,.!?")
@@ -16,7 +16,7 @@ def extract_wake_command(text: str) -> str | None:
 
 
 def parse_voice_command(text: str) -> tuple[str, object | None] | None:
-    value = re.sub(r"\\s+", " ", text.strip().lower())
+    value = re.sub(r"\s+", " ", text.strip().lower())
     exact: dict[str, tuple[str, object | None]] = {
         "stop listening": ("stop", None), "pause listening": ("stop", None),
         "voice off": ("stop", None), "confirm delete": ("delete", None),
@@ -41,12 +41,12 @@ def parse_voice_command(text: str) -> tuple[str, object | None] | None:
     }
     if value in exact:
         return exact[value]
-    match = re.fullmatch(r"(?:volume|set volume|set the volume to|volume to)\\s+(\\d{1,3})", value)
+    match = re.fullmatch(r"(?:volume|set volume|set the volume to|volume to)\s+(\d{1,3})", value)
     if match:
         return "volume", min(100, int(match.group(1)))
-    match = re.fullmatch(r"(?:search|ask|look up)\\s+(.+)", value)
+    match = re.fullmatch(r"(?:search|ask|look up)\s+(.+)", value)
     if match:
-        query = re.sub(r"^(?:the web for|google)\\s+", "", match.group(1))
+        query = re.sub(r"^(?:the web for|google)\s+", "", match.group(1))
         return "search", query
     for prefix in ("open", "launch", "start", "type", "write", "enter"):
         if value.startswith(prefix + " "):
