@@ -57,3 +57,25 @@ def test_hanging_module_stop_is_bounded() -> None:
     started = time.monotonic()
     daemon.stop()
     assert time.monotonic() - started < 3.0
+
+
+def test_runtime_state_snapshots_are_immutable_and_thread_safe() -> None:
+    from dataclasses import FrozenInstanceError
+
+    from pie.core.state import RuntimeState, StopFlag
+
+    state = RuntimeState()
+    state.update(mode="game", game_profile="counter-strike", armed=True,
+                 last_gesture="OPEN PALM")
+    snapshot = state.snapshot()
+    assert snapshot.mode == "game"
+    assert snapshot.game_profile == "counter-strike"
+    assert snapshot.armed is True
+    with pytest.raises(FrozenInstanceError):
+        snapshot.mode = "idle"  # type: ignore[misc]
+
+    flag = StopFlag()
+    assert not flag.is_set()
+    flag.set()
+    assert flag.is_set()
+    assert flag.wait(0)
