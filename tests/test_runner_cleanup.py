@@ -1,4 +1,5 @@
 """Runner resource cleanup follows Phase 0S section 3.8."""
+
 from __future__ import annotations
 
 import sys
@@ -59,8 +60,11 @@ def test_runner_releases_camera_and_learning_on_failure(monkeypatch, tmp_path) -
 
     with pytest.raises(RuntimeError, match="synthetic capture failure"):
         runner.run(
-            no_actions=True, preview=False, model_path="unused",
-            capture_factory=lambda _camera: capture, learning_dir=tmp_path,
+            no_actions=True,
+            preview=False,
+            model_path="unused",
+            capture_factory=lambda _camera: capture,
+            learning_dir=tmp_path,
         )
     assert capture.released
     assert closed == ["learning", "windows"]

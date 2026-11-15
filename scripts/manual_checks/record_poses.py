@@ -11,12 +11,23 @@ import mediapipe as mp
 
 from pie.inputs.gesture.engine import ensure_model
 
-POSES = ("palm", "fist", "pinch", "thumb_up", "thumb_down",
-         "two_finger", "three_finger", "four_finger", "pointer")
+POSES = (
+    "palm",
+    "fist",
+    "pinch",
+    "thumb_up",
+    "thumb_down",
+    "two_finger",
+    "three_finger",
+    "four_finger",
+    "pointer",
+)
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Record one second of real hand landmarks per pose")
+    parser = argparse.ArgumentParser(
+        description="Record one second of real hand landmarks per pose"
+    )
     parser.add_argument("--camera", type=int, default=0)
     parser.add_argument("--seconds", type=float, default=1.0)
     parser.add_argument("--output", type=Path, default=Path("tests/fixtures/real_poses"))
@@ -31,7 +42,8 @@ def main() -> int:
         raise RuntimeError(f"Could not open camera {args.camera}")
     options = mp.tasks.vision.HandLandmarkerOptions(
         base_options=mp.tasks.BaseOptions(model_asset_path=str(model)),
-        running_mode=mp.tasks.vision.RunningMode.VIDEO, num_hands=1,
+        running_mode=mp.tasks.vision.RunningMode.VIDEO,
+        num_hands=1,
     )
     try:
         with mp.tasks.vision.HandLandmarker.create_from_options(options) as landmarker:
@@ -49,14 +61,16 @@ def main() -> int:
                         int(time.monotonic() * 1000),
                     )
                     if result.hand_landmarks:
-                        samples.append([[point.x, point.y, point.z]
-                                        for point in result.hand_landmarks[0]])
+                        samples.append(
+                            [[point.x, point.y, point.z] for point in result.hand_landmarks[0]]
+                        )
                 if not samples:
                     print(f"No hand landmarks captured for {pose}; skipping.")
                     continue
                 destination = args.output / f"{pose}.json"
-                destination.write_text(json.dumps({"pose": pose, "samples": samples},
-                                                   indent=2), encoding="utf-8")
+                destination.write_text(
+                    json.dumps({"pose": pose, "samples": samples}, indent=2), encoding="utf-8"
+                )
                 print(f"Saved {len(samples)} samples: {destination}")
     finally:
         capture.release()
