@@ -350,7 +350,11 @@ class BrainRouter:
                 if exposed is None:
                     if call.name in reported_unknown:
                         return RouterResult(
-                            route, provider.name, "", calls_made, False,
+                            route,
+                            provider.name,
+                            "",
+                            calls_made,
+                            False,
                             f"repeated unknown tool or unavailable tool: {call.name}",
                         )
                     reported_unknown.add(call.name)
@@ -407,7 +411,11 @@ class BrainRouter:
                     if "argument" in lowered or "schema" in lowered or "unknown tool" in lowered:
                         if call.name in reported_bad_args:
                             return RouterResult(
-                                route, provider.name, "", calls_made, False,
+                                route,
+                                provider.name,
+                                "",
+                                calls_made,
+                                False,
                                 f"repeated invalid tool call: {call.name}",
                             )
                         reported_bad_args.add(call.name)
