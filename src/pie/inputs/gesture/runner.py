@@ -150,7 +150,7 @@ def run(
     learning_dir: Path | None = None,
     capture_factory: Callable[[int], Capture] | None = None,
     bus: EventBus | None = None,
-    stop: threading.Event | None = None,
+    stop: Any | None = None,
     state_hz: int = 10,
 ) -> None:
     try:
