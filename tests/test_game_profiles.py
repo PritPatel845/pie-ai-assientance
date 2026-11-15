@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from pie.inputs.gesture.game import GAME_PROFILES, MAC_KEY_CODES, GameController
+from pie.inputs.gesture.frame import KeyAction
+from pie.inputs.gesture.runner import ActionSink
 
 
 class Poster:
@@ -29,3 +31,12 @@ def test_controller_is_idempotent_and_releases_keys() -> None:
     game.release_all()
     assert poster.events == [(123, True), (123, False)]
     assert game.held_keys == frozenset()
+
+
+def test_action_sink_uses_profile_keycodes() -> None:
+    poster = Poster()
+    sink = ActionSink(poster, profile="counter-strike")
+    sink.execute(KeyAction("forward", True))
+    sink.execute(KeyAction("left", True))
+    sink.execute(KeyAction("back", True))
+    assert poster.events == [(13, True), (0, True), (1, True)]
