@@ -135,7 +135,6 @@ def test_runner_releases_camera_if_controller_setup_fails(monkeypatch, tmp_path)
     assert closed == ["windows"]
 
 
-
 class RecordingController:
     def __init__(self):
         self.events = []
