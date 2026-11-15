@@ -1,4 +1,5 @@
-"""LearningEngine buffering, sampling, persistence, and redaction follow Phase 0S §3.4 (PDF pp. 19–20)."""
+"""LearningEngine buffering, sampling, persistence, and redaction
+follow Phase 0S §3.4 (PDF pp. 19–20)."""
 
 from __future__ import annotations
 
