@@ -60,7 +60,9 @@ class PermissionGate:
             return
         self._started = True
         self._unsubscribers = [
-            self.bus.subscribe("input.voice.transcript", self._on_voice, name="permission-voice"),
+            self.bus.subscribe(
+                "input.voice.transcript", self._on_voice, name="permission-voice"
+            ),
             self.bus.subscribe("input.gesture.*", self._on_gesture_event, name="permission-gesture"),
             self.bus.subscribe("ui.command", self._on_ui, name="permission-ui"),
         ]
@@ -214,9 +216,14 @@ def _redact(value: Any) -> Any:
         result: dict[str, Any] = {}
         for key, item in value.items():
             lowered = str(key).casefold()
-            result[str(key)] = "***" if any(word in lowered for word in (
-                "password", "token", "secret", "key", "authorization"
-            )) else _redact(item)
+            result[str(key)] = (
+                "***"
+                if any(
+                    word in lowered
+                    for word in ("password", "token", "secret", "key", "authorization")
+                )
+                else _redact(item)
+            )
         return result
     if isinstance(value, list):
         return [_redact(item) for item in value]
