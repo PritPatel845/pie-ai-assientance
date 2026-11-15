@@ -111,12 +111,7 @@ class EventBus:
             self.loop.call_soon(self._dispatch, warning)
 
     def subscribe(self, pattern: str, handler: Handler, *, name: str) -> Callable[[], None]:
-        subscriber = _Subscriber(
-            pattern,
-            handler,
-            name,
-            asyncio.Queue(maxsize=1000),
-        )
+        subscriber = _Subscriber(pattern, handler, name, asyncio.Queue(maxsize=1000))
         with self._lock:
             self._subscribers.append(subscriber)
         if not self.loop.is_closed():
@@ -155,19 +150,13 @@ class EventBus:
                 if inspect.iscoroutinefunction(subscriber.handler):
                     await subscriber.handler(event)
                 else:
-                    result = await self.loop.run_in_executor(
-                        None, subscriber.handler, event
-                    )
+                    result = await self.loop.run_in_executor(None, subscriber.handler, event)
                     if inspect.isawaitable(result):
                         await result
             except asyncio.CancelledError:
                 raise
             except Exception as exc:
-                _LOG.exception(
-                    "event handler %s failed for topic %s",
-                    subscriber.name,
-                    event.topic,
-                )
+                _LOG.exception("event handler %s failed for topic %s", subscriber.name, event.topic)
                 self.publish(
                     "system.error",
                     {
