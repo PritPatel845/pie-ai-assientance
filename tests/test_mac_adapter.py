@@ -1,3 +1,5 @@
+"""MacController adapter behaviour and application resolution follow Phase 0S §3.5 (PDF pp. 20–21)."""
+
 from __future__ import annotations
 
 import subprocess
