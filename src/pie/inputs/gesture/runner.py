@@ -159,7 +159,6 @@ def run(
     processor = FrameProcessor(
         arm_hold_seconds=arm_hold_seconds, steer_sensitivity=steer_sensitivity
     )
-    processor.set_mode("game", game_profile)
     learning = LearningEngine(learning_dir)
     previous_time = time.monotonic()
     fps = 0.0
