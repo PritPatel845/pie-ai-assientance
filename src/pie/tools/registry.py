@@ -218,6 +218,12 @@ class ToolRegistry:
             self._setting("tools", "dry_run", False) if dry_run is None else dry_run
         )
         prompt_builder = getattr(spec_tool, "confirmation_prompt", None)
+        cleanup_builder = getattr(spec_tool, "clear_confirmation", None)
+
+        def clear_confirmation_state() -> None:
+            if callable(cleanup_builder):
+                cleanup_builder(call_id)
+
         custom_prompt = None
         if not is_dry_run and tier is Tier.CONFIRM and callable(prompt_builder):
             custom_prompt = await asyncio.to_thread(
@@ -243,6 +249,7 @@ class ToolRegistry:
                     pre_approved_by=pre_approved_by,
                 )
         except asyncio.CancelledError:
+            clear_confirmation_state()
             self._publish("tool.denied", {"call_id": call_id, "reason": "cancelled"}, call_id)
             self._publish(
                 "tool.finished",
@@ -261,6 +268,7 @@ class ToolRegistry:
             )
             raise
         if not decision.allow:
+            clear_confirmation_state()
             self._publish(
                 "tool.denied", {"call_id": call_id, "reason": decision.by}, call_id
             )
@@ -280,6 +288,7 @@ class ToolRegistry:
         self._publish("tool.approved", {"call_id": call_id, "by": decision.by}, call_id)
         self._publish("tool.started", {"call_id": call_id}, call_id)
         if is_dry_run:
+            clear_confirmation_state()
             result = ToolResult(
                 True,
                 output={
@@ -333,6 +342,7 @@ class ToolRegistry:
                             task.cancel()
                     result = fail("timeout")
         except asyncio.CancelledError:
+            clear_confirmation_state()
             ctx.cancel.set()
             if task is not None and not task.done():
                 task.cancel()
@@ -354,8 +364,10 @@ class ToolRegistry:
             )
             raise
         except Exception as exc:
+            clear_confirmation_state()
             result = fail(f"{type(exc).__name__}: {exc}")
 
+        clear_confirmation_state()
         limit = int(self._setting("tools", "result_max_chars", 20000))
         if isinstance(result.output, str) and len(result.output) > limit:
             result.output = result.output[: max(0, limit - 11)] + "[truncated]"
