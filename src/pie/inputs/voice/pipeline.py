@@ -120,6 +120,12 @@ class VoiceController(_VoiceController):
             timeout_s = float(self.config.listen_seconds)
         timeout_s = min(max(timeout_s, 1.0), 120.0)
         self._active_until = max(self._active_until, self._clock() + timeout_s)
+        _LOG.info(
+            "Voice permission window opened (call_id=%s, timeout_s=%.2f, active_until=%.6f)",
+            event.payload.get("call_id", "unknown"),
+            timeout_s,
+            self._active_until,
+        )
         self.publish_listening(True, self._wall_clock() + timeout_s)
 
     @property
@@ -270,6 +276,12 @@ class VoiceController(_VoiceController):
             command_text = command
         else:
             command_text = raw if addressed else ""
+        if permission_window:
+            _LOG.info(
+                "Voice permission transcript classified (addressed=%s, exact_confirmation=%s)",
+                addressed,
+                command in {"yes", "no"},
+            )
         self.publish_transcript(command_text if addressed else raw, raw=raw, addressed=addressed)
         if addressed and command_text.strip() and (self.bus is None or not self.brain_enabled):
             self.execute(command_text.strip())
