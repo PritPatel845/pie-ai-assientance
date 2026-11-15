@@ -499,7 +499,7 @@ python -m pie run --voice-background --print-events
 
 ### Branch and scope
 - Implementation is isolated on `phase-2b-implementation`; PR #5 targets `main`.
-- Phase 2B builds the fault-tolerant routing layer only. No real tools are exposed; the model receives an empty tool list until Phase 3A.
+- Phase 2B builds the fault-tolerant routing layer only. No real tools are exposed; the model receives an empty tool list until Phase 3A. The generic tool-loop seam is nevertheless implemented and exercised with fake tools: sequential round trips, untrusted tool-result messages, 4,000-character truncation, repeated unknown/bad-argument aborts, max-step limits, total timeout, and local READ/REVERSIBLE filtering.
 - The voice pipeline now has a single-execution switch: with `brain.enabled=true`, it publishes addressed transcripts and does not separately execute legacy commands. `BrainModule` is the sole consumer of addressed voice transcripts and typed `input.text.command` events. Deterministic matches call the shared `LegacyRuleExecutor.run(action, value)` seam exactly once. With brain disabled, the Phase 2A legacy path remains active.
 
 ### Implemented
