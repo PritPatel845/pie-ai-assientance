@@ -60,9 +60,7 @@ class MlxWhisperTranscriber:
 
     @staticmethod
     def _validate_model_size(model_path: Path) -> int:
-        model_bytes = sum(
-            item.stat().st_size for item in model_path.rglob("*") if item.is_file()
-        )
+        model_bytes = sum(item.stat().st_size for item in model_path.rglob("*") if item.is_file())
         if model_bytes > _MAX_MODEL_BYTES:
             raise RuntimeError(
                 f"Speech model exceeds the 1 GB memory/disk budget ({model_bytes} bytes)"
