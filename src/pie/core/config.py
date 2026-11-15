@@ -122,7 +122,8 @@ def _merge(target: dict[str, dict[str, Any]], source: dict[str, Any], label: str
             raise ValueError(f"{label} section {section} must be a table")
         unknown_keys = set(values) - set(target[section])
         if unknown_keys:
-            raise ValueError(f"unknown {label} key(s) in {section}: {', '.join(sorted(unknown_keys))}")
+            keys = ", ".join(sorted(unknown_keys))
+            raise ValueError(f"unknown {label} key(s) in {section}: {keys}")
         for key, value in values.items():
             expected = _TYPES[section][key]
             if expected is int and isinstance(value, bool):
