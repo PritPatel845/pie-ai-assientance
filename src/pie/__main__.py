@@ -176,7 +176,7 @@ def main(argv: list[str] | None = None) -> int:
                 args.config_action,
                 args.brain_args,
                 args.config,
-                no_voice=args.no_voice,
+                no_voice=args.voice is False,
                 no_actions=args.no_actions,
             )
         except (OSError, RuntimeError, ValueError, TimeoutError) as exc:
