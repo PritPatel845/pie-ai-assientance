@@ -34,8 +34,8 @@ from pathlib import Path
 print(f'Python: {sys.version.split()[0]} ({sys.executable})')
 print(f'Platform: {platform.platform()}')
 
-# MediaPipe 0.10.35 declares opencv-contrib-python, while Pie pins
-# opencv-python. Both distributions own the same cv2 import namespace.
+# The approved Phase 0S dependency decision pins opencv-contrib-python.
+# Both OpenCV distributions own the same cv2 import namespace; install only one.
 for distribution in ('opencv-python', 'opencv-contrib-python'):
     try:
         print(f'Distribution {distribution}: {importlib.metadata.version(distribution)}')
@@ -48,14 +48,23 @@ try:
 except importlib.metadata.PackageNotFoundError:
     print('MediaPipe OpenCV requirements: unavailable (MediaPipe not installed)')
 try:
-    importlib.metadata.version('opencv-python')
-    importlib.metadata.version('opencv-contrib-python')
+    opencv_contrib_version = importlib.metadata.version('opencv-contrib-python')
 except importlib.metadata.PackageNotFoundError:
-    pass
+    print('OpenCV contrib pin: FAIL (opencv-contrib-python is not installed)')
 else:
-    print('PACKAGING BLOCKER: both OpenCV distributions are installed; do not use this environment for acceptance.')
+    expected = '4.11.0.86'
+    print(
+        f'OpenCV contrib pin: {"OK" if opencv_contrib_version == expected else "FAIL"} '
+        f'({opencv_contrib_version}; expected {expected})'
+    )
+try:
+    importlib.metadata.version('opencv-python')
+except importlib.metadata.PackageNotFoundError:
+    print('opencv-python duplicate distribution: NOT INSTALLED (expected)')
+else:
+    print('PACKAGING BLOCKER: opencv-python is also installed; remove it before acceptance.')
 for module, distribution in (
-    ('cv2', 'opencv-python'),
+    ('cv2', 'opencv-contrib-python'),
     ('numpy', 'numpy'),
     ('mediapipe', 'mediapipe'),
     ('pyautogui', 'pyautogui'),
