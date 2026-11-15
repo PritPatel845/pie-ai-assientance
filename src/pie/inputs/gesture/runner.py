@@ -34,12 +34,6 @@ class Capture(Protocol):
     def release(self) -> None: ...
 
 
-class Capture(Protocol):
-    def isOpened(self) -> bool: ...
-    def read(self) -> tuple[bool, Any]: ...
-    def release(self) -> None: ...
-
-
 class ActionSink:
     """Translate pure FrameProcessor actions into an injectable platform adapter."""
 
@@ -88,27 +82,9 @@ def draw_hand(frame: Any, landmarks: Sequence[Landmark], cv2: Any) -> None:
     height, width = frame.shape[:2]
     points = [(int(p.x * width), int(p.y * height)) for p in landmarks]
     for start, end in (
-        (0, 1),
-        (1, 2),
-        (2, 3),
-        (3, 4),
-        (0, 5),
-        (5, 6),
-        (6, 7),
-        (7, 8),
-        (5, 9),
-        (9, 10),
-        (10, 11),
-        (11, 12),
-        (9, 13),
-        (13, 14),
-        (14, 15),
-        (15, 16),
-        (13, 17),
-        (17, 18),
-        (18, 19),
-        (19, 20),
-        (0, 17),
+        (0, 1), (1, 2), (2, 3), (3, 4), (0, 5), (5, 6), (6, 7), (7, 8),
+        (5, 9), (9, 10), (10, 11), (11, 12), (9, 13), (13, 14), (14, 15),
+        (15, 16), (13, 17), (17, 18), (18, 19), (19, 20), (0, 17),
     ):
         cv2.line(frame, points[start], points[end], (80, 220, 180), 2)
     for point in points:
@@ -127,14 +103,8 @@ def draw_hud(frame: Any, result: FrameResult, fps: float, cv2: Any, *, no_action
     ]
     for index, line in enumerate(lines):
         cv2.putText(
-            frame,
-            line,
-            (12, 24 + index * 23),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.52,
-            (136, 232, 208),
-            1,
-            cv2.LINE_AA,
+            frame, line, (12, 24 + index * 23), cv2.FONT_HERSHEY_SIMPLEX,
+            0.52, (136, 232, 208), 1, cv2.LINE_AA,
         )
 
 
@@ -179,7 +149,6 @@ def run(
     learning = LearningEngine(learning_dir)
     previous_time = time.monotonic()
     fps = 0.0
-    frame_index = 0
     try:
         with mp.tasks.vision.HandLandmarker.create_from_options(options) as landmarker:
             while True:
@@ -217,12 +186,9 @@ def run(
                         for action in processor.set_mode(mode):
                             sink.execute(action)
                     if key in (ord("1"), ord("2"), ord("3")):
-                        profile = {"1": "asphalt", "2": "temple-run", "3": "counter-strike"}[
-                            chr(key)
-                        ]
+                        profile = {"1": "asphalt", "2": "temple-run", "3": "counter-strike"}[chr(key)]
                         for action in processor.set_mode("game", profile):
                             sink.execute(action)
-                frame_index += 1
     finally:
         for action in processor.reset():
             sink.execute(action)
