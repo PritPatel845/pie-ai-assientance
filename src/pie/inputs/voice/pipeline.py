@@ -97,10 +97,29 @@ class VoiceController(_VoiceController):
             if bus is not None
             else None
         )
+        self._unsubscribe_permission_request = (
+            bus.subscribe(
+                "permission.request",
+                self._on_permission_request,
+                name="voice-permission-window",
+            )
+            if bus is not None
+            else None
+        )
 
     def _on_listening_event(self, event: Event) -> None:
         if event.source == "tool" and not bool(event.payload.get("active", True)):
             self._active_until = 0.0
+
+    def _on_permission_request(self, event: Event) -> None:
+        """Temporarily accept bare yes/no speech only while approval is pending."""
+        try:
+            timeout_s = float(event.payload.get("timeout_s", self.config.listen_seconds))
+        except (TypeError, ValueError):
+            timeout_s = float(self.config.listen_seconds)
+        timeout_s = min(max(timeout_s, 1.0), 120.0)
+        self._active_until = max(self._active_until, self._clock() + timeout_s)
+        self.publish_listening(True, self._wall_clock() + timeout_s)
 
     @property
     def echo_guard(self) -> bool:
@@ -379,6 +398,9 @@ class VoiceController(_VoiceController):
         if self._unsubscribe_tool_stop is not None:
             self._unsubscribe_tool_stop()
             self._unsubscribe_tool_stop = None
+        if self._unsubscribe_permission_request is not None:
+            self._unsubscribe_permission_request()
+            self._unsubscribe_permission_request = None
 
 
 __all__ = ["VoiceController"]
