@@ -31,7 +31,7 @@ class GestureConfig:
 @dataclass(frozen=True, slots=True)
 class VoiceConfig:
     enabled: bool = True
-    wake_words: tuple[str, ...] = ("pie", "hey pie", "pi", "jr", "j r", "jay r", "jarvis")
+    wake_words: tuple[str, ...] = ("hey pie", "pie", "pi", "jr", "j r", "jay r", "jarvis")
     listen_seconds: int = 20
     language: str = "en"
 
@@ -62,7 +62,7 @@ _DEFAULTS: dict[str, dict[str, Any]] = {
     },
     "voice": {
         "enabled": True,
-        "wake_words": ["pie", "hey pie", "pi", "jr", "j r", "jay r", "jarvis"],
+        "wake_words": ["hey pie", "pie", "pi", "jr", "j r", "jay r", "jarvis"],
         "listen_seconds": 20,
         "language": "en",
     },
@@ -149,10 +149,7 @@ def load_config(
             data[section][key] = _parse_environment_value(name, raw, data[section][key])
             continue
         if name.startswith("PIE_"):
-            suffix = name.removeprefix("PIE_").lower()
-            section = suffix.split("_", 1)[0]
-            if section in data:
-                raise ConfigError(f"Unknown environment variable: {name}")
+            raise ConfigError(f"Unknown environment variable: {name}")
 
     if cli_overrides:
         _merge(data, cli_overrides)
