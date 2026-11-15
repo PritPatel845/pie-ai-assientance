@@ -58,7 +58,7 @@ class BrainRouter:
         self.tool_runner = tool_runner
         self.clock = clock
         self._lock = asyncio.Lock()
-        self._running: asyncio.Task[RouterResult] | None = None
+        self._running: asyncio.Task[Any] | None = None
         self._history: deque[tuple[float, Message, Message]] = deque()
 
     def _publish(self, topic: str, payload: dict[str, Any], correlation_id: str) -> None:
