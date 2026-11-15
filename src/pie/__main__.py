@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from pie import __version__
+from pie.brain.module import BrainModule
 from pie.config import Config, load_config
 from pie.core.daemon import Daemon
 from pie.events import Event
@@ -176,6 +177,8 @@ def main(argv: list[str] | None = None) -> int:
             daemon.register_module(GestureModule())
         if config.voice.enabled:
             daemon.register_module(VoiceModule(no_actions=args.no_actions))
+        if config.brain.enabled:
+            daemon.register_module(BrainModule())
 
         def main_thread() -> None:
             if args.print_events and daemon.bus is not None:
