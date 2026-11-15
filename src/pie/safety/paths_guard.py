@@ -22,6 +22,8 @@ def _normal_path(value: str) -> str:
     normalised = unicodedata.normalize("NFKC", value)
     if not normalised:
         raise PathGuardError("path must not be empty")
+    if any(ord(char) < 32 or ord(char) == 127 for char in normalised):
+        raise PathGuardError("control characters are not allowed in paths")
     if normalised.startswith("~") and not normalised.startswith("~/"):
         raise PathGuardError("named-user home paths are not allowed")
     parts = [part.rstrip(" .") for part in normalised.split(os.sep)]
