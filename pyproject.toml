@@ -20,6 +20,9 @@ pie = "pie.__main__:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.data-files]
+"config" = ["config/pie.default.toml"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
