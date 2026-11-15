@@ -110,6 +110,7 @@ The parser checks exact phrases first, then volume patterns, search patterns, th
 
 - Desktop hand normalization now rotates the wrist-to-middle-MCP vector toward image-up.
 - Added and tested the specified `MacController.show_voice_activation()` notification (`PIE ACTIVE`, configured duration).
+- Media commands now target an already-running Spotify or Music process through AppleScript, then fall back to the system `playpause` key through PyAutoGUI; deterministic tests cover app selection and fallback. Actual target-Mac key availability remains a manual audit item.
 - Counter-Strike `KeyAction` names resolve through the selected profile to A/D/W/S keycodes.
 - Temple Run handles swipe left/right and palm up/down actions.
 - Runner/fist/pinch and game-key state reset on hand loss/mode changes; held keys are released.
