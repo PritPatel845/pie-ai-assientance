@@ -298,3 +298,111 @@ Modify only: src/pie/config.py, src/pie/__main__.py, src/pie/logging_setup.py, s
 - Manual check: pie run --print-events; verify gesture state near 10 Hz, edge events, voice events and existing command execution; Ctrl+C exits in under 3 seconds and releases camera.
 
 Forbidden in Phase 1: moving actions onto events, tools/brains/UI, new runtime dependencies, or changing topic names/payload keys in docs/CONTRACTS.md.
+
+
+## Phase 1 implementation progress — 2026-11-15
+
+### Release gate and repository state
+- The release `pie-phase-0-done` is published and independently verified. The tag resolves to
+  `fa2f0c6abee719d5c5def81cd7a91723c237816a`.
+- PR #2 was merged into `main` at `4f1ff0f28af4f184d621ff735037a0bfa4858fc2`.
+- Phase 1 work is isolated on branch `phase-1-implementation`; PR #3 targets `main`.
+
+### Implemented so far
+- Added `Event` and `EventBus` with thread-safe non-blocking publication, per-subscriber bounded
+  queues, wildcard matching, executor/async handlers, overflow accounting/warnings,
+  exception isolation, unsubscribe, and `wait_for`.
+- Added `StopFlag`, immutable `RuntimeState` snapshots, and the daemon-owned `pie-loop`
+  lifecycle with module registration, rollback, and bounded reverse-order shutdown.
+- Added the default TOML config, frozen config loader integration, typed environment values,
+  CLI overrides, and packaging data-file configuration.
+- Added `TextInput`, optional voice event publication methods, and gesture state/mode/edge
+  publication while retaining the original ActionSink execution path.
+- Added `pie config show`, `pie run --print-events`, a Phase 1 architecture overview,
+  a macOS manual checklist, and hardware-free tests for bus, lifecycle, and gesture edges.
+
+### Current public additions
+- `pie.events.Event`, `pie.events.EventBus`
+- `pie.core.state.StopFlag`, `RuntimeState`, `StateSnapshot`
+- `pie.core.daemon.Module`, `Daemon`
+- `pie.inputs.text.TextInput`
+- `pie.inputs.gesture.runner.GestureEventTracker`
+- `pie.inputs.voice.pipeline.VoiceController` event methods:
+  `publish_wake`, `publish_listening`, `publish_transcript`
+
+### Config and topics
+- Defaults remain `[app]`, `[gesture]`, `[voice]`, and `[ui]`; precedence is defaults,
+  user TOML, typed `PIE_*` environment variables, then CLI overrides.
+- Phase 1 publishes `system.started`, `system.stopping`, `system.warning`,
+  `system.error`, `system.mode`, `input.gesture.state`, `input.gesture.event`,
+  `input.voice.wake`, `input.voice.listening`, `input.voice.transcript`, and
+  `input.text.command`. Payload schemas remain as specified in `docs/CONTRACTS.md`.
+
+### Limitations and verification status
+- Voice microphone capture and wake-word gating are still deferred to Phase 2A, as in the
+  Phase 0S implementation. Phase 1 provides the event publication seam; it does not fake
+  voice activity.
+- Camera/GUI and all existing system actions remain on the caller/main thread. Event handlers
+  must not execute actions.
+- Latest branch-head CI is green at merge-sync commit `d1ab13693e6b5c5f1ea2b2618406034b6bc6247c`:
+  [workflow run 43680983948](https://github.com/PritPatel845/pie-ai-assientance/actions/runs/43680983948).
+  It passed Ruff lint, Ruff format, 228 pytest tests, mypy, model downloader verification,
+  and `python -m pie doctor`. The model-asset job was skipped because no model asset changed.
+- Phase 1 is not yet accepted: owner-run macOS event-stream checks, camera stop/cleanup,
+  and idle-CPU comparison still need to be performed and recorded.
+- Exact verification commands: `pytest -q`, `ruff check .`,
+  `ruff format --check .`, `mypy src/pie`, `python -m pie doctor`,
+  `python -m pie config show`, and `python -m pie run --print-events`.
+- Next: resolve any CI failures, add any missing acceptance tests, run the manual macOS
+  checklist, measure idle CPU, and append the final Phase 1 handoff before merging PR #3.
+
+
+### Phase 1 automated verification update — 2026-11-15
+- The implementation branch now contains current `main` as its first parent, so the PR diff
+  is scoped to the 16 Phase 1 files only.
+- Latest branch-head workflow run:
+  https://github.com/PritPatel845/pie-ai-assientance/actions/runs/43680983948
+- Result: 228 passed; Ruff lint passed; Ruff format passed; mypy passed; model downloader
+  verification passed; `python -m pie doctor` passed.
+- Owner-run manual checks are still pending. Use `scripts/manual_checks/phase1.md` on the
+  target Mac. Do not merge PR #3 until those checks are recorded and reviewed.
+
+## Phase 1 final acceptance — 2026-11-15
+
+### Owner-run macOS manual acceptance
+
+The project owner confirms that **all Phase 1 manual checks passed on the target Mac**, including:
+
+- `python -m pie config show` and the event-stream startup.
+- Gesture arming, supported gesture recognition, approximately configured 10 Hz state publication, and rising-edge event publication.
+- Desktop/game mode switching and all three game-profile selections.
+- Existing cursor, click, volume, media, and game actions remaining functional with the event bus observational only.
+- Clean `q` shutdown, camera indicator off, and held game keys released.
+- Counter-Strike forward movement after switching profiles, with no `KeyError: 'forward'` on shutdown. The regression fix updates the action sink's profile only after old-profile release actions have been applied.
+- Voice-background process starts, waits without claiming microphone capture, and exits on Ctrl+C with `system.stopping` and no traceback.
+- The remaining manual acceptance checks, including the Phase 0S idle-CPU comparison, were reported passed by the owner.
+
+This is owner-reported hardware/manual evidence, not automated CI coverage. No numeric idle-CPU measurements were supplied in the confirmation.
+
+### Automated verification
+
+Latest local target-Mac results reported by the owner:
+
+- `pytest -q`: **230 passed**.
+- `ruff check .`: passed.
+- `ruff format --check .`: passed after formatting the regression test.
+- `mypy src/pie`: passed; no issues in 24 source files.
+- `python -m pie doctor`: passed.
+
+Latest GitHub Actions run for PR head `1f39e8fad6b5b8ae383dc1bee939185128bcecb7`:
+https://github.com/PritPatel845/pie-ai-assientance/actions/runs/43719422240
+
+The test job passed, including Ruff lint/format, pytest, mypy, model downloader verification, and `pie doctor`. The model-asset job was skipped because no model asset changed.
+
+### Final scope boundary
+
+Phase 1 supplies the voice event publication interface only. Actual microphone capture and wake-word recognition remain Phase 2A work. No microphone activity is claimed or simulated by this phase.
+
+### Acceptance decision
+
+All Phase 1 automated checks and owner-reported manual acceptance checks are complete. PR #3 is eligible to merge. The next implementation milestone is Phase 2A.

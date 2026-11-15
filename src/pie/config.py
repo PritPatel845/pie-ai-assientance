@@ -2,12 +2,17 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import tomllib
 from dataclasses import dataclass
+from importlib import resources
 from pathlib import Path
 from typing import Any
 
+from pie.paths import config_path
 
+
+# fmt: off
 class ConfigError(ValueError):
     """Raised when a configuration source contains an invalid value."""
 
@@ -31,7 +36,15 @@ class GestureConfig:
 @dataclass(frozen=True, slots=True)
 class VoiceConfig:
     enabled: bool = True
-    wake_words: tuple[str, ...] = ("hey pie", "pie", "pi", "jr", "j r", "jay r", "jarvis")
+    wake_words: tuple[str, ...] = (
+        "hey pie",
+        "pie",
+        "pi",
+        "jr",
+        "j r",
+        "jay r",
+        "jarvis",
+    )
     listen_seconds: int = 20
     language: str = "en"
 
@@ -77,15 +90,17 @@ _TYPES = {
 def _merge(target: dict[str, dict[str, Any]], source: dict[str, Any]) -> None:
     unknown_sections = set(source) - set(target)
     if unknown_sections:
-        names = ", ".join(sorted(unknown_sections))
-        raise ConfigError(f"Unknown config section(s): {names}")
+        raise ConfigError(
+            f"Unknown config section(s): {', '.join(sorted(unknown_sections))}",
+        )
     for section, values in source.items():
         if not isinstance(values, dict):
             raise ConfigError(f"Config section {section} must be a table")
         unknown = set(values) - set(target[section])
         if unknown:
-            names = ", ".join(sorted(unknown))
-            raise ConfigError(f"Unknown config key(s) in {section}: {names}")
+            raise ConfigError(
+                f"Unknown config key(s) in {section}: {', '.join(sorted(unknown))}",
+            )
         for key, value in values.items():
             expected = _TYPES[section][key]
             if expected is int and isinstance(value, bool):
@@ -116,7 +131,10 @@ def _parse_environment_value(name: str, raw: str, current: Any) -> Any:
             value = json.loads(raw)
         except json.JSONDecodeError as exc:
             raise ConfigError(f"{name} must be a JSON array") from exc
-        if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+        valid_string_list = isinstance(value, list) and all(
+            isinstance(item, str) for item in value
+        )
+        if not valid_string_list:
             raise ConfigError(f"{name} must be a JSON array of strings")
         return value
     return raw
@@ -129,26 +147,39 @@ def load_config(
     cli_overrides: dict[str, dict[str, Any]] | None = None,
 ) -> Config:
     data = {section: dict(values) for section, values in _DEFAULTS.items()}
-    root_defaults = Path(__file__).resolve().parents[2] / "config" / "pie.default.toml"
-    if root_defaults.is_file():
-        with root_defaults.open("rb") as handle:
+    packaged_default = resources.files("pie").joinpath(
+        "..", "..", "..", "..", "config", "pie.default.toml"
+    )
+    if packaged_default.is_file():
+        with packaged_default.open("rb") as handle:
             _merge(data, tomllib.load(handle))
+    else:
+        candidates = (
+            Path(__file__).resolve().parents[2] / "config" / "pie.default.toml",
+            Path(sys.prefix) / "config" / "pie.default.toml",
+        )
+        for defaults_path in candidates:
+            if defaults_path.is_file():
+                with defaults_path.open("rb") as handle:
+                    _merge(data, tomllib.load(handle))
+                break
 
-    user_path = path or Path.home() / ".pie" / "config.toml"
+    user_path = path or config_path()
     if user_path.is_file():
         with user_path.open("rb") as handle:
             _merge(data, tomllib.load(handle))
 
     env = os.environ if environ is None else environ
     known_env = {
-        f"PIE_{section.upper()}_{key.upper()}" for section, values in data.items() for key in values
+        f"PIE_{section.upper()}_{key.upper()}"
+        for section, values in data.items()
+        for key in values
     }
     for name, raw in env.items():
         if name in known_env:
             section, key = name.removeprefix("PIE_").lower().split("_", 1)
             data[section][key] = _parse_environment_value(name, raw, data[section][key])
-            continue
-        if name.startswith("PIE_"):
+        elif name.startswith("PIE_"):
             raise ConfigError(f"Unknown environment variable: {name}")
 
     if cli_overrides:
@@ -171,4 +202,8 @@ def load_config(
         raise ConfigError("ui.port must be between 1 and 65535")
     if config.voice.listen_seconds < 5:
         raise ConfigError("voice.listen_seconds must be at least 5")
+    if config.gesture.arm_hold_seconds <= 0:
+        raise ConfigError("gesture.arm_hold_seconds must be positive")
     return config
+
+# fmt: on
