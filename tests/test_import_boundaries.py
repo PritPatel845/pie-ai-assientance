@@ -1,7 +1,7 @@
 """Import and shell-safety boundaries follow Phase 0S §§3.1–3.7 (PDF pp. 16–22)."""
 
-import ast
 import pathlib
+import ast
 
 
 PURE_MODULES = (
@@ -14,7 +14,7 @@ PURE_MODULES = (
 
 
 def test_pure_modules_do_not_import_platform_or_camera_libraries() -> None:
-    root = pathlib.Path(__file__).parents[1] / "src" / "pie"
+    root = pathlib.pathlib.Path(__file__).parents[1] / "src" / "pie"
     for relative in PURE_MODULES:
         tree = ast.parse((root / relative).read_text(encoding="utf-8"))
         for node in ast.walk(tree):
