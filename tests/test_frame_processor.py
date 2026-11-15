@@ -310,4 +310,3 @@ def test_fps_profile_covers_directional_keys_click_and_jump() -> None:
 
     thumb_up = hand(extended=(False, False, False, False), thumb_y=0.3)
     assert Tap("jump") in processor.process([thumb_up], 2.7).actions
-
