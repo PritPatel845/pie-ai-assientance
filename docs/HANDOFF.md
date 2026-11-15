@@ -536,3 +536,46 @@ python -m pie brain test anthropic
 python -m pie brain ask "what is 2+2"
 python -m pie quota show
 ```
+
+
+## Phase 2 owner acceptance and Phase 3A implementation — 2026-11-15
+
+### Phase 2 owner acceptance
+The owner explicitly declared Phase 2 complete after target-Mac manual verification:
+- Voice wake/capture/transcription and local Ollama inference produced a spoken answer.
+- With Ollama stopped and port 11434 refusing connections, `pie brain ask` returned `Route: local | Provider: none` and `No AI model is available right now.` without crashing.
+- After Ollama restarted, `pie brain status` reported local health `ready`, model `llama3.2:3b`, measured latency about 41 ms, and a new request correctly answered Paris.
+- OpenAI credentials remain intentionally unconfigured; no paid cloud credentials were required for the owner's accepted local-first Phase 2 workflow.
+
+This is an owner-accepted completion, not evidence of a live cloud-provider credential test or the fake slow-provider cancellation harness. The release tag `pie-phase-2b-done` has not yet been created.
+
+### Phase 3 scope and current branch
+The original Phase 3 build specification divides the work into:
+- Phase 3A: safe tool registry, permission gate, audit, and built-in macOS tools.
+- Phase 3B: MCP tool export/import.
+- Phase 3C: everyday work automation and coding/research integrations.
+- Phase 3D: specialist application integrations.
+
+Phase 3A is being implemented on `phase-3a-tool-registry`, PR #9:
+https://github.com/PritPatel845/pie-ai-assientance/pull/9
+
+### Phase 3A work currently present on the branch
+- Added shared tool contracts, permission tiers, JSON Schema validation, and a registry execution boundary.
+- Added FIFO voice / armed-gesture / UI confirmation handling, stale-consent rejection, timeout-deny behaviour, and prompt-rate limiting.
+- Added protected-path checks, symlink resolution, sandbox tier escalation, redacted JSONL audit logging, file permissions, and log rotation.
+- Added initial system, filesystem, macOS, browser-search, media, and voice built-ins.
+- Connected BrainRouter deterministic rules and model tool calls to the registry.
+- Added armed gesture-to-tool bindings; cursor, click, scroll, depth-volume, and held game-key controls remain direct.
+- Added `pie tool list`, `pie tool run`, and `pie audit tail` CLI paths.
+- Added automated safety, permission, registry, built-in, config, CLI, and deterministic phrase-mapping tests.
+- Added `scripts/manual_checks/phase3a.md` and the Phase 3A additive contract details.
+
+### Phase 3A status and remaining work
+Phase 3A is **not accepted or ready to merge yet**. Continue until:
+1. CI is green for Ruff lint, Ruff format, mypy, all pytest suites, and model-asset checks.
+2. Fix any integration/security issues exposed by CI.
+3. Complete target-Mac manual checks in `scripts/manual_checks/phase3a.md`, including consent denial/timeout, armed gesture gating, protected paths, symlink escape, no-actions dry-run, and audit redaction.
+4. Verify that every legacy deterministic action uses the registry; no environment-provided shell/AppleScript command may execute outside it.
+5. Update this handoff with exact passing test counts, CI run, PR review, and owner manual results before merging.
+
+Do not start Phase 3B until Phase 3A is merged and its acceptance gate is recorded. Phase 3C and 3D remain unstarted.
