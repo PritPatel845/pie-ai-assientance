@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import unicodedata
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
@@ -69,7 +70,9 @@ def _is_blocked(path: str, audit_path: str | None) -> bool:
     return False
 
 
-def _iter_path_values(args: dict[str, Any], schema: dict[str, Any]):
+def _iter_path_values(
+    args: dict[str, Any], schema: dict[str, Any]
+) -> Iterator[tuple[str, Any]]:
     properties = schema.get("properties", {})
     if not isinstance(properties, dict):
         return
