@@ -198,7 +198,9 @@ class ToolRegistry:
             {"call_id": call_id, "tool": name, "args": redacted_args, "tier": tier.name},
             call_id,
         )
-        prompt = (
+        prompt_builder = getattr(spec_tool, "confirmation_prompt", None)
+        custom_prompt = prompt_builder(redacted_args) if callable(prompt_builder) else None
+        prompt = custom_prompt or (
             f"Allow {name}? {spec.description} Arguments: "
             f"{json.dumps(redacted_args, ensure_ascii=False, default=str)[:1000]}"
         )
