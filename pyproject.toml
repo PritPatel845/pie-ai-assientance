@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pie-assistant"
+version = "0.1.0"
+description = "Local-first macOS personal assistant"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest==8.3.5", "pytest-timeout==2.3.1", "ruff==0.11.2", "mypy==1.15.0"]
+mac = ["opencv-python", "mediapipe==0.10.35", "pyautogui", "pyobjc-framework-Quartz", "pyobjc-framework-Cocoa"]
+
+[project.scripts]
+pie = "pie.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+pie = ["../../config/pie.default.toml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+mypy_path = "src"
