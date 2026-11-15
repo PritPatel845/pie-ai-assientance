@@ -547,7 +547,7 @@ The owner explicitly declared Phase 2 complete after target-Mac manual verificat
 - After Ollama restarted, `pie brain status` reported local health `ready`, model `llama3.2:3b`, measured latency about 41 ms, and a new request correctly answered Paris.
 - OpenAI credentials remain intentionally unconfigured; no paid cloud credentials were required for the owner's accepted local-first Phase 2 workflow.
 
-This is an owner-accepted completion, not evidence of a live cloud-provider credential test or the fake slow-provider cancellation harness. The release tag `pie-phase-2b-done` has not yet been created.
+This is an owner-accepted completion and supersedes the earlier handoff sentence that blocked Phase 3A pending cloud-provider setup. It is not evidence of a live cloud-provider credential test or the fake slow-provider cancellation harness; those checks were waived by the owner's local-first acceptance. The release tag `pie-phase-2b-done` has not yet been created.
 
 ### Phase 3 scope and current branch
 The original Phase 3 build specification divides the work into:
