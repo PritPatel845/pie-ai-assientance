@@ -37,8 +37,11 @@ class TextWake:
             if count not in (1, 2) or len(tokens) < count:
                 continue
             actual = " ".join(tokens[:count])
-            ratio = difflib.SequenceMatcher(None, actual, phrase).ratio()
+            token_ratios = [
+                difflib.SequenceMatcher(None, observed, wanted).ratio()
+                for observed, wanted in zip(tokens[:count], expected, strict=True)
+            ]
             boundary_ok = len(tokens) == count or tokens[count - 1] in {expected[-1], "pie"}
-            if ratio >= 0.84 and boundary_ok:
+            if all(ratio >= 0.84 for ratio in token_ratios) and boundary_ok:
                 return " ".join(tokens[count:]).strip()
         return None
