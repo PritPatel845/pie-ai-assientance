@@ -147,7 +147,7 @@ class FrameProcessor:
         return actions
 
     def reset(self) -> list[Action]:
-        actions = self._release_keys()
+        actions: list[Action] = self._release_keys()
         self._disarm()
         self._previous.clear()
         self._previous_x = None
