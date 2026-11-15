@@ -73,6 +73,8 @@ async def _status(config: Any) -> int:
             }
             if name in {"claude_cli", "codex_cli"}:
                 item["health"] = "stubbed: unsafe to sandbox"
+            elif name in {"anthropic", "openai"} and configured and not key_present:
+                item["health"] = "auth required"
             elif provider is not None and configured:
                 started = perf_counter()
                 try:
