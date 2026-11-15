@@ -107,3 +107,48 @@ def test_fake_microphone_pipeline_publishes_and_executes_in_order(
             controller.stop()
 
     asyncio.run(scenario())
+
+def test_brain_enabled_pipeline_publishes_without_legacy_execution(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def deny_network(*args: object, **kwargs: object) -> None:
+        raise AssertionError("local voice pipeline attempted a network connection")
+
+    monkeypatch.setattr(socket.socket, "connect", deny_network)
+
+    async def scenario() -> None:
+        bus = EventBus(asyncio.get_running_loop())
+        transcript_ready = asyncio.Event()
+        transcript: list[Event] = []
+
+        async def collect(event: Event) -> None:
+            transcript.append(event)
+            transcript_ready.set()
+
+        bus.subscribe("input.voice.transcript", collect, name="brain-sink-test")
+        mac = FakeMacController()
+        controller = VoiceController(
+            mac,
+            bus=bus,
+            config=VoiceConfig(
+                enabled=True,
+                listen_seconds=5,
+                vad_threshold=0.015,
+                vad_min_speech_ms=150,
+                vad_end_silence_ms=600,
+                tts_enabled=False,
+            ),
+            stream_factory=FakeInputStream,
+            transcriber_factory=lambda *args, **kwargs: FakeTranscriber(),
+            brain_enabled=True,
+        )
+        controller.start()
+        try:
+            await asyncio.wait_for(transcript_ready.wait(), timeout=2)
+            await asyncio.sleep(0.05)
+            assert transcript[0].payload["addressed"] is True
+            assert mac.opened == []
+        finally:
+            controller.stop()
+
+    asyncio.run(scenario())
