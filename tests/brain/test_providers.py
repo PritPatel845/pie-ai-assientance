@@ -7,7 +7,7 @@ from email.utils import format_datetime
 import pytest
 
 from pie.brain.providers import UnavailableProvider
-from pie.brain.providers.anthropic_api import _raise_vendor_error
+from pie.brain.providers.anthropic_api import _anthropic_messages, _raise_vendor_error
 from pie.brain.providers.claude_cli import ClaudeCliProvider
 from pie.brain.providers.codex_cli import CodexCliProvider
 from pie.brain.types import (
@@ -16,6 +16,7 @@ from pie.brain.types import (
     ProviderUnavailable,
     QuotaExhausted,
     RateLimited,
+    ToolCall,
 )
 
 
@@ -91,3 +92,32 @@ def test_vendor_http_date_retry_after_is_parsed() -> None:
         _raise_vendor_error("anthropic", error)
 
     assert 0 < caught.value.retry_after <= 30
+
+def test_anthropic_adapter_round_trips_tool_use_and_tool_result() -> None:
+    messages = [
+        Message("system", "system instructions"),
+        Message("user", "run the tool"),
+        Message(
+            "assistant",
+            "calling tool",
+            tool_calls=(ToolCall("tool-1", "test.echo", {"text": "hello"}),),
+        ),
+        Message("tool", "hello", tool_call_id="tool-1"),
+        Message("assistant", "done"),
+    ]
+
+    converted = _anthropic_messages(messages)
+
+    assert converted[0] == {"role": "user", "content": "run the tool"}
+    assert converted[1]["role"] == "assistant"
+    assert converted[1]["content"][0] == {"type": "text", "text": "calling tool"}
+    assert converted[1]["content"][1] == {
+        "type": "tool_use",
+        "id": "tool-1",
+        "name": "test.echo",
+        "input": {"text": "hello"},
+    }
+    assert converted[2]["role"] == "user"
+    assert converted[2]["content"][0]["type"] == "tool_result"
+    assert converted[2]["content"][0]["tool_use_id"] == "tool-1"
+    assert converted[3] == {"role": "assistant", "content": "done"}
