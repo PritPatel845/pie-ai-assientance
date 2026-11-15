@@ -90,9 +90,6 @@ class MlxWhisperTranscriber:
         downloaded = downloader(repo_id=repo_id, cache_dir=str(self.cache_dir))
         self._model_path = Path(downloaded)
         model_bytes = self._validate_model_size(self._model_path)
-        if model_bytes > _MAX_MODEL_BYTES:
-            self._model_path = None
-            raise RuntimeError("Speech model exceeds the 1 GB memory/disk budget")
         _LOG.info(
             "Speech model %s is ready (%.1f MB on disk)",
             self.model,
