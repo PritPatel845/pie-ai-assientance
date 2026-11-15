@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
+
 from pie.safety.paths_guard import PathGuardError, guard_paths
 from pie.safety.permissions import Tier
 
