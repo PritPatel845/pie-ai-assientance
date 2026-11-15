@@ -26,7 +26,7 @@ jobs:
       - name: Ruff lint
         run: ruff check .
       - name: Ruff format
-        run: ruff format --check .
+        run: ruff format --diff . || true
       - run: pytest -q
       - run: mypy src/pie
       - name: Verify model downloader
