@@ -33,13 +33,9 @@ class QuotaTracker:
             value = json.loads(self.path.read_text(encoding="utf-8"))
             if not isinstance(value, dict):
                 raise ValueError("quota state must be an object")
-            self._state = {
-                str(key): item for key, item in value.items() if isinstance(item, dict)
-            }
+            self._state = {str(key): item for key, item in value.items() if isinstance(item, dict)}
         except (OSError, ValueError, json.JSONDecodeError):
-            corrupt = self.path.with_name(
-                f"{self.path.name}.corrupt-{int(self.clock())}"
-            )
+            corrupt = self.path.with_name(f"{self.path.name}.corrupt-{int(self.clock())}")
             try:
                 os.replace(self.path, corrupt)
             except OSError:
@@ -67,9 +63,14 @@ class QuotaTracker:
         current = self.clock() if now is None else now
         with self._lock:
             item = self._state.get(provider)
-            return item is None or item.get("exhausted_until") is None or float(
-                item["exhausted_until"]
-            ) <= current
+            if item is None:
+                return True
+            until = item.get("exhausted_until")
+            if until is None:
+                return True
+            if isinstance(until, bool) or not isinstance(until, (int, float)):
+                return False
+            return float(until) <= current
 
     def reset(self, provider: str | None = None) -> None:
         with self._lock:
