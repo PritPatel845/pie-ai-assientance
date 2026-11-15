@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import time
 import uuid
@@ -202,9 +203,15 @@ class BrainRouter:
     ) -> RouterResult:
         request_id = uuid.uuid4().hex
         messages = self._context_messages(text)
-        # Phase 2B deliberately exposes no tools; reversible tools arrive in Phase 3A.
-        specs: list[ToolSpec] = []
+        all_specs = self.tool_specs()
+        specs = (
+            [spec for spec in all_specs if spec.tier <= 1]
+            if provider.kind == "local"
+            else all_specs
+        )
         calls_made = 0
+        reported_unknown: set[str] = set()
+        reported_bad_args: set[str] = set()
         for _step in range(self.config.max_steps):
             remaining = deadline - self.clock()
             if remaining <= 0:
@@ -336,12 +343,50 @@ class BrainRouter:
                     correlation_id,
                 )
                 return RouterResult(route, provider.name, reply.text, calls_made, True)
-            # Tool calls are intentionally unavailable until Phase 3A.
             messages.append(Message("assistant", reply.text, tool_calls=reply.tool_calls))
             for call in reply.tool_calls:
-                messages.append(
-                    Message("tool", "Tools are not available in Phase 2B.", tool_call_id=call.id)
-                )
+                exposed = next((spec for spec in specs if spec.name == call.name), None)
+                all_spec = next((spec for spec in all_specs if spec.name == call.name), None)
+                if exposed is None:
+                    if call.name in reported_unknown:
+                        return RouterResult(
+                            route, provider.name, "", calls_made, False,
+                            f"repeated unknown or unavailable tool: {call.name}",
+                        )
+                    reported_unknown.add(call.name)
+                    if all_spec is not None:
+                        error = "tool unavailable to local model"
+                    elif not all_specs:
+                        unavailable = await self.tool_runner(call, source)
+                        error = unavailable.error or "no tools installed"
+                    else:
+                        error = f"unknown tool: {call.name}"
+                    messages.append(Message("tool", f"Error: {error}", tool_call_id=call.id))
+                    continue
+
+                try:
+                    result = await self.tool_runner(call, source)
+                except Exception as exc:
+                    result = ToolResult(False, error=f"{type(exc).__name__}: {exc}")
+                calls_made += 1
+                if not result.ok:
+                    error = result.error or "tool failed"
+                    lowered = error.casefold()
+                    if "argument" in lowered or "schema" in lowered or "unknown tool" in lowered:
+                        if call.name in reported_bad_args:
+                            return RouterResult(
+                                route, provider.name, "", calls_made, False,
+                                f"repeated invalid tool call: {call.name}",
+                            )
+                        reported_bad_args.add(call.name)
+                    content = f"Error: {error}"
+                elif isinstance(result.output, str):
+                    content = result.output
+                else:
+                    content = json.dumps(result.output, ensure_ascii=False, default=str)
+                if len(content) > 4000:
+                    content = content[: 4000 - len("[truncated]")] + "[truncated]"
+                messages.append(Message("tool", content, tool_call_id=call.id))
         return RouterResult(
             route, provider.name, "", calls_made, False, "maximum agent steps reached"
         )
