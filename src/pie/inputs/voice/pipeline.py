@@ -196,7 +196,9 @@ class VoiceController(_VoiceController):
             raw = transcriber.transcribe(segment.audio, self.language).strip()
         except Exception as exc:
             self._stt_disabled = True
-            _LOG.warning("Local speech transcription unavailable; STT disabled: %s", type(exc).__name__)
+            _LOG.warning(
+                "Local speech transcription unavailable; STT disabled: %s", type(exc).__name__
+            )
             self._publish(
                 "system.error",
                 {
