@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import pytest
-from pathlib import Path
-
 from pie.safety.paths_guard import PathGuardError, guard_paths
 from pie.safety.permissions import Tier
 
@@ -15,7 +13,7 @@ SCHEMA = {
 }
 
 
-def _guard(path: str, home: Path, allowed: Path, audit: Path) -> Tier:
+def _guard(path: str, home, allowed, audit) -> Tier:
     return guard_paths(
         {"path": path},
         SCHEMA,
@@ -55,7 +53,7 @@ def _guard(path: str, home: Path, allowed: Path, audit: Path) -> Tier:
     ],
 )
 def test_protected_home_paths_are_rejected(
-    relative: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    relative: str, tmp_path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     home = tmp_path / "home"
     home.mkdir()
