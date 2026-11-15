@@ -58,12 +58,12 @@ class Tool(Protocol):
 class FunctionTool:
     spec: ToolSpec
     function: Callable[[Mapping[str, Any], ToolContext], Awaitable[ToolResult]]
-    confirmation_prompt_builder: Callable[[Mapping[str, Any]], str] | None = None
+    confirmation_prompt_builder: Callable[[Mapping[str, Any], str], str] | None = None
 
-    def confirmation_prompt(self, args: Mapping[str, Any]) -> str | None:
+    def confirmation_prompt(self, args: Mapping[str, Any], call_id: str) -> str | None:
         if self.confirmation_prompt_builder is None:
             return None
-        return self.confirmation_prompt_builder(args)
+        return self.confirmation_prompt_builder(args, call_id)
 
     async def run(self, args: Mapping[str, Any], ctx: ToolContext) -> ToolResult:
         return await self.function(args, ctx)
