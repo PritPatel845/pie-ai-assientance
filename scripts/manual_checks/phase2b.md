@@ -65,7 +65,7 @@ For MLX, configure an already-running OpenAI-compatible server using `PIE_MLX_BA
 
 - Say: `Pie use the local model what is the capital of France`. Confirm the cloud providers are skipped.
 - Run `pie quota show`; use `pie quota reset all` to clear test state.
-- Trigger a cloud quota failure (use a provider test account with a known safe quota condition; do not deliberately spend money). Confirm the exact spoken switch message occurs only for quota fallback.
+- In a fake-provider test harness, call `QuotaTracker.mark_exhausted(provider, reset_at=...)`, restart the router, and verify the quota-switch event and exact spoken message. Do not deliberately spend money or force a real provider quota failure.
 - Say `Pie open Safari`. Confirm Safari opens once, not twice.
 - Say an addressed natural-language question. Confirm one BrainRouter response is spoken.
 - Say an unaddressed sentence outside the wake window. Confirm it is not sent to the BrainRouter.
