@@ -47,11 +47,7 @@ class AnthropicProvider:
         timeout_s: float,
     ) -> ProviderReply:
         system = "\\n".join(m.content for m in messages if m.role == "system")
-        history = [
-            {"role": m.role, "content": m.content}
-            for m in messages
-            if m.role in {"user", "assistant"}
-        ]
+        history = _anthropic_messages(messages)
         tool_defs = [
             {
                 "name": item.name,
@@ -122,3 +118,44 @@ def _raise_vendor_error(provider: str, exc: Exception) -> None:
     if isinstance(status, int) and status >= 500:
         raise ProviderUnavailable(provider, "provider server error") from exc
     raise ProviderUnavailable(provider, f"provider request failed ({name})") from exc
+
+
+
+def _anthropic_messages(messages: Sequence[Message]) -> list[dict[str, Any]]:
+    history: list[dict[str, Any]] = []
+    pending_tool_results: list[dict[str, Any]] = []
+    for message in messages:
+        if message.role == "system":
+            continue
+        if message.role == "tool":
+            pending_tool_results.append(
+                {
+                    "type": "tool_result",
+                    "tool_use_id": message.tool_call_id or "",
+                    "content": message.content,
+                    "is_error": message.content.startswith("Error:"),
+                }
+            )
+            continue
+        if pending_tool_results:
+            history.append({"role": "user", "content": pending_tool_results})
+            pending_tool_results = []
+        if message.role == "assistant" and message.tool_calls:
+            blocks: list[dict[str, Any]] = []
+            if message.content:
+                blocks.append({"type": "text", "text": message.content})
+            blocks.extend(
+                {
+                    "type": "tool_use",
+                    "id": call.id,
+                    "name": call.name,
+                    "input": call.args,
+                }
+                for call in message.tool_calls
+            )
+            history.append({"role": "assistant", "content": blocks})
+        else:
+            history.append({"role": message.role, "content": message.content})
+    if pending_tool_results:
+        history.append({"role": "user", "content": pending_tool_results})
+    return history
