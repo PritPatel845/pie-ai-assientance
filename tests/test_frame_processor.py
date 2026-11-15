@@ -278,7 +278,8 @@ def test_runner_profile_covers_pose_taps_and_held_slide() -> None:
     fist = hand(extended=(False, False, False, False), thumb_y=0.75)
     assert processor.process([fist], 2.4).actions == [KeyAction("slide", True)]
     assert processor.process([fist], 2.5).actions == []
-    assert processor.process([hand()], 2.6).actions == [KeyAction("slide", False)]
+    two_finger = hand(extended=(True, True, False, False))
+    assert processor.process([two_finger], 2.6).actions == [KeyAction("slide", False)]
 
 
 def test_fps_profile_covers_directional_keys_click_and_jump() -> None:
