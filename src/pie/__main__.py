@@ -28,7 +28,9 @@ def doctor() -> int:
     print(f"Hand model: {model if model else 'NOT FOUND'}")
     for path in (pie_home(), state_dir(), logs_dir(), models_dir(), learning_dir()):
         print(f"{path}: {'exists' if path.exists() else 'not created'}")
-    print(f"Legacy learning folder: {'found' if (Path.home() / '.jarvis_learning').is_dir() else 'not found'}")
+    legacy_learning = Path.home() / ".jarvis_learning"
+    legacy_status = "found" if legacy_learning.is_dir() else "not found"
+    print(f"Legacy learning folder: {legacy_status}")
     return 0
 
 
@@ -64,7 +66,8 @@ def main(argv: list[str] | None = None) -> int:
         configure_logging(config.app.log_level)
         if args.download_model:
             from pie.inputs.gesture.engine import ensure_model
-            print(f"Hand model ready: {ensure_model(config.gesture.model_path or None, download=True)}")
+            model_file = ensure_model(config.gesture.model_path or None, download=True)
+            print(f"Hand model ready: {model_file}")
             return 0
         if args.voice:
             print("Voice capture arrives in Phase 2A; phrase parsing is available now.")
