@@ -48,13 +48,21 @@ def _is_blocked(path: str, audit_path: str | None) -> bool:
     name = Path(path).name.casefold()
     if name == ".env" or name.startswith(".env."):
         return True
-    if _is_inside(path, os.path.join(home, ".pie", "config.toml")):
+    home_relative = os.path.relpath(path, home).casefold()
+    protected_config = os.path.join(".pie", "config.toml")
+    if home_relative == protected_config or home_relative.startswith(
+        protected_config + os.sep
+    ):
         return True
     if _is_inside(path, os.path.join(home, "Library", "Keychains")):
         return True
     if audit_path:
         protected_audit = _normal_path(audit_path)
-        if _is_inside(path, protected_audit) or path.startswith(protected_audit + "."):
+        if (
+            _is_inside(path, protected_audit)
+            or path.casefold().startswith(protected_audit.casefold() + ".")
+            or path.casefold() == protected_audit.casefold()
+        ):
             return True
     return False
 
