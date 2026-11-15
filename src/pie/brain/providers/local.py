@@ -95,10 +95,15 @@ class LocalProvider:
         if not model_path.is_dir():
             return 0
         total = 0
+        seen: set[tuple[int, int]] = set()
         for item in model_path.rglob("*"):
             try:
                 if item.is_file():
-                    total += item.stat().st_size
+                    stat = item.stat()
+                    identity = (stat.st_dev, stat.st_ino)
+                    if identity not in seen:
+                        seen.add(identity)
+                        total += stat.st_size
             except OSError:
                 continue
         return total
