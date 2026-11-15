@@ -1,0 +1,28 @@
+from __future__ import annotations
+
+import subprocess
+
+from pie.platform.mac import MacController, resolve_system_application
+
+
+def test_aliases_and_substring_resolution() -> None:
+    assert resolve_system_application("spotify") == "Spotify"
+    assert resolve_system_application("open safari please") == "Safari"
+    assert resolve_system_application("unknown app") is None
+
+
+def test_mdfind_never_combines_capture_output_with_streams() -> None:
+    calls = []
+
+    def fake(argv, **kwargs):
+        calls.append((argv, kwargs))
+        return subprocess.CompletedProcess(argv, 0, stdout="", stderr="")
+
+    controller = MacController(runner=fake)
+    controller.open_application_or_item("An Unlisted App")
+    assert calls
+    for _, kwargs in calls:
+        assert kwargs.get("capture_output") is True
+        assert "stdout" not in kwargs
+        assert "stderr" not in kwargs
+        assert kwargs.get("shell") is False
