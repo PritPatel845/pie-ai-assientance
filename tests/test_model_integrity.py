@@ -41,7 +41,11 @@ def test_explicit_download_verifies_model_before_install(tmp_path: Path, monkeyp
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
     monkeypatch.setattr(engine, "MODEL_BYTES", len(payload))
     monkeypatch.setattr(engine, "MODEL_SHA256", hashlib.sha256(payload).hexdigest())
-    monkeypatch.setattr(engine.urllib.request, "urlopen", lambda *args, **kwargs: FakeResponse(payload))
+    monkeypatch.setattr(
+        engine.urllib.request,
+        "urlopen",
+        lambda *args, **kwargs: FakeResponse(payload),
+    )
     result = engine.ensure_model(download=True)
     assert result == tmp_path / ".pie" / "models" / "hand_landmarker.task"
     assert result.read_bytes() == payload
