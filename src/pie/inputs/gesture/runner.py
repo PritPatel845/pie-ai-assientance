@@ -250,6 +250,7 @@ def run(
         previous_time = time.monotonic()
         fps = 0.0
         last_state_at = float("-inf")
+        last_state_armed: bool | None = None
         gesture_events = GestureEventTracker()
         if bus is not None:
             bus.publish(
@@ -271,30 +272,11 @@ def run(
                 result = landmarker.detect_for_video(image, timestamp_ms)
                 hands = result.hand_landmarks or []
                 frame_result = processor.process(hands)
-                if bus is not None:
-                    for name in gesture_events.update(hands, time.monotonic()):
-                        hand_label = "unknown"
-                        handedness = getattr(result, "handedness", None)
-                        if handedness and handedness[0]:
-                            hand_label = str(handedness[0][0].category_name).lower()
-                        bus.publish(
-                            "input.gesture.event",
-                            {"name": name, "hand": hand_label, "confidence": 1.0},
-                            source="gesture",
-                        )
-                elif not hands:
-                    gesture_events.update((), time.monotonic())
-                for action in frame_result.actions:
-                    sink.execute(action)
-                if hands:
-                    learning.record_hand_sample(hands[0], frame_result.gesture)
-                    draw_hand(frame, hands[0], cv2)
-                now = time.monotonic()
-                elapsed = now - previous_time
-                if elapsed > 0:
-                    fps = 0.9 * fps + 0.1 / elapsed if fps else 1.0 / elapsed
-                previous_time = now
-                if bus is not None and now - last_state_at >= 1.0 / state_hz:
+                frame_now = time.monotonic()
+                if bus is not None and (
+                    last_state_armed != frame_result.armed
+                    or frame_now - last_state_at >= 1.0 / state_hz
+                ):
                     bus.publish(
                         "input.gesture.state",
                         {
@@ -306,7 +288,31 @@ def run(
                         },
                         source="gesture",
                     )
-                    last_state_at = now
+                    last_state_at = frame_now
+                    last_state_armed = frame_result.armed
+                if bus is not None:
+                    for name in gesture_events.update(hands, frame_now):
+                        hand_label = "unknown"
+                        handedness = getattr(result, "handedness", None)
+                        if handedness and handedness[0]:
+                            hand_label = str(handedness[0][0].category_name).lower()
+                        bus.publish(
+                            "input.gesture.event",
+                            {"name": name, "hand": hand_label, "confidence": 1.0},
+                            source="gesture",
+                        )
+                elif not hands:
+                    gesture_events.update((), frame_now)
+                for action in frame_result.actions:
+                    sink.execute(action)
+                if hands:
+                    learning.record_hand_sample(hands[0], frame_result.gesture)
+                    draw_hand(frame, hands[0], cv2)
+                now = time.monotonic()
+                elapsed = now - previous_time
+                if elapsed > 0:
+                    fps = 0.9 * fps + 0.1 / elapsed if fps else 1.0 / elapsed
+                previous_time = now
                 if preview:
                     draw_hud(frame, frame_result, fps, cv2, no_actions=no_actions)
                     cv2.namedWindow("Pie Air Control", cv2.WINDOW_NORMAL)
