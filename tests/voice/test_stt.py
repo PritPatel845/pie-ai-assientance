@@ -58,7 +58,6 @@ def test_mlx_adapter_rejects_unknown_model(tmp_path: Path) -> None:
         adapter.transcribe(np.zeros(100, dtype=np.float32), "en")
 
 
-
 def test_pipeline_uses_one_dedicated_stt_worker() -> None:
     import threading
 
