@@ -8,14 +8,22 @@ macOS action adapters, game profiles, a phrase parser, and local learning persis
 - macOS on Apple Silicon
 - Python 3.12
 - For pure-module development and tests: `python -m pip install -e ".[dev]"`
+- For the macOS runtime: `python -m pip install -e ".[mac,dev]"`
 
-**Do not install the `[mac]` extra yet.** Packaging validation is blocked: MediaPipe
-0.10.35 declares `opencv-contrib-python`, while Pie's frozen dependency pins
-`opencv-python`. Both distributions provide the same `cv2` namespace, and OpenCV says
-to install only one. Installing `.[mac]` would attempt to install both. The target-Mac
-audit now reports the installed distributions and MediaPipe's declared requirement.
-An approved dependency-contract resolution and a tested macOS installation are required
-before camera runtime setup; see `docs/HANDOFF.md`. Linux CI does not validate the macOS extra.
+## macOS OpenCV/MediaPipe dependency decision
+
+The approved Phase 0S contract change replaces `opencv-python==4.11.0.86` with
+`opencv-contrib-python==4.11.0.86`. MediaPipe 0.10.35 declares the contrib distribution;
+both OpenCV distributions provide the same `cv2` namespace, so only the contrib
+distribution is installed. The MediaPipe pin and every other dependency remain unchanged.
+The approval and rationale are recorded in `docs/CONTRACT_CHANGE_REQUEST.md`.
+
+PyPI publishes an OpenCV 4.11.0.86 macOS 13+ ARM64 abi3 wheel, and MediaPipe 0.10.35
+publishes a macOS 11+ ARM64 wheel. These wheel tags are compatible with the target
+Apple Silicon/macOS and CPython 3.12 environment. This establishes wheel availability,
+not successful runtime installation: install the `[mac,dev]` extra on the target Mac,
+run `pip check`, and complete the read-only audit before camera testing. Do not install
+`opencv-python` alongside `opencv-contrib-python`.
 
 The verified MediaPipe Hand Landmarker model is bundled at `assets/hand_landmarker.task`
 for offline-first startup. Runtime path resolution checks the configured model path, the
