@@ -70,6 +70,7 @@ def test_cli_providers_are_safe_stubs_until_sandbox_flags_are_verified(provider:
 
     asyncio.run(scenario())
 
+
 def test_missing_cloud_credential_stays_in_chain_and_raises_auth_error() -> None:
     async def scenario() -> None:
         provider = UnavailableProvider(
@@ -77,11 +78,10 @@ def test_missing_cloud_credential_stays_in_chain_and_raises_auth_error() -> None
         )
         assert await provider.healthcheck()
         with pytest.raises(AuthError):
-            await provider.complete(
-                [Message("user", "test")], [], max_tokens=8, timeout_s=1.0
-            )
+            await provider.complete([Message("user", "test")], [], max_tokens=8, timeout_s=1.0)
 
     asyncio.run(scenario())
+
 
 def test_vendor_http_date_retry_after_is_parsed() -> None:
     retry_at = datetime.now(UTC) + timedelta(seconds=30)
