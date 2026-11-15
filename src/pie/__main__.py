@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from pie import __version__
+from pie.brain.module import BrainModule
 from pie.config import Config, load_config
 from pie.core.daemon import Daemon
 from pie.events import Event
@@ -44,6 +45,7 @@ class VoiceModule:
             no_actions=self.no_actions,
             bus=daemon.bus,
             config=daemon.config.voice,
+            brain_enabled=daemon.config.brain.enabled,
         )
         self.controller.start()
 
@@ -122,10 +124,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "command",
         nargs="?",
-        choices=("run", "doctor", "config"),
+        choices=("run", "doctor", "config", "brain", "quota"),
         default="run",
     )
-    parser.add_argument("config_action", nargs="?", choices=("show",))
+    parser.add_argument("config_action", nargs="?")
+    parser.add_argument("brain_args", nargs="*")
     return parser
 
 
@@ -157,6 +160,20 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.command == "doctor":
         return doctor()
+    if args.command == "quota":
+        from pie.brain.cli import run_quota_command
+
+        try:
+            return run_quota_command(args.config_action, args.brain_args, args.config)
+        except (OSError, RuntimeError, ValueError) as exc:
+            parser.error(str(exc))
+    if args.command == "brain":
+        from pie.brain.cli import run_brain_command
+
+        try:
+            return run_brain_command(args.config_action, args.brain_args, args.config)
+        except (OSError, RuntimeError, ValueError) as exc:
+            parser.error(str(exc))
     try:
         config = _effective_config(args)
         if args.command == "config":
@@ -174,8 +191,21 @@ def main(argv: list[str] | None = None) -> int:
         daemon = Daemon(config)
         if not args.voice_background:
             daemon.register_module(GestureModule())
+        voice_module: VoiceModule | None = None
         if config.voice.enabled:
-            daemon.register_module(VoiceModule(no_actions=args.no_actions))
+            voice_module = VoiceModule(no_actions=args.no_actions)
+            daemon.register_module(voice_module)
+        if config.brain.enabled:
+            daemon.register_module(
+                BrainModule(
+                    executor_getter=lambda: (
+                        voice_module.controller.executor
+                        if voice_module is not None and voice_module.controller is not None
+                        else None
+                    ),
+                    no_actions=args.no_actions,
+                )
+            )
 
         def main_thread() -> None:
             if args.print_events and daemon.bus is not None:

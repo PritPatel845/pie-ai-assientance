@@ -128,6 +128,7 @@ The result is a frozen `Config` dataclass with frozen nested dataclasses. Unknow
 | `[gesture]` | `camera=0`, `preview=true`, `arm_hold_seconds=2.0`, `steer_sensitivity=0.004`, `state_hz=10`, `model_path=''` (empty = `assets/hand_landmarker.task`, then `~/.pie/models`, then download) |
 | `[voice]` | `enabled=true`, `wake_words=['pie','hey pie','pi','jr','j r','jay r','jarvis']`, `listen_seconds=20`, `language='en'`, `stt_backend='auto'`, `stt_model='base.en'`, `input_device=''`, `vad_threshold=0.015`, `vad_min_speech_ms=150`, `vad_end_silence_ms=600`, `vad_max_utterance_s=12`, `stt_idle_unload_s=300`, `tts_enabled=true`, `tts_voice='Samantha'`, `tts_rate=185`, `allow_cloud_stt=false`, `debug_save_audio=false` (Phase 2A additions) |
 | `[ui]` | `host='127.0.0.1'`, `port=8765` |
+| `[brain]` (Phase 2B) | `enabled=true`, `cloud_order=['anthropic','openai']`, `cli_providers_enabled=false`, `anthropic_model=''`, `openai_model=''`, `local_backend='auto'` (`auto\|ollama\|mlx`), `local_model=''`, `max_steps=8`, `total_timeout_s=90`, `provider_timeout_s=45`, `context_turns=6`, `context_ttl_s=600`, `default_cooldown_s=3600`, `rate_limit_max_wait_s=8`, `local_max_ram_gb=6.0`, `local_keep_alive='2m'` |
 | Later phases | `[brain]`, `[safety]`, `[tools]` and other phase-owned keys are additive only. |
 
 ## 6. Permission tiers — frozen
