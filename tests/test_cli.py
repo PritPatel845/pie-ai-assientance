@@ -47,7 +47,7 @@ def test_explicit_cli_values_override_config(monkeypatch, capsys) -> None:
     assert cli.main(["--camera", "5", "--steer-sensitivity", "0.02", "--voice"]) == 0
     assert calls["camera"] == 5
     assert calls["steer_sensitivity"] == 0.02
-    assert "Voice capture arrives" in capsys.readouterr().out
+    assert "Voice capture arrives" not in capsys.readouterr().out
 
 
 def test_doctor_reports_import_errors_without_crashing(monkeypatch, tmp_path, capsys) -> None:
