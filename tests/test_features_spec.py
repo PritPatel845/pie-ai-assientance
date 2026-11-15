@@ -92,3 +92,91 @@ def test_normalize_hand_is_translation_scale_and_rotation_invariant() -> None:
 def test_classification_precedence_is_stable() -> None:
     thumb_up = make_hand(extended=(False, False, False, False), thumb=(0.5, 0.6, 0.0))
     assert classify_desktop(thumb_up) == "THUMB UP / PLAY"
+
+
+def test_thumb_extension_true_and_false_cases() -> None:
+    extended = make_hand(thumb=(0.2, 0.4, 0.0))
+    folded = make_hand(thumb=(0.25, 0.55, 0.0))
+    from pie.inputs.gesture.features import is_thumb_extended
+
+    assert is_thumb_extended(extended)
+    assert not is_thumb_extended(folded)
+
+
+@pytest.mark.parametrize(
+    ("hand", "expected"),
+    [
+        (
+            make_hand(extended=(False, False, False, False), thumb=(0.5, 0.6, 0.0)),
+            "THUMB UP / PLAY",
+        ),
+        (
+            make_hand(extended=(False, False, False, False), thumb=(0.5, 1.0, 0.0)),
+            "THUMB DOWN / STOP",
+        ),
+        (
+            make_hand(index_tip=(0.51, 0.8, 0.0), thumb=(0.5, 0.8, 0.0)),
+            "PINCH / OPEN",
+        ),
+        (
+            make_hand(extended=(True, True, True, False)),
+            "THREE FINGER / OPEN",
+        ),
+        (make_hand(), "OPEN PALM"),
+        (
+            make_hand(extended=(False, False, False, False), thumb=(0.25, 0.55, 0.0)),
+            "FIST / VOICE",
+        ),
+        (
+            make_hand(extended=(True, True, False, False), thumb=(0.25, 0.55, 0.0)),
+            "TWO-FINGER SWIPE",
+        ),
+        (
+            make_hand(extended=(True, False, False, False), thumb=(0.25, 0.55, 0.0)),
+            "INDEX / POINTER",
+        ),
+    ],
+)
+def test_every_desktop_classification_label(hand, expected: str) -> None:
+    assert classify_desktop(hand) == expected
+
+
+def test_false_cases_for_gesture_predicates() -> None:
+    folded = make_hand(extended=(False, False, False, False), thumb=(0.25, 0.55, 0.0))
+    open_hand = make_hand()
+    assert not is_open_palm(folded)
+    assert not is_fist(open_hand)
+    assert not is_two_finger(open_hand)
+    assert not is_three_finger(open_hand)
+    assert not is_four_finger(open_hand)
+    assert not is_thumb_up(open_hand)
+    assert not is_thumb_down(open_hand)
+    assert not is_pinch(open_hand)
+
+
+def test_normalize_hand_is_invariant_to_in_plane_rotation() -> None:
+    original = [Point(i * 0.01, i * 0.02, i * 0.003) for i in range(21)]
+    angle = 0.73
+    rotated = [
+        Point(
+            math.cos(angle) * point.x - math.sin(angle) * point.y,
+            math.sin(angle) * point.x + math.cos(angle) * point.y,
+            point.z,
+        )
+        for point in original
+    ]
+    first = normalize_hand(original)
+    second = normalize_hand(rotated)
+    assert max(abs(a - b) for a, b in zip(first, second, strict=True)) < 1e-6
+
+
+def test_normalize_hand_is_finite_for_degenerate_hand() -> None:
+    degenerate = [Point(0.0, 0.0, 0.0) for _ in range(21)]
+    values = normalize_hand(degenerate)
+    assert len(values) == 63
+    assert all(math.isfinite(value) for value in values)
+
+
+def test_hand_size_has_nonzero_floor() -> None:
+    degenerate = [Point(0.0, 0.0, 0.0) for _ in range(21)]
+    assert hand_size(degenerate) == 0.001
