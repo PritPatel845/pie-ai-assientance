@@ -15,7 +15,7 @@ from jsonschema import Draft202012Validator
 
 from pie.events import EventBus
 from pie.safety.audit import AuditLog, redact
-from pie.safety.paths_guard import PathGuardError, guard_paths
+from pie.safety.paths_guard import guard_paths
 from pie.safety.permissions import PermissionGate, Tier
 from pie.tools.base import Tool, ToolContext, ToolResult, ToolSpec, fail
 
@@ -166,7 +166,9 @@ class ToolRegistry:
                 if property_schema.get("x-confirm-if-exists") is True and candidate.exists():
                     tier = max(tier, Tier.CONFIRM)
                 if property_schema.get("x-confirm-outside-sandbox") is True:
-                    sandbox = Path(str(self._setting("safety", "sandbox_dir", "~/PieWorkspace"))).expanduser().resolve()
+                    sandbox = Path(
+                        str(self._setting("safety", "sandbox_dir", "~/PieWorkspace"))
+                    ).expanduser().resolve()
                     resolved = candidate.resolve()
                     try:
                         resolved.relative_to(sandbox)
@@ -226,7 +228,12 @@ class ToolRegistry:
             self._publish("tool.denied", {"call_id": call_id, "reason": "cancelled"}, call_id)
             self._publish(
                 "tool.finished",
-                {"call_id": call_id, "ok": False, "summary": "cancelled", "duration_s": self.clock() - started},
+                {
+                    "call_id": call_id,
+                    "ok": False,
+                    "summary": "cancelled",
+                    "duration_s": self.clock() - started,
+                },
                 call_id,
             )
             self._audit(
@@ -309,7 +316,12 @@ class ToolRegistry:
         summary = result.output if isinstance(result.output, str) else result.error or "completed"
         self._publish(
             "tool.finished",
-            {"call_id": call_id, "ok": result.ok, "summary": str(summary)[:500], "duration_s": duration},
+            {
+                "call_id": call_id,
+                "ok": result.ok,
+                "summary": str(summary)[:500],
+                "duration_s": duration,
+            },
             call_id,
         )
         self._audit(
