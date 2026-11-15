@@ -83,7 +83,7 @@ def _requires_confirmation(tool: Any, payload: dict[str, Any], config: Any) -> b
     except (PathGuardError, TypeError, ValueError):
         # Do not start the microphone for a request that the registry will deny.
         return False
-    return tier >= Tier.CONFIRM
+    return bool(tier >= Tier.CONFIRM)
 
 
 def run_tool_command(
