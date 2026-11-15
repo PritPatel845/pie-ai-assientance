@@ -15,9 +15,12 @@ but its PyPI metadata also declares `opencv-contrib-python` while this project p
 the target-Mac install is checked; see `docs/HANDOFF.md`. The Linux CI job intentionally
 does not claim to validate the macOS extra.
 
-The camera runtime uses MediaPipe Tasks and the Hand Landmarker model. The model is not
-silently downloaded: run `scripts/download_model.sh` to verify it into `assets/`, or run
-`python -m pie --download-model` as an explicit network action into `~/.pie/models/`.
+The verified MediaPipe Hand Landmarker model is bundled at `assets/hand_landmarker.task`
+for offline-first startup. Runtime path resolution checks the configured model path, the
+bundled asset, then `~/.pie/models/`. If you intentionally need to fetch it again, run
+`scripts/download_model.sh`; it checks the exact byte size and SHA-256 before accepting
+either the official Google download or the mirror. `python -m pie --download-model` is
+also available as an explicit network action into `~/.pie/models/`.
 
 ## Commands
 ```bash
