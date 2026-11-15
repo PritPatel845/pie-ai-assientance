@@ -157,3 +157,52 @@ def test_unsubscribe_is_idempotent() -> None:
         assert not bus._subscribers
 
     asyncio.run(scenario())
+
+
+def test_text_input_publishes_nonempty_commands() -> None:
+    from pie.inputs.text import TextInput
+
+    async def scenario() -> None:
+        bus = EventBus(asyncio.get_running_loop())
+        received: list[str] = []
+        ready = asyncio.Event()
+
+        async def collect(event: Event) -> None:
+            received.append(str(event.payload["text"]))
+            ready.set()
+
+        bus.subscribe("input.text.command", collect, name="text-test")
+        text_input = TextInput(bus)
+        text_input.submit("  open Safari  ")
+        text_input.submit("   ")
+        await asyncio.wait_for(ready.wait(), 1)
+        assert received == ["open Safari"]
+
+    asyncio.run(scenario())
+
+
+def test_voice_event_adapter_publishes_contract_payloads() -> None:
+    from pie.inputs.voice.pipeline import VoiceController
+
+    async def scenario() -> None:
+        bus = EventBus(asyncio.get_running_loop())
+        received: list[Event] = []
+        ready = asyncio.Event()
+
+        async def collect(event: Event) -> None:
+            received.append(event)
+            if len(received) == 3:
+                ready.set()
+
+        bus.subscribe("input.voice.*", collect, name="voice-test")
+        controller = VoiceController(object(), bus=bus, language="en")
+        controller.publish_wake("pie")
+        controller.publish_listening(True, 1234.5)
+        controller.publish_transcript("open Safari")
+        await asyncio.wait_for(ready.wait(), 1)
+        assert [event.topic for event in received] == [
+            "input.voice.wake", "input.voice.listening", "input.voice.transcript"
+        ]
+        assert received[-1].payload == {"text": "open Safari", "final": True, "lang": "en"}
+
+    asyncio.run(scenario())
