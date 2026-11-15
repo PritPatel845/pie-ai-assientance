@@ -341,6 +341,14 @@ class VoiceController(_VoiceController):
             return
         if self.config.debug_save_audio:
             _LOG.warning("voice.debug_save_audio is enabled; utterance audio will be saved locally")
+        if self.config.stt_backend == "google" and self.config.allow_cloud_stt:
+            _LOG.warning("Google speech recognition is enabled; audio will leave this Mac")
+        activation = getattr(self.executor.controller, "show_voice_activation", None)
+        if callable(activation):
+            try:
+                activation(self.config.listen_seconds)
+            except (OSError, RuntimeError):
+                _LOG.warning("Could not display the PIE ACTIVE notification", exc_info=True)
         if self._speaker is not None:
             self._speaker.start()
             self.bus and self.bus.publish(
