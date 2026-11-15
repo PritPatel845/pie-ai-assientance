@@ -351,7 +351,7 @@ class BrainRouter:
                     if call.name in reported_unknown:
                         return RouterResult(
                             route, provider.name, "", calls_made, False,
-                            f"repeated unknown or unavailable tool: {call.name}",
+                            f"repeated unknown tool or unavailable tool: {call.name}",
                         )
                     reported_unknown.add(call.name)
                     if all_spec is not None:
