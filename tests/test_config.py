@@ -41,12 +41,7 @@ def test_unknown_environment_key_for_known_section_is_rejected() -> None:
 
 def test_config_precedence_and_path_expansion(tmp_path) -> None:
     path = tmp_path / "config.toml"
-    path.write_text(
-        '[gesture]\n'
-        'camera = 2\n'
-        'model_path = "~/models/hand.task"\n',
-        encoding="utf-8",
-    )
+    path.write_text('[gesture]\ncamera = 2\nmodel_path = "~/models/hand.task"\n', encoding="utf-8")
     config = load_config(
         path,
         environ={"PIE_GESTURE_CAMERA": "3"},
