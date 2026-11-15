@@ -36,7 +36,6 @@ class TextWake:
             count = len(expected)
             if count not in (1, 2) or len(tokens) < count:
                 continue
-            actual = " ".join(tokens[:count])
             token_ratios = [
                 difflib.SequenceMatcher(None, observed, wanted).ratio()
                 for observed, wanted in zip(tokens[:count], expected, strict=True)
