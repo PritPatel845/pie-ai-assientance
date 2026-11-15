@@ -60,8 +60,8 @@ Branch: phase-0s-implementation. Target Python >=3.12,<3.13 on Apple Silicon mac
 
 ### Automated verification
 
-- GitHub Actions run for code commit `4a21cfb947661d0b94dce7061b9c6408023aceb2`: https://github.com/PritPatel845/pie-ai-assientance/actions/runs/43669831353
-- `pytest -q`: **144 passed**.
+- GitHub Actions run for code commit `03fb6ba5cd0af72eceb87c9b868b6dc896d04a8c`: https://github.com/PritPatel845/pie-ai-assientance/actions/runs/43670182660
+- `pytest -q`: **151 passed**.
 - `ruff check .`: passed.
 - `ruff format --check .`: passed.
 - `mypy src/pie`: passed; no issues in 20 source files.
@@ -113,10 +113,11 @@ The parser checks exact phrases first, then volume patterns, search patterns, th
 - Temple Run handles swipe left/right and palm up/down actions.
 - Runner/fist/pinch and game-key state reset on hand loss/mode changes; held keys are released.
 - Clean-room Path B no longer copies `~/.jarvis_learning`.
-- Config environment parsing and strict unknown-key checks are covered by regression tests.
+- Config environment parsing, strict unknown-key checks, and CLI-over-config precedence are covered by regression tests.
 - Ruff CI is read-only; it never formats and pushes commits from a pull-request merge checkout.
 - `FrameProcessor` action-list annotations satisfy strict mypy.
 - The voice parser now has a 90-row phrase matrix plus punctuation-boundary wake-word tests.
+- Model path resolution and explicit downloads verify the pinned byte size and SHA-256; invalid or partial downloads are removed.
 - Learning ring-buffer test isolates the bounded-buffer assertion from periodic disk-flush I/O.
 
 ### Exact verification commands
