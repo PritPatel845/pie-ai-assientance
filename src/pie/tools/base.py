@@ -20,7 +20,12 @@ class ToolSpec:
     platforms: tuple[str, ...] = ("darwin",)
 
     def __post_init__(self) -> None:
-        if not re.fullmatch(r"[a-z0-9_]+(?:\\.[a-z0-9_]+)+", self.name):
+        parts = self.name.split(".")
+        valid_parts = len(parts) == 2 and all(
+            part and part.replace("_", "").isalnum() and part.islower()
+            for part in parts
+        )
+        if not valid_parts:
             raise ValueError("tool name must use lowercase domain.verb characters")
         if not isinstance(self.parameters, dict) or self.parameters.get("type") != "object":
             raise ValueError("tool parameters must be a JSON Schema object")
