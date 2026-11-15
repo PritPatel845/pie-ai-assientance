@@ -14,9 +14,9 @@ from pie.tools.base import FunctionTool, ToolContext, ToolResult, ToolSpec, ok
 from pie.tools.registry import ToolRegistry
 
 
-def _registry(tmp_path: Path, *, max_calls: int = 20, result_limit: int = 100) -> tuple[
-    ToolRegistry, PermissionGate, EventBus
-]:
+def _registry(
+    tmp_path: Path, *, max_calls: int = 20, result_limit: int = 100
+) -> tuple[ToolRegistry, PermissionGate, EventBus]:
     bus = EventBus(asyncio.get_running_loop())
     gate = PermissionGate(bus, timeout_s=0.05)
     gate.start()
@@ -291,9 +291,7 @@ def test_path_outside_sandbox_requires_confirmation(tmp_path: Path) -> None:
         }
         registry.register(_tool("fs.test", tier=Tier.READ, schema=schema))
         task = asyncio.create_task(
-            registry.execute(
-                "fs.test", {"path": str(tmp_path / "outside.txt")}, source="agent"
-            )
+            registry.execute("fs.test", {"path": str(tmp_path / "outside.txt")}, source="agent")
         )
         await asyncio.sleep(0.01)
         bus.publish(
@@ -333,7 +331,6 @@ def test_same_tool_calls_are_serialized(tmp_path: Path) -> None:
         gate.stop()
 
     asyncio.run(scenario())
-
 
 
 def test_rule_preapproval_cannot_bypass_other_confirm_tools(tmp_path: Path) -> None:

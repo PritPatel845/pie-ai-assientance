@@ -132,9 +132,7 @@ def test_mac_open_url_rejects_non_http_schemes(tmp_path: Path) -> None:
     async def scenario() -> None:
         controller = FakeController()
         tools = {tool.spec.name: tool for tool in build_mac_tools(controller)}
-        result = await tools["mac.open_url"].run(
-            {"url": "javascript:alert(1)"}, _context(tmp_path)
-        )
+        result = await tools["mac.open_url"].run({"url": "javascript:alert(1)"}, _context(tmp_path))
         assert not result.ok
         assert controller.calls == []
 
@@ -145,9 +143,7 @@ def test_mac_open_app_does_not_accept_paths_or_urls(tmp_path: Path) -> None:
     async def scenario() -> None:
         controller = FakeController()
         tools = {tool.spec.name: tool for tool in build_mac_tools(controller)}
-        result = await tools["mac.open_app"].run(
-            {"name": "/etc/passwd"}, _context(tmp_path)
-        )
+        result = await tools["mac.open_app"].run({"name": "/etc/passwd"}, _context(tmp_path))
         assert not result.ok
         assert controller.calls == []
 
@@ -158,9 +154,7 @@ def test_mac_type_text_rejects_control_characters(tmp_path: Path) -> None:
     async def scenario() -> None:
         controller = FakeController()
         tools = {tool.spec.name: tool for tool in build_mac_tools(controller)}
-        result = await tools["mac.type_text"].run(
-            {"text": "hello\nworld"}, _context(tmp_path)
-        )
+        result = await tools["mac.type_text"].run({"text": "hello\nworld"}, _context(tmp_path))
         assert not result.ok
         assert controller.calls == []
 
@@ -173,8 +167,7 @@ def test_close_app_prompt_names_and_rechecks_frontmost_application(
     async def scenario() -> None:
         controller = FakeController()
         tool = next(
-            item for item in build_mac_tools(controller)
-            if item.spec.name == "mac.close_app"
+            item for item in build_mac_tools(controller) if item.spec.name == "mac.close_app"
         )
         prompt = tool.confirmation_prompt({}, "call-1")
         assert prompt is not None and "Finder" in prompt
@@ -195,9 +188,7 @@ def test_filesystem_write_and_read_utf8_text(tmp_path: Path) -> None:
         tools = {tool.spec.name: tool for tool in build_filesystem_tools()}
         path = root / "notes.txt"
         ctx = _context(tmp_path)
-        written = await tools["fs.write_text"].run(
-            {"path": str(path), "content": "Pie notes"}, ctx
-        )
+        written = await tools["fs.write_text"].run({"path": str(path), "content": "Pie notes"}, ctx)
         assert written.ok
         assert path.read_text(encoding="utf-8") == "Pie notes"
         read = await tools["fs.read_text"].run({"path": str(path)}, ctx)
@@ -211,9 +202,7 @@ def test_filesystem_read_rejects_binary_data(tmp_path: Path) -> None:
         path = tmp_path / "binary.bin"
         path.write_bytes(b"\xff\xfe\x00")
         tools = {tool.spec.name: tool for tool in build_filesystem_tools()}
-        result = await tools["fs.read_text"].run(
-            {"path": str(path)}, _context(tmp_path)
-        )
+        result = await tools["fs.read_text"].run({"path": str(path)}, _context(tmp_path))
         assert not result.ok
         assert result.error == "file is not valid UTF-8 text"
 
@@ -224,9 +213,7 @@ def test_voice_stop_listening_uses_existing_event_topic(tmp_path: Path) -> None:
     async def scenario() -> None:
         bus = EventBus(asyncio.get_running_loop())
         received = []
-        bus.subscribe(
-            "input.voice.listening", received.append, name="voice-stop-test"
-        )
+        bus.subscribe("input.voice.listening", received.append, name="voice-stop-test")
         await asyncio.sleep(0)
         tool = build_voice_tools(bus)[0]
         result = await tool.run({}, _context(tmp_path))
@@ -237,7 +224,6 @@ def test_voice_stop_listening_uses_existing_event_topic(tmp_path: Path) -> None:
         assert received[0].payload["active"] is False
 
     asyncio.run(scenario())
-
 
 
 def test_mac_open_url_rejects_credentials_and_whitespace(tmp_path: Path) -> None:
@@ -259,9 +245,7 @@ def test_mac_open_app_rejects_control_characters(tmp_path: Path) -> None:
     async def scenario() -> None:
         controller = FakeController()
         tools = {tool.spec.name: tool for tool in build_mac_tools(controller)}
-        result = await tools["mac.open_app"].run(
-            {"name": "Safari\nTerminal"}, _context(tmp_path)
-        )
+        result = await tools["mac.open_app"].run({"name": "Safari\nTerminal"}, _context(tmp_path))
         assert not result.ok
         assert controller.calls == []
 

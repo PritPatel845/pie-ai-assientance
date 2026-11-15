@@ -255,13 +255,18 @@ class MacController:
         try:
             result = self._runner(
                 [
-                    "/usr/bin/osascript", "-e",
+                    "/usr/bin/osascript",
+                    "-e",
                     (
                         'tell application "System Events" to get name of first process '
                         "whose frontmost is true"
                     ),
                 ],
-                capture_output=True, text=True, timeout=3, check=False, shell=False,
+                capture_output=True,
+                text=True,
+                timeout=3,
+                check=False,
+                shell=False,
             )
         except (OSError, subprocess.TimeoutExpired):
             return None

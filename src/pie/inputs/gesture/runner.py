@@ -89,7 +89,11 @@ class ActionSink:
     """Translate pure FrameProcessor actions into an injectable platform adapter."""
 
     def __init__(
-        self, controller: MacController, *, no_actions: bool = False, profile: str = "asphalt",
+        self,
+        controller: MacController,
+        *,
+        no_actions: bool = False,
+        profile: str = "asphalt",
         bindings_via_tools: bool = False,
     ) -> None:
         self.controller, self.no_actions, self.profile = controller, no_actions, profile
@@ -240,7 +244,9 @@ def run(
         )
         controller = MacController()
         sink = ActionSink(
-            controller, no_actions=no_actions, profile=game_profile,
+            controller,
+            no_actions=no_actions,
+            profile=game_profile,
             bindings_via_tools=gesture_bindings_via_tools,
         )
         processor = FrameProcessor(

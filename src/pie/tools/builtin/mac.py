@@ -86,9 +86,7 @@ def build_mac_tools(controller: MacController) -> list[FunctionTool]:
     async def screenshot(args: Mapping[str, Any], ctx: ToolContext) -> ToolResult:
         del args
         filename = (
-            Path.home()
-            / "Desktop"
-            / f"Pie Screenshot {datetime.now():%Y-%m-%d %H-%M-%S-%f}.png"
+            Path.home() / "Desktop" / f"Pie Screenshot {datetime.now():%Y-%m-%d %H-%M-%S-%f}.png"
         )
         if ctx.dry_run:
             return ok({"would_save": str(filename)})
@@ -199,9 +197,7 @@ def build_mac_tools(controller: MacController) -> list[FunctionTool]:
                 ),
                 {
                     "type": "object",
-                    "properties": {
-                        "name": {"type": "string", "minLength": 1, "maxLength": 200}
-                    },
+                    "properties": {"name": {"type": "string", "minLength": 1, "maxLength": 200}},
                     "required": ["name"],
                     "additionalProperties": False,
                 },
@@ -218,9 +214,7 @@ def build_mac_tools(controller: MacController) -> list[FunctionTool]:
                 ),
                 {
                     "type": "object",
-                    "properties": {
-                        "url": {"type": "string", "minLength": 8, "maxLength": 2048}
-                    },
+                    "properties": {"url": {"type": "string", "minLength": 8, "maxLength": 2048}},
                     "required": ["url"],
                     "additionalProperties": False,
                 },
@@ -254,9 +248,7 @@ def build_mac_tools(controller: MacController) -> list[FunctionTool]:
                 ),
                 {
                     "type": "object",
-                    "properties": {
-                        "query": {"type": "string", "minLength": 1, "maxLength": 500}
-                    },
+                    "properties": {"query": {"type": "string", "minLength": 1, "maxLength": 500}},
                     "required": ["query"],
                     "additionalProperties": False,
                 },
@@ -270,9 +262,7 @@ def build_mac_tools(controller: MacController) -> list[FunctionTool]:
                 "Set system output volume between 0 and 100.",
                 {
                     "type": "object",
-                    "properties": {
-                        "value": {"type": "integer", "minimum": 0, "maximum": 100}
-                    },
+                    "properties": {"value": {"type": "integer", "minimum": 0, "maximum": 100}},
                     "required": ["value"],
                     "additionalProperties": False,
                 },
@@ -304,9 +294,7 @@ def build_mac_tools(controller: MacController) -> list[FunctionTool]:
                 "Scroll the current window by -50 to 50 units.",
                 {
                     "type": "object",
-                    "properties": {
-                        "amount": {"type": "integer", "minimum": -50, "maximum": 50}
-                    },
+                    "properties": {"amount": {"type": "integer", "minimum": -50, "maximum": 50}},
                     "required": ["amount"],
                     "additionalProperties": False,
                 },
@@ -320,9 +308,7 @@ def build_mac_tools(controller: MacController) -> list[FunctionTool]:
                 "Press one allow-listed keyboard shortcut.",
                 {
                     "type": "object",
-                    "properties": {
-                        "combo": {"type": "string", "enum": list(key_map)}
-                    },
+                    "properties": {"combo": {"type": "string", "enum": list(key_map)}},
                     "required": ["combo"],
                     "additionalProperties": False,
                 },
@@ -374,9 +360,7 @@ def build_mac_tools(controller: MacController) -> list[FunctionTool]:
                 ),
                 {
                     "type": "object",
-                    "properties": {
-                        "text": {"type": "string", "maxLength": 500}
-                    },
+                    "properties": {"text": {"type": "string", "maxLength": 500}},
                     "required": ["text"],
                     "additionalProperties": False,
                 },

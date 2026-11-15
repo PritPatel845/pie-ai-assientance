@@ -18,6 +18,8 @@ _BLOCKED_PARTS = {
     ".gnupg",
     "keychains",
 }
+
+
 def _normal_path(value: str) -> str:
     normalised = unicodedata.normalize("NFKC", value)
     if not normalised:
@@ -26,10 +28,7 @@ def _normal_path(value: str) -> str:
         raise PathGuardError("control characters are not allowed in paths")
     if normalised.startswith("~") and not normalised.startswith("~/"):
         raise PathGuardError("named-user home paths are not allowed")
-    parts = [
-        part if part in {".", ".."} else part.rstrip(".")
-        for part in normalised.split(os.sep)
-    ]
+    parts = [part if part in {".", ".."} else part.rstrip(".") for part in normalised.split(os.sep)]
     normalised = os.sep.join(parts)
     if not normalised:
         raise PathGuardError("path must not be empty")
@@ -55,9 +54,7 @@ def _is_blocked(path: str, audit_path: str | None) -> bool:
         return True
     home_relative = os.path.relpath(path, home).casefold()
     protected_config = os.path.join(".pie", "config.toml")
-    if home_relative == protected_config or home_relative.startswith(
-        protected_config + os.sep
-    ):
+    if home_relative == protected_config or home_relative.startswith(protected_config + os.sep):
         return True
     if _is_inside(path, os.path.join(home, "Library", "Keychains")):
         return True

@@ -6,9 +6,7 @@ from pie.events import EventBus
 from pie.safety.permissions import PermissionDecision, PermissionGate, Tier
 
 
-def _request(
-    gate: PermissionGate, call_id: str = "call"
-) -> asyncio.Task[PermissionDecision]:
+def _request(gate: PermissionGate, call_id: str = "call") -> asyncio.Task[PermissionDecision]:
     return asyncio.create_task(
         gate.request(
             call_id=call_id,
@@ -190,7 +188,6 @@ def test_confirmation_spam_is_limited() -> None:
         gate.stop()
 
     asyncio.run(scenario())
-
 
 
 def test_permission_request_redacts_typed_and_written_content() -> None:

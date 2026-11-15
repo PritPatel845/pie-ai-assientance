@@ -117,21 +117,27 @@ def test_path_traversal_outside_allowed_root_requires_confirmation(
     allowed = tmp_path / "allowed"
     allowed.mkdir()
     outside = tmp_path / "outside.txt"
-    assert guard_paths(
-        {"path": str(allowed / ".." / outside.name)},
-        SCHEMA,
-        allowed_folders=(str(allowed),),
-    ) is Tier.CONFIRM
+    assert (
+        guard_paths(
+            {"path": str(allowed / ".." / outside.name)},
+            SCHEMA,
+            allowed_folders=(str(allowed),),
+        )
+        is Tier.CONFIRM
+    )
 
 
 def test_path_inside_allowed_root_is_read_tier(tmp_path: Path) -> None:
     allowed = tmp_path / "allowed"
     allowed.mkdir()
-    assert guard_paths(
-        {"path": str(allowed / "notes.txt")},
-        SCHEMA,
-        allowed_folders=(str(allowed),),
-    ) is Tier.READ
+    assert (
+        guard_paths(
+            {"path": str(allowed / "notes.txt")},
+            SCHEMA,
+            allowed_folders=(str(allowed),),
+        )
+        is Tier.READ
+    )
 
 
 def test_named_user_home_is_rejected(tmp_path: Path) -> None:
@@ -158,12 +164,14 @@ def test_unmarked_path_property_is_ignored(tmp_path: Path) -> None:
         "properties": {"value": {"type": "string"}},
         "additionalProperties": False,
     }
-    assert guard_paths(
-        {"value": str(tmp_path / ".ssh" / "id_rsa")},
-        schema,
-        allowed_folders=(str(tmp_path),),
-    ) is Tier.READ
-
+    assert (
+        guard_paths(
+            {"value": str(tmp_path / ".ssh" / "id_rsa")},
+            schema,
+            allowed_folders=(str(tmp_path),),
+        )
+        is Tier.READ
+    )
 
 
 def test_control_characters_in_paths_are_rejected(tmp_path) -> None:

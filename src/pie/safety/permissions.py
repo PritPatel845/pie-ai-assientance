@@ -61,9 +61,7 @@ class PermissionGate:
             return
         self._started = True
         self._unsubscribers = [
-            self.bus.subscribe(
-                "input.voice.transcript", self._on_voice, name="permission-voice"
-            ),
+            self.bus.subscribe("input.voice.transcript", self._on_voice, name="permission-voice"),
             self.bus.subscribe(
                 "input.gesture.*", self._on_gesture_event, name="permission-gesture"
             ),
@@ -216,7 +214,6 @@ class PermissionGate:
                 source="permission_gate",
             )
             raise
-
 
 
 __all__ = ["PermissionDecision", "PermissionGate", "Tier"]

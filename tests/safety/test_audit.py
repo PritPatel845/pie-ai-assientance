@@ -59,7 +59,6 @@ def test_redact_recurses_through_nested_data() -> None:
     assert safe == {"nested": {"password": "***", "value": 4}, "api_key": "***"}
 
 
-
 def test_audit_redacts_search_query_and_url_query_parameters() -> None:
     search = redact({"query": "my private medical search"}, tool="browser.search")
     url = redact(
@@ -76,4 +75,3 @@ def test_audit_refuses_symlink_target(tmp_path: Path) -> None:
     link.symlink_to(target)
     assert not AuditLog(link).write({"tool": "system.time", "args": {}})
     assert not target.exists()
-

@@ -46,10 +46,7 @@ def build_system_tools(controller: Any) -> list[FunctionTool]:
         FunctionTool(
             ToolSpec(
                 "mac.frontmost_app",
-                (
-                    "Identify the frontmost macOS application. "
-                    "Do not use to infer hidden windows."
-                ),
+                ("Identify the frontmost macOS application. Do not use to infer hidden windows."),
                 empty_schema,
                 Tier.READ,
             ),

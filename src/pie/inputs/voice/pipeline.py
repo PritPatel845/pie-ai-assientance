@@ -94,7 +94,8 @@ class VoiceController(_VoiceController):
         self._mic_permission_missing = threading.Event()
         self._unsubscribe_tool_stop = (
             bus.subscribe("input.voice.listening", self._on_listening_event, name="voice-tool-stop")
-            if bus is not None else None
+            if bus is not None
+            else None
         )
 
     def _on_listening_event(self, event: Event) -> None:

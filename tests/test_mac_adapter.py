@@ -108,7 +108,6 @@ def test_screenshot_uses_macos_system_binary() -> None:
     assert calls[0][1]["shell"] is False
 
 
-
 def test_frontmost_app_is_read_through_fixed_osascript() -> None:
     calls = []
 

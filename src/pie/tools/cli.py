@@ -75,18 +75,22 @@ def run_tool_command(action: str | None, arguments: list[str], config_path: Path
             voice_module.start(daemon)
             print("Confirmation required. Say yes or no.")
         future = asyncio.run_coroutine_threadsafe(
-            tools_module.registry.execute(
-                name, payload, source="text", dry_run=parsed.dry_run
-            ),
+            tools_module.registry.execute(name, payload, source="text", dry_run=parsed.dry_run),
             daemon.loop,
         )
         result = future.result(timeout=tool.spec.timeout_s + config.safety.confirm_timeout_s + 5)
-        print(json.dumps({
-            "ok": result.ok,
-            "output": result.output,
-            "error": result.error,
-            "artifacts": result.artifacts,
-        }, ensure_ascii=False, default=str))
+        print(
+            json.dumps(
+                {
+                    "ok": result.ok,
+                    "output": result.output,
+                    "error": result.error,
+                    "artifacts": result.artifacts,
+                },
+                ensure_ascii=False,
+                default=str,
+            )
+        )
         return 0 if result.ok else 1
     finally:
         if voice_module is not None:
@@ -107,7 +111,7 @@ def run_audit_command(action: str | None, arguments: list[str], config_path: Pat
         print("No audit records yet.")
         return 0
     lines = path.read_text(encoding="utf-8").splitlines()
-    for line in lines[-parsed.n:]:
+    for line in lines[-parsed.n :]:
         print(line)
     return 0
 

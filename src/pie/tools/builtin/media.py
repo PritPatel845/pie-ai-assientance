@@ -33,10 +33,7 @@ def build_media_tools(controller: MacController) -> list[FunctionTool]:
         FunctionTool(
             ToolSpec(
                 "media.play",
-                (
-                    "Play or resume the active media session. "
-                    "Do not use to start a specific track."
-                ),
+                ("Play or resume the active media session. Do not use to start a specific track."),
                 schema,
                 Tier.REVERSIBLE,
             ),
@@ -45,10 +42,7 @@ def build_media_tools(controller: MacController) -> list[FunctionTool]:
         FunctionTool(
             ToolSpec(
                 "media.pause",
-                (
-                    "Pause the active media session. "
-                    "Do not use to stop or delete media."
-                ),
+                ("Pause the active media session. Do not use to stop or delete media."),
                 schema,
                 Tier.REVERSIBLE,
             ),

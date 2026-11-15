@@ -40,7 +40,6 @@ def test_gesture_event_tracker_handles_no_hand_reset(monkeypatch) -> None:
     assert tracker.update([[object()]], 2.2) == ()
 
 
-
 def test_palm_push_event_requires_open_palm_and_forward_depth(monkeypatch) -> None:
     monkeypatch.setattr(runner, "is_pinch", lambda hand: False)
     monkeypatch.setattr(runner, "is_open_palm", lambda hand: True)

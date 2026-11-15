@@ -22,8 +22,7 @@ class ToolSpec:
     def __post_init__(self) -> None:
         parts = self.name.split(".")
         valid_parts = len(parts) == 2 and all(
-            part
-            and all(char in "abcdefghijklmnopqrstuvwxyz0123456789_" for char in part)
+            part and all(char in "abcdefghijklmnopqrstuvwxyz0123456789_" for char in part)
             for part in parts
         )
         if not valid_parts:

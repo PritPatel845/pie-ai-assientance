@@ -86,21 +86,23 @@ class ToolRegistry:
         started: float,
         provider: str | None,
     ) -> None:
-        self.audit.write({
-            "ts": time.time(),
-            "call_id": call_id,
-            "correlation_id": correlation_id,
-            "source": source,
-            "tool": tool,
-            "args": args,
-            "tier": tier.name,
-            "decision": decision,
-            "by": by,
-            "ok": ok,
-            "error": error,
-            "duration_s": max(0.0, self.clock() - started),
-            "provider": provider,
-        })
+        self.audit.write(
+            {
+                "ts": time.time(),
+                "call_id": call_id,
+                "correlation_id": correlation_id,
+                "source": source,
+                "tool": tool,
+                "args": args,
+                "tier": tier.name,
+                "decision": decision,
+                "by": by,
+                "ok": ok,
+                "error": error,
+                "duration_s": max(0.0, self.clock() - started),
+                "provider": provider,
+            }
+        )
 
     async def execute(
         self,
@@ -120,9 +122,18 @@ class ToolRegistry:
         if spec_tool is None:
             result = fail("unknown tool")
             self._audit(
-                call_id=call_id, correlation_id=correlation_id, source=source, tool=name,
-                args=safe_args, tier=Tier.READ, decision="denied", by=None, ok=False,
-                error=result.error, started=started, provider=provider,
+                call_id=call_id,
+                correlation_id=correlation_id,
+                source=source,
+                tool=name,
+                args=safe_args,
+                tier=Tier.READ,
+                decision="denied",
+                by=None,
+                ok=False,
+                error=result.error,
+                started=started,
+                provider=provider,
             )
             return result
 
@@ -131,17 +142,35 @@ class ToolRegistry:
         if name in self._setting("tools", "disabled", []):
             result = fail("tool is disabled")
             self._audit(
-                call_id=call_id, correlation_id=correlation_id, source=source, tool=name,
-                args=safe_args, tier=tier, decision="denied", by=None, ok=False,
-                error=result.error, started=started, provider=provider,
+                call_id=call_id,
+                correlation_id=correlation_id,
+                source=source,
+                tool=name,
+                args=safe_args,
+                tier=tier,
+                decision="denied",
+                by=None,
+                ok=False,
+                error=result.error,
+                started=started,
+                provider=provider,
             )
             return result
         if sys.platform not in spec.platforms:
             result = fail("tool is not supported on this platform")
             self._audit(
-                call_id=call_id, correlation_id=correlation_id, source=source, tool=name,
-                args=safe_args, tier=tier, decision="denied", by=None, ok=False,
-                error=result.error, started=started, provider=provider,
+                call_id=call_id,
+                correlation_id=correlation_id,
+                source=source,
+                tool=name,
+                args=safe_args,
+                tier=tier,
+                decision="denied",
+                by=None,
+                ok=False,
+                error=result.error,
+                started=started,
+                provider=provider,
             )
             return result
 
@@ -158,7 +187,8 @@ class ToolRegistry:
                 safe_args,
                 spec.parameters,
                 allowed_folders=self._setting(
-                    "safety", "allowed_folders",
+                    "safety",
+                    "allowed_folders",
                     ("~/Desktop", "~/Documents", "~/Downloads", "~/PieWorkspace"),
                 ),
                 audit_path=self._setting("safety", "audit_path", "~/.pie/logs/audit.jsonl"),
@@ -171,9 +201,11 @@ class ToolRegistry:
                 if property_schema.get("x-confirm-if-exists") is True and candidate.exists():
                     tier = max(tier, Tier.CONFIRM)
                 if property_schema.get("x-confirm-outside-sandbox") is True:
-                    sandbox = Path(
-                        str(self._setting("safety", "sandbox_dir", "~/PieWorkspace"))
-                    ).expanduser().resolve()
+                    sandbox = (
+                        Path(str(self._setting("safety", "sandbox_dir", "~/PieWorkspace")))
+                        .expanduser()
+                        .resolve()
+                    )
                     resolved = candidate.resolve()
                     try:
                         resolved.relative_to(sandbox)
@@ -182,9 +214,18 @@ class ToolRegistry:
         except (ValueError, TypeError, SchemaError) as exc:
             result = fail(str(exc))
             self._audit(
-                call_id=call_id, correlation_id=correlation_id, source=source, tool=name,
-                args=safe_args, tier=tier, decision="denied", by=None, ok=False,
-                error=result.error, started=started, provider=provider,
+                call_id=call_id,
+                correlation_id=correlation_id,
+                source=source,
+                tool=name,
+                args=safe_args,
+                tier=tier,
+                decision="denied",
+                by=None,
+                ok=False,
+                error=result.error,
+                started=started,
+                provider=provider,
             )
             return result
 
@@ -195,17 +236,24 @@ class ToolRegistry:
         if len(self._calls) >= max_calls:
             result = fail("rate limited")
             self._audit(
-                call_id=call_id, correlation_id=correlation_id, source=source, tool=name,
-                args=safe_args, tier=tier, decision="denied", by=None, ok=False,
-                error=result.error, started=started, provider=provider,
+                call_id=call_id,
+                correlation_id=correlation_id,
+                source=source,
+                tool=name,
+                args=safe_args,
+                tier=tier,
+                decision="denied",
+                by=None,
+                ok=False,
+                error=result.error,
+                started=started,
+                provider=provider,
             )
             return result
         self._calls.append(now)
 
         if not (
-            source == "rule"
-            and name == "mac.delete_selected"
-            and pre_approved_by == "voice_phrase"
+            source == "rule" and name == "mac.delete_selected" and pre_approved_by == "voice_phrase"
         ):
             pre_approved_by = None
         redacted_args = redact(safe_args, tool=name)
@@ -214,9 +262,7 @@ class ToolRegistry:
             {"call_id": call_id, "tool": name, "args": redacted_args, "tier": tier.name},
             call_id,
         )
-        is_dry_run = bool(
-            self._setting("tools", "dry_run", False) if dry_run is None else dry_run
-        )
+        is_dry_run = bool(self._setting("tools", "dry_run", False) if dry_run is None else dry_run)
         prompt_builder = getattr(spec_tool, "confirmation_prompt", None)
         cleanup_builder = getattr(spec_tool, "clear_confirmation", None)
 
@@ -226,9 +272,7 @@ class ToolRegistry:
 
         custom_prompt = None
         if not is_dry_run and tier is Tier.CONFIRM and callable(prompt_builder):
-            custom_prompt = await asyncio.to_thread(
-                prompt_builder, redacted_args, call_id
-            )
+            custom_prompt = await asyncio.to_thread(prompt_builder, redacted_args, call_id)
         prompt = custom_prompt or (
             f"Allow {name}? {spec.description} Arguments: "
             f"{json.dumps(redacted_args, ensure_ascii=False, default=str)[:1000]}"
@@ -262,16 +306,23 @@ class ToolRegistry:
                 call_id,
             )
             self._audit(
-                call_id=call_id, correlation_id=correlation_id, source=source, tool=name,
-                args=safe_args, tier=tier, decision="denied", by="cancelled", ok=False,
-                error="cancelled", started=started, provider=provider,
+                call_id=call_id,
+                correlation_id=correlation_id,
+                source=source,
+                tool=name,
+                args=safe_args,
+                tier=tier,
+                decision="denied",
+                by="cancelled",
+                ok=False,
+                error="cancelled",
+                started=started,
+                provider=provider,
             )
             raise
         if not decision.allow:
             clear_confirmation_state()
-            self._publish(
-                "tool.denied", {"call_id": call_id, "reason": decision.by}, call_id
-            )
+            self._publish("tool.denied", {"call_id": call_id, "reason": decision.by}, call_id)
             self._publish(
                 "tool.finished",
                 {"call_id": call_id, "ok": False, "summary": "denied", "duration_s": 0.0},
@@ -279,9 +330,18 @@ class ToolRegistry:
             )
             result = fail("permission denied")
             self._audit(
-                call_id=call_id, correlation_id=correlation_id, source=source, tool=name,
-                args=safe_args, tier=tier, decision="denied", by=decision.by, ok=False,
-                error=result.error, started=started, provider=provider,
+                call_id=call_id,
+                correlation_id=correlation_id,
+                source=source,
+                tool=name,
+                args=safe_args,
+                tier=tier,
+                decision="denied",
+                by=decision.by,
+                ok=False,
+                error=result.error,
+                started=started,
+                provider=provider,
             )
             return result
 
@@ -309,14 +369,21 @@ class ToolRegistry:
                 call_id,
             )
             self._audit(
-                call_id=call_id, correlation_id=correlation_id, source=source, tool=name,
-                args=safe_args, tier=tier, decision="dry_run", by="dry_run", ok=True,
-                error=None, started=started, provider=provider,
+                call_id=call_id,
+                correlation_id=correlation_id,
+                source=source,
+                tool=name,
+                args=safe_args,
+                tier=tier,
+                decision="dry_run",
+                by="dry_run",
+                ok=True,
+                error=None,
+                started=started,
+                provider=provider,
             )
             return result
-        workspace = Path(
-            str(self._setting("safety", "sandbox_dir", "~/PieWorkspace"))
-        ).expanduser()
+        workspace = Path(str(self._setting("safety", "sandbox_dir", "~/PieWorkspace"))).expanduser()
         ctx = ToolContext(
             config=self.config,
             bus=self.bus,
@@ -351,9 +418,18 @@ class ToolRegistry:
                 task.cancel()
             result = fail("cancelled")
             self._audit(
-                call_id=call_id, correlation_id=correlation_id, source=source, tool=name,
-                args=safe_args, tier=tier, decision="approved", by=decision.by, ok=False,
-                error=result.error, started=started, provider=provider,
+                call_id=call_id,
+                correlation_id=correlation_id,
+                source=source,
+                tool=name,
+                args=safe_args,
+                tier=tier,
+                decision="approved",
+                by=decision.by,
+                ok=False,
+                error=result.error,
+                started=started,
+                provider=provider,
             )
             self._publish(
                 "tool.finished",
@@ -378,7 +454,9 @@ class ToolRegistry:
         summary = (
             f"text result ({len(result.output)} characters)"
             if isinstance(result.output, str)
-            else "failed" if result.error else "completed"
+            else "failed"
+            if result.error
+            else "completed"
         )
         self._publish(
             "tool.finished",
@@ -391,9 +469,18 @@ class ToolRegistry:
             call_id,
         )
         self._audit(
-            call_id=call_id, correlation_id=correlation_id, source=source, tool=name,
-            args=safe_args, tier=tier, decision="approved", by=decision.by, ok=result.ok,
-            error=result.error, started=started, provider=provider,
+            call_id=call_id,
+            correlation_id=correlation_id,
+            source=source,
+            tool=name,
+            args=safe_args,
+            tier=tier,
+            decision="approved",
+            by=decision.by,
+            ok=result.ok,
+            error=result.error,
+            started=started,
+            provider=provider,
         )
         return result
 

@@ -70,7 +70,6 @@ def test_default_wake_words_are_longest_first() -> None:
     )
 
 
-
 def test_phase3a_safety_and_tool_defaults_are_additive() -> None:
     config = load_config(environ={})
     assert config.gesture.bindings_via_tools is True
