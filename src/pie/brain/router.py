@@ -364,6 +364,15 @@ class BrainRouter:
                     messages.append(Message("tool", f"Error: {error}", tool_call_id=call.id))
                     continue
 
+                if call.name in reported_bad_args:
+                    return RouterResult(
+                        route,
+                        provider.name,
+                        "",
+                        calls_made,
+                        False,
+                        f"repeated invalid tool call: {call.name}",
+                    )
                 try:
                     result = await self.tool_runner(call, source)
                 except Exception as exc:
