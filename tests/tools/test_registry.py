@@ -400,7 +400,9 @@ def test_relative_filesystem_paths_resolve_inside_sandbox(tmp_path: Path) -> Non
             source="text",
         )
         assert result.ok
-        assert (sandbox / "notes.txt").read_text(encoding="utf-8") == "Pie sandbox"
+        assert (
+            (sandbox / "notes.txt").read_text(encoding="utf-8") == "Pie sandbox"
+        )
         gate.stop()
 
     asyncio.run(scenario())
