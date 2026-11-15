@@ -5,7 +5,7 @@ from collections.abc import Sequence
 from typing import Literal
 
 from pie.inputs.gesture.features import (
-    Landmark, classify_desktop, is_fist, is_open_palm, is_pinch, is_three_finger,
+    Landmark, classify_desktop, is_fist, is_four_finger, is_open_palm, is_pinch, is_three_finger,
     is_thumb_down, is_thumb_up, is_two_finger,
 )
 from pie.inputs.gesture.game import GAME_PROFILES, game_gesture
