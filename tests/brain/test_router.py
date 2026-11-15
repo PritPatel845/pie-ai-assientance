@@ -33,6 +33,7 @@ class FakeProvider:
         healthy: bool = True,
         errors: list[Exception | None] | None = None,
         delay: float = 0.0,
+        replies: list[ProviderReply] | None = None,
     ) -> None:
         self.name = name
         self.kind = kind
@@ -42,7 +43,9 @@ class FakeProvider:
         self.healthy = healthy
         self.errors = list(errors or [])
         self.delay = delay
+        self.replies = list(replies or [])
         self.seen_tools: list[list[ToolSpec]] = []
+        self.seen_messages: list[list[Message]] = []
 
     async def healthcheck(self) -> bool:
         return self.healthy
@@ -56,6 +59,7 @@ class FakeProvider:
         timeout_s: float,
     ) -> ProviderReply:
         self.seen_tools.append(tools)
+        self.seen_messages.append(list(messages))
         if self.gate is not None:
             self.gate.set()
             await asyncio.Event().wait()
@@ -67,6 +71,8 @@ class FakeProvider:
                 raise error
         if self.error is not None:
             raise self.error
+        if self.replies:
+            return self.replies.pop(0)
         if not self.healthy:
             raise ProviderUnavailable(self.name, "offline")
         return ProviderReply(self.text)
@@ -92,7 +98,7 @@ def _router(
         providers,  # type: ignore[arg-type]
         QuotaTracker(tmp_path / "quota.json"),
         _rule_executor,
-        lambda: [ToolSpec("dangerous", "not available in Phase 2B", {})],
+        lambda: [],
         _tool_runner,
     )
 
