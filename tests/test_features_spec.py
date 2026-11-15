@@ -31,9 +31,7 @@ class Point:
     z: float = 0.0
 
 
-def make_hand(
-    *, extended=(True, True, True, True), thumb=(0.2, 0.4, 0.0), index_tip=None
-):
+def make_hand(*, extended=(True, True, True, True), thumb=(0.2, 0.4, 0.0), index_tip=None):
     hand = [Point(0.5, 0.7, 0.0) for _ in range(21)]
     hand[0] = Point(0.5, 0.8, 0.0)
     hand[9] = Point(0.5, 0.5, 0.0)
