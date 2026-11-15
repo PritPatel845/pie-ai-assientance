@@ -92,3 +92,19 @@ def test_fps_profile_emits_forward_key_action() -> None:
     processor.armed = True
     result = processor.process([hand()], 0.0)
     assert KeyAction("forward", True) in result.actions
+
+
+def test_mode_switch_resets_previous_desktop_scroll_position() -> None:
+    processor = FrameProcessor(arm_hold_seconds=0)
+    palm = hand()
+    processor.process([palm], 0.0)
+    processor.process([palm], 0.1)
+    two_finger = hand(extended=(True, True, False, False))
+    processor.process([two_finger], 0.2)
+    processor.set_mode("game")
+    processor.set_mode("desktop")
+    processor.process([palm], 1.0)
+    processor.process([palm], 1.1)
+    two_finger[8] = P(0.9, 0.3)
+    result = processor.process([two_finger], 1.2)
+    assert not any(type(action).__name__ == "Scroll" for action in result.actions)
