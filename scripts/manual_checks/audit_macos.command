@@ -33,6 +33,27 @@ from pathlib import Path
 
 print(f'Python: {sys.version.split()[0]} ({sys.executable})')
 print(f'Platform: {platform.platform()}')
+
+# MediaPipe 0.10.35 declares opencv-contrib-python, while Pie pins
+# opencv-python. Both distributions own the same cv2 import namespace.
+for distribution in ('opencv-python', 'opencv-contrib-python'):
+    try:
+        print(f'Distribution {distribution}: {importlib.metadata.version(distribution)}')
+    except importlib.metadata.PackageNotFoundError:
+        print(f'Distribution {distribution}: NOT INSTALLED')
+try:
+    mediapipe_requirements = importlib.metadata.requires('mediapipe') or []
+    opencv_requirements = [item for item in mediapipe_requirements if item.lower().startswith('opencv')]
+    print(f'MediaPipe OpenCV requirements: {opencv_requirements or "none declared"}')
+except importlib.metadata.PackageNotFoundError:
+    print('MediaPipe OpenCV requirements: unavailable (MediaPipe not installed)')
+try:
+    importlib.metadata.version('opencv-python')
+    importlib.metadata.version('opencv-contrib-python')
+except importlib.metadata.PackageNotFoundError:
+    pass
+else:
+    print('PACKAGING BLOCKER: both OpenCV distributions are installed; do not use this environment for acceptance.')
 for module, distribution in (
     ('cv2', 'opencv-python'),
     ('numpy', 'numpy'),
