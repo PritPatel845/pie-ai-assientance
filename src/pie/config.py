@@ -4,7 +4,7 @@ import json
 import os
 import sys
 import tomllib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from importlib import resources
 from pathlib import Path
 from typing import Any
@@ -31,7 +31,7 @@ class GestureConfig:
     steer_sensitivity: float = 0.004
     state_hz: int = 10
     model_path: str = ""
-    bindings: dict[str, str] = None  # type: ignore[assignment]
+    bindings: dict[str, str] = field(default_factory=lambda: {"thumb_up": "media.play", "thumb_down": "media.pause", "palm_push": "mac.mute"})
     bindings_via_tools: bool = True
 
 
