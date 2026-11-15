@@ -24,7 +24,7 @@ class _VoiceApprovalModule:
             MacController(),
             bus=daemon.bus,
             config=daemon.config.voice,
-            brain_enabled=False,
+            brain_enabled=True,
         )
         self.controller.start()
 
@@ -65,10 +65,15 @@ def run_tool_command(action: str | None, arguments: list[str], config_path: Path
         if tool is None:
             print(json.dumps({"ok": False, "error": "unknown tool"}))
             return 1
-        if tool.spec.tier.name == "CONFIRM":
+        schema_properties = tool.spec.parameters.get("properties", {})
+        may_need_confirmation = tool.spec.tier.name == "CONFIRM" or any(
+            isinstance(item, dict) and item.get("x-path") is True
+            for item in schema_properties.values()
+        )
+        if may_need_confirmation and not parsed.dry_run:
             voice_module = _VoiceApprovalModule()
             voice_module.start(daemon)
-            print("Confirmation required. Say yes/no or use the configured gesture approval.")
+            print("Confirmation required. Say yes or no.")
         future = asyncio.run_coroutine_threadsafe(
             tools_module.registry.execute(
                 name, payload, source="text", dry_run=parsed.dry_run
