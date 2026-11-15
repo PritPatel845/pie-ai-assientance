@@ -9,6 +9,12 @@ arm_hold_seconds = 2.0
 steer_sensitivity = 0.004
 state_hz = 10
 model_path = ""
+bindings_via_tools = true
+
+[gesture.bindings]
+thumb_up = "media.play"
+thumb_down = "media.pause"
+palm_push = "mac.mute"
 
 [voice]
 enabled = true
@@ -53,3 +59,16 @@ default_cooldown_s = 3600
 rate_limit_max_wait_s = 8
 local_max_ram_gb = 6.0
 local_keep_alive = "2m"
+
+[safety]
+sandbox_dir = "~/PieWorkspace"
+allowed_folders = ["~/Desktop", "~/Documents", "~/Downloads", "~/PieWorkspace"]
+confirm_timeout_s = 20
+max_calls_per_10s = 10
+max_confirm_prompts_per_min = 3
+audit_path = "~/.pie/logs/audit.jsonl"
+
+[tools]
+dry_run = false
+disabled = []
+result_max_chars = 20000
