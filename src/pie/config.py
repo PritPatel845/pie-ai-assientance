@@ -32,15 +32,7 @@ class GestureConfig:
 @dataclass(frozen=True, slots=True)
 class VoiceConfig:
     enabled: bool = True
-    wake_words: tuple[str, ...] = (
-        "hey pie",
-        "pie",
-        "pi",
-        "jr",
-        "j r",
-        "jay r",
-        "jarvis",
-    )
+    wake_words: tuple[str, ...] = ("hey pie", "pie", "pi", "jr", "j r", "jay r", "jarvis")
     listen_seconds: int = 20
     language: str = "en"
 
