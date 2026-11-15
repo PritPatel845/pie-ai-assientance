@@ -168,7 +168,7 @@ class MacController:
                     "-e",
                     (
                         'tell application "System Events" to get name of every process '
-                        'whose background only is false'
+                        "whose background only is false"
                     ),
                 ],
                 capture_output=True,
