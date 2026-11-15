@@ -242,6 +242,17 @@ class BrainRouter:
                     ),
                     timeout=min(self.config.provider_timeout_s, remaining),
                 )
+            except QuotaExhausted as exc:
+                return await self._fallback(
+                    provider,
+                    exc,
+                    text,
+                    route,
+                    source,
+                    correlation_id,
+                    deadline,
+                    remaining_clouds or [],
+                )
             except RateLimited as exc:
                 remaining_time = deadline - self.clock()
                 if (
