@@ -46,3 +46,48 @@ def test_voice_activation_notification_uses_pie_title_and_duration() -> None:
         'display notification "Listening for your command for 20 seconds." with title "PIE ACTIVE"',
     ]
     assert calls[0][1]["shell"] is False
+
+
+def test_media_commands_target_running_spotify_without_toggling_system_key() -> None:
+    calls = []
+    media_keys = []
+
+    def fake(argv, **kwargs):
+        calls.append((argv, kwargs))
+        stdout = "Finder, Spotify, Terminal" if len(calls) == 1 else ""
+        return subprocess.CompletedProcess(argv, 0, stdout=stdout, stderr="")
+
+    controller = MacController(runner=fake, media_key=lambda: media_keys.append("playpause"))
+    assert controller.stop_media()
+    assert calls[0][0][0] == "/usr/bin/osascript"
+    assert 'tell application "Spotify" to pause' in calls[1][0][2]
+    assert media_keys == []
+
+
+def test_media_commands_fall_back_to_injected_system_playpause_key() -> None:
+    calls = []
+    media_keys = []
+
+    def fake(argv, **kwargs):
+        calls.append((argv, kwargs))
+        return subprocess.CompletedProcess(argv, 0, stdout="Finder, Terminal", stderr="")
+
+    controller = MacController(runner=fake, media_key=lambda: media_keys.append("playpause"))
+    assert controller.play_media()
+    assert len(calls) == 1
+    assert media_keys == ["playpause"]
+
+
+def test_media_commands_fall_back_when_running_player_script_fails() -> None:
+    calls = []
+    media_keys = []
+
+    def fake(argv, **kwargs):
+        calls.append((argv, kwargs))
+        if len(calls) == 1:
+            return subprocess.CompletedProcess(argv, 0, stdout="Finder, Music", stderr="")
+        return subprocess.CompletedProcess(argv, 1, stdout="", stderr="not authorized")
+
+    controller = MacController(runner=fake, media_key=lambda: media_keys.append("playpause"))
+    assert controller.stop_media()
+    assert media_keys == ["playpause"]
