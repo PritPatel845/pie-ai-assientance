@@ -105,22 +105,53 @@ class BrainRouter:
         selected: Provider | None = None
         selected_index = -1
         last_error: str | None = None
+        quota_blocked = False
+        offline_seen = False
         for index, name in enumerate(cloud_names):
             provider = self.providers.get(name)
-            if provider is None or not self._configured(name) or not self.quota.is_available(name):
+            if provider is None or not self._configured(name):
+                continue
+            if not self.quota.is_available(name):
+                quota_blocked = True
                 continue
             try:
                 if await provider.healthcheck():
                     selected = provider
                     selected_index = index
                     break
+                offline_seen = True
                 last_error = f"{name} is offline"
             except Exception:
+                offline_seen = True
                 last_error = f"{name} healthcheck failed"
 
         local = self.providers.get("local")
         if selected is None:
             selected = local
+            if selected is not None:
+                reason = (
+                    "user_request"
+                    if explicit_local
+                    else "quota"
+                    if quota_blocked and not offline_seen
+                    else "offline"
+                    if offline_seen
+                    else "error"
+                )
+                self._publish(
+                    "brain.provider.switched",
+                    {"from": "cloud", "to": selected.name, "reason": reason},
+                    correlation_id,
+                )
+                if reason == "quota":
+                    self._publish(
+                        "tts.say",
+                        {
+                            "text": "Cloud credits are used up, switching to the local model.",
+                            "interrupt": False,
+                        },
+                        correlation_id,
+                    )
         if selected is None:
             return self._unavailable(correlation_id, last_error)
 
