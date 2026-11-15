@@ -357,7 +357,19 @@ class BrainRouter:
                     if all_spec is not None:
                         error = "tool unavailable to local model"
                     elif not all_specs:
-                        unavailable = await self.tool_runner(call, source)
+                        remaining_time = deadline - self.clock()
+                        if remaining_time <= 0:
+                            return RouterResult(
+                                route, provider.name, "", calls_made, False, "total timeout"
+                            )
+                        try:
+                            unavailable = await asyncio.wait_for(
+                                self.tool_runner(call, source), timeout=remaining_time
+                            )
+                        except TimeoutError:
+                            return RouterResult(
+                                route, provider.name, "", calls_made, False, "total timeout"
+                            )
                         error = unavailable.error or "no tools installed"
                     else:
                         error = f"unknown tool: {call.name}"
@@ -373,8 +385,19 @@ class BrainRouter:
                         False,
                         f"repeated invalid tool call: {call.name}",
                     )
+                remaining_time = deadline - self.clock()
+                if remaining_time <= 0:
+                    return RouterResult(
+                        route, provider.name, "", calls_made, False, "total timeout"
+                    )
                 try:
-                    result = await self.tool_runner(call, source)
+                    result = await asyncio.wait_for(
+                        self.tool_runner(call, source), timeout=remaining_time
+                    )
+                except TimeoutError:
+                    return RouterResult(
+                        route, provider.name, "", calls_made, False, "total timeout"
+                    )
                 except Exception as exc:
                     result = ToolResult(False, error=f"{type(exc).__name__}: {exc}")
                 calls_made += 1
