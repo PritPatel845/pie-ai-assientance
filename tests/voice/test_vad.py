@@ -81,3 +81,21 @@ def test_preroll_is_included() -> None:
 def test_invalid_vad_parameters_are_rejected() -> None:
     with pytest.raises(ValueError):
         EnergyVad(threshold=0)
+
+
+def test_speech_must_be_consecutive_and_at_least_300ms() -> None:
+    vad = EnergyVad()
+    assert feed_ms(vad, 200, 0.08) == []
+    assert feed_ms(vad, 400, 0.0) == []
+    assert feed_ms(vad, 200, 0.08) == []
+    assert feed_ms(vad, 700, 0.0) == []
+    assert feed_ms(vad, 350, 0.08) == []
+    assert len(feed_ms(vad, 700, 0.0)) == 1
+
+
+def test_adaptive_noise_floor_tracks_a_quiet_room() -> None:
+    vad = EnergyVad(threshold=0.001)
+    initial = vad._noise_floor
+    feed_ms(vad, 2000, 0.01)
+    assert vad._noise_floor > initial
+    assert feed_ms(vad, 700, 0.0) == []
