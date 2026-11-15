@@ -158,23 +158,26 @@ def run(
         raise RuntimeError(
             f"Could not open camera {camera}. Try --camera 1 or check Camera permission."
         )
-    options = mp.tasks.vision.HandLandmarkerOptions(
-        base_options=mp.tasks.BaseOptions(model_asset_path=str(model)),
-        running_mode=mp.tasks.vision.RunningMode.VIDEO,
-        num_hands=2,
-        min_hand_detection_confidence=0.6,
-        min_hand_presence_confidence=0.6,
-        min_tracking_confidence=0.5,
-    )
-    controller = MacController()
-    sink = ActionSink(controller, no_actions=no_actions, profile=game_profile)
-    processor = FrameProcessor(
-        arm_hold_seconds=arm_hold_seconds, steer_sensitivity=steer_sensitivity
-    )
-    learning = LearningEngine(learning_dir)
-    previous_time = time.monotonic()
-    fps = 0.0
+    processor: FrameProcessor | None = None
+    sink: ActionSink | None = None
+    learning: LearningEngine | None = None
     try:
+        options = mp.tasks.vision.HandLandmarkerOptions(
+            base_options=mp.tasks.BaseOptions(model_asset_path=str(model)),
+            running_mode=mp.tasks.vision.RunningMode.VIDEO,
+            num_hands=2,
+            min_hand_detection_confidence=0.6,
+            min_hand_presence_confidence=0.6,
+            min_tracking_confidence=0.5,
+        )
+        controller = MacController()
+        sink = ActionSink(controller, no_actions=no_actions, profile=game_profile)
+        processor = FrameProcessor(
+            arm_hold_seconds=arm_hold_seconds, steer_sensitivity=steer_sensitivity
+        )
+        learning = LearningEngine(learning_dir)
+        previous_time = time.monotonic()
+        fps = 0.0
         with mp.tasks.vision.HandLandmarker.create_from_options(options) as landmarker:
             while True:
                 ok, frame = capture.read()
@@ -219,8 +222,16 @@ def run(
                         for action in processor.set_mode("game", profile):
                             sink.execute(action)
     finally:
-        for action in processor.reset():
-            sink.execute(action)
-        capture.release()
-        learning.close()
-        cv2.destroyAllWindows()
+        try:
+            if processor is not None and sink is not None:
+                for action in processor.reset():
+                    sink.execute(action)
+        finally:
+            try:
+                capture.release()
+            finally:
+                try:
+                    if learning is not None:
+                        learning.close()
+                finally:
+                    cv2.destroyAllWindows()
