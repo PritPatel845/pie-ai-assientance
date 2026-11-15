@@ -135,6 +135,7 @@ def main(argv: list[str] | None = None) -> int:
         if not args.voice_background:
             daemon.register_module(GestureModule())
         if config.voice.enabled:
+            print("Voice capture arrives in Phase 2A; event publication hooks are available.")
             daemon.register_module(VoiceModule())
 
         def main_thread() -> None:
