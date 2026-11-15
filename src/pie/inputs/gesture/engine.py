@@ -44,7 +44,8 @@ def ensure_model(
         return found
     if not download:
         raise FileNotFoundError(
-            "Hand model not found or failed integrity validation. Run with explicit --download-model to fetch it."
+            "Hand model not found or failed integrity validation. "
+            "Run with explicit --download-model to fetch it."
         )
     target = Path.home() / ".pie" / "models" / "hand_landmarker.task"
     target.parent.mkdir(parents=True, exist_ok=True)
