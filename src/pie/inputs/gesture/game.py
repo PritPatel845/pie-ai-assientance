@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Protocol, Sequence
+from collections.abc import Sequence
+from typing import Protocol
 
 from pie.inputs.gesture.features import (
     is_fist, is_four_finger, is_open_palm, is_pinch, is_three_finger, is_thumb_up,
