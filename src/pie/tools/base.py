@@ -64,6 +64,11 @@ class FunctionTool:
     spec: ToolSpec
     function: Callable[[Mapping[str, Any], ToolContext], Awaitable[ToolResult]]
     confirmation_prompt_builder: Callable[[Mapping[str, Any], str], str] | None = None
+    confirmation_cleanup: Callable[[str], None] | None = None
+
+    def clear_confirmation(self, call_id: str) -> None:
+        if self.confirmation_cleanup is not None:
+            self.confirmation_cleanup(call_id)
 
     def confirmation_prompt(self, args: Mapping[str, Any], call_id: str) -> str | None:
         if self.confirmation_prompt_builder is None:
