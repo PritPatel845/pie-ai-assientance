@@ -120,7 +120,6 @@ def _raise_vendor_error(provider: str, exc: Exception) -> None:
     raise ProviderUnavailable(provider, f"provider request failed ({name})") from exc
 
 
-
 def _anthropic_messages(messages: Sequence[Message]) -> list[dict[str, Any]]:
     history: list[dict[str, Any]] = []
     pending_tool_results: list[dict[str, Any]] = []
