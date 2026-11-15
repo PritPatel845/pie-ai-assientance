@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 import logging
 import queue
 import threading
@@ -119,7 +120,7 @@ class VoiceController(_VoiceController):
     def _make_stream_factory(self) -> Callable[..., Any]:
         if self._stream_factory is not None:
             return self._stream_factory
-        import sounddevice
+        sounddevice = importlib.import_module("sounddevice")
 
         return cast(Callable[..., Any], sounddevice.InputStream)
 
@@ -127,7 +128,7 @@ class VoiceController(_VoiceController):
         wanted = self.config.input_device.strip().lower()
         if not wanted:
             return None
-        import sounddevice  # type: ignore[import-not-found]
+        sounddevice = importlib.import_module("sounddevice")
 
         for index, device in enumerate(sounddevice.query_devices()):
             name_matches = wanted in str(device.get("name", "")).lower()
