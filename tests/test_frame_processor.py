@@ -228,8 +228,7 @@ def test_unarmed_desktop_emits_no_actions_for_every_pose() -> None:
         assert result.actions == []
 
 
-def test_racing_profile_emits_exact_key_states_for_three_and_four_finger_poses(
-) -> None:
+def test_racing_profile_emits_exact_key_states_for_three_and_four_finger_poses() -> None:
     processor = FrameProcessor()
     processor.set_mode("game", "asphalt")
     arm_game(processor)
