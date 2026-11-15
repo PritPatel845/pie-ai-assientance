@@ -57,4 +57,5 @@ def test_palm_push_event_requires_open_palm_and_forward_depth(monkeypatch) -> No
     assert tracker.update([hand], 1.0) == ("open_palm",)
     tracker.update([], 1.1)
     hand[0].z = -0.13
-    assert tracker.update([hand], 1.2) == ("open_palm", "palm_push")
+    # The repeated open-palm edge is debounced; the new palm-push edge is emitted.
+    assert tracker.update([hand], 1.2) == ("palm_push",)
