@@ -137,7 +137,9 @@ class LocalProvider:
         timeout_s: float,
     ) -> ProviderReply:
         if not self._choose_model() and not await self.healthcheck():
-            raise ProviderUnavailable(self.name, "local server unavailable or no eligible model; start Ollama")
+            raise ProviderUnavailable(
+                self.name, "local server unavailable or no eligible model; start Ollama"
+            )
         model = self._choose_model()
         if not model:
             raise ProviderUnavailable(
