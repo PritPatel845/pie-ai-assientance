@@ -29,3 +29,20 @@ def test_mdfind_never_combines_capture_output_with_streams() -> None:
         assert "stdout" not in kwargs
         assert "stderr" not in kwargs
         assert kwargs.get("shell") is False
+
+
+def test_voice_activation_notification_uses_pie_title_and_duration() -> None:
+    calls = []
+
+    def fake(argv, **kwargs):
+        calls.append((argv, kwargs))
+        return subprocess.CompletedProcess(argv, 0, stdout="", stderr="")
+
+    controller = MacController(runner=fake)
+    assert controller.show_voice_activation(20)
+    assert calls[0][0] == [
+        "/usr/bin/osascript",
+        "-e",
+        'display notification "Listening for your command for 20 seconds." with title "PIE ACTIVE"',
+    ]
+    assert calls[0][1]["shell"] is False
