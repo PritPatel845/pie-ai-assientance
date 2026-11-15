@@ -18,6 +18,7 @@ from pie.inputs.gesture.features import (
     is_pinch,
     is_three_finger,
     is_thumb_down,
+    is_thumb_extended,
     is_thumb_up,
     is_two_finger,
     normalize_hand,
@@ -97,8 +98,6 @@ def test_classification_precedence_is_stable() -> None:
 def test_thumb_extension_true_and_false_cases() -> None:
     extended = make_hand(thumb=(0.2, 0.4, 0.0))
     folded = make_hand(thumb=(0.25, 0.55, 0.0))
-    from pie.inputs.gesture.features import is_thumb_extended
-
     assert is_thumb_extended(extended)
     assert not is_thumb_extended(folded)
 
