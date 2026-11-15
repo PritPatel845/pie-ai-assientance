@@ -49,7 +49,7 @@ class Daemon:
         self.loop = loop
         asyncio.set_event_loop(loop)
         self.bus = EventBus(loop)
-        self._ready.set()
+        loop.call_soon(self._ready.set)
         try:
             loop.run_forever()
         finally:
