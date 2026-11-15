@@ -75,7 +75,7 @@ class MacController:
         if not argv or argv[0] not in {
             "/usr/bin/open",
             "/usr/bin/osascript",
-            "/usr/bin/screencapture",
+            "/usr/sbin/screencapture",
         }:
             raise ValueError("Executable is not allow-listed")
         try:
@@ -246,7 +246,7 @@ class MacController:
         filename = (
             Path.home() / "Desktop" / f"Pie Screenshot {datetime.now():%Y-%m-%d %H-%M-%S}.png"
         )
-        return self._run(("/usr/bin/screencapture", "-x", str(filename)))
+        return self._run(("/usr/sbin/screencapture", "-x", str(filename)))
 
     def lock_screen(self) -> bool:
         return self.key_combo("command", "control", "q")
