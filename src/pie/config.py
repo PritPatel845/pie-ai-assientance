@@ -31,9 +31,7 @@ class GestureConfig:
 @dataclass(frozen=True, slots=True)
 class VoiceConfig:
     enabled: bool = True
-    wake_words: tuple[str, ...] = (
-        "pie", "hey pie", "pi", "jr", "j r", "jay r", "jarvis"
-    )
+    wake_words: tuple[str, ...] = ("pie", "hey pie", "pi", "jr", "j r", "jay r", "jarvis")
     listen_seconds: int = 20
     language: str = "en"
 
@@ -143,9 +141,7 @@ def load_config(
 
     env = os.environ if environ is None else environ
     known_env = {
-        f"PIE_{section.upper()}_{key.upper()}"
-        for section, values in data.items()
-        for key in values
+        f"PIE_{section.upper()}_{key.upper()}" for section, values in data.items() for key in values
     }
     for name, raw in env.items():
         if name in known_env:
