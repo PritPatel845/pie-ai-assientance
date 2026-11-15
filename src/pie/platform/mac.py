@@ -166,7 +166,10 @@ class MacController:
                 [
                     "/usr/bin/osascript",
                     "-e",
-                    'tell application "System Events" to get name of every process whose background only is false',
+                    (
+                        'tell application "System Events" to get name of every process '
+                        'whose background only is false'
+                    ),
                 ],
                 capture_output=True,
                 text=True,
