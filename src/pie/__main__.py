@@ -76,13 +76,22 @@ def doctor() -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="pie", description="Pie hand-gesture and voice assistant")
+    parser = argparse.ArgumentParser(
+        prog="pie",
+        description="Pie hand-gesture and voice assistant",
+    )
     parser.add_argument("--version", action="version", version=f"Pie {__version__}")
     parser.add_argument("--camera", type=int, default=None)
-    parser.add_argument("--no-actions", action="store_true",
-                        help="Preview and classify without OS actions")
-    parser.add_argument("--game-profile",
-                        choices=("asphalt", "temple-run", "counter-strike"), default="asphalt")
+    parser.add_argument(
+        "--no-actions",
+        action="store_true",
+        help="Preview and classify without OS actions",
+    )
+    parser.add_argument(
+        "--game-profile",
+        choices=("asphalt", "temple-run", "counter-strike"),
+        default="asphalt",
+    )
     parser.add_argument("--steer-sensitivity", type=float, default=None)
     voice = parser.add_mutually_exclusive_group()
     voice.add_argument("--voice", dest="voice", action="store_true", default=None)
@@ -92,9 +101,17 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--voice-listen-seconds", type=int, default=None)
     parser.add_argument("--config", type=Path)
     parser.add_argument("--download-model", action="store_true")
-    parser.add_argument("--print-events", action="store_true",
-                        help="Print each event as one JSON line")
-    parser.add_argument("command", nargs="?", choices=("run", "doctor", "config"), default="run")
+    parser.add_argument(
+        "--print-events",
+        action="store_true",
+        help="Print each event as one JSON line",
+    )
+    parser.add_argument(
+        "command",
+        nargs="?",
+        choices=("run", "doctor", "config"),
+        default="run",
+    )
     parser.add_argument("config_action", nargs="?", choices=("show",))
     return parser
 
