@@ -128,3 +128,29 @@ def test_local_completion_checks_memory_and_sends_keep_alive(
         assert client.post_payload["model"] == "small"
 
     asyncio.run(scenario())
+
+def test_auto_backend_tries_mlx_when_ollama_has_no_eligible_model(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def scenario() -> None:
+        snapshot = tmp_path / "models--org--tiny" / "snapshots" / "revision"
+        snapshot.mkdir(parents=True)
+        (snapshot / "weights.bin").write_bytes(b"x" * 128)
+        endpoint = "http://127.0.0.1:1234/v1"
+        monkeypatch.setenv("PIE_MLX_BASE_URL", endpoint)
+        client = FakeHttpClient(
+            ollama_models=[{"name": "too-large", "size": 8 * 1024**3}],
+            mlx_models=[{"id": "org/tiny"}],
+        )
+        provider = LocalProvider(
+            backend="auto",
+            max_ram_gb=1.0,
+            client=client,  # type: ignore[arg-type]
+            model_cache_dir=tmp_path,
+        )
+
+        assert await provider.healthcheck()
+        assert provider.base_url == endpoint
+        assert provider._choose_model() == "org/tiny"
+
+    asyncio.run(scenario())
