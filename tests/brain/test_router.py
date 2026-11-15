@@ -283,6 +283,7 @@ def test_local_failure_returns_unavailable_result(tmp_path: Path) -> None:
 
     asyncio.run(scenario())
 
+
 def test_total_timeout_is_shared_across_provider_fallbacks(tmp_path: Path) -> None:
     async def scenario() -> None:
         anthropic = FakeProvider("anthropic", "cloud", delay=0.04)
