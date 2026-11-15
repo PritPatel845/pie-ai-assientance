@@ -12,7 +12,7 @@ model_path = ""
 
 [voice]
 enabled = true
-wake_words = ["pie", "hey pie", "pi", "jr", "j r", "jay r", "jarvis"]
+wake_words = ["hey pie", "pie", "pi", "jr", "j r", "jay r", "jarvis"]
 listen_seconds = 20
 language = "en"
 
