@@ -1,4 +1,4 @@
-"""Pure landmark predicates and normalization follow Phase 0S sections 3.1 and 3.2."""
+"""Pure gesture predicates and hand normalization follow Phase 0S §3.1 (PDF pp. 16–17)."""
 
 from __future__ import annotations
 
