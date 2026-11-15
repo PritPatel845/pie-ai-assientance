@@ -18,9 +18,6 @@ _BLOCKED_PARTS = {
     ".gnupg",
     "keychains",
 }
-_BLOCKED_FILES = {".env", ".pie/config.toml"}
-
-
 def _normal_path(value: str) -> str:
     normalised = unicodedata.normalize("NFKC", value)
     if not normalised:
@@ -55,8 +52,10 @@ def _is_blocked(path: str, audit_path: str | None) -> bool:
         return True
     if _is_inside(path, os.path.join(home, "Library", "Keychains")):
         return True
-    if audit_path and _is_inside(path, _normal_path(audit_path)):
-        return True
+    if audit_path:
+        protected_audit = _normal_path(audit_path)
+        if _is_inside(path, protected_audit) or path.startswith(protected_audit + "."):
+            return True
     return False
 
 
