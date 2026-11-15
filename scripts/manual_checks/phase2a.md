@@ -25,6 +25,12 @@ The first actual transcription lazily downloads the configured model into
 `~/.pie/models/stt/`. The download is logged; the configured model must remain under 1 GB.
 No model download is performed by the test suite.
 
+Run the five-second direct recording/transcription check:
+
+```bash
+.venv-mac/bin/python scripts/manual_checks/record_and_transcribe.py --seconds 5
+```
+
 ## 3. Start and observe voice events
 
 ```bash
