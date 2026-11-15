@@ -119,7 +119,8 @@ class ActionSink:
             if not self.bindings_via_tools:
                 self.controller.stop_media()
         elif isinstance(action, RunVoiceCommand):
-            self.controller.run_voice_command()
+            # Environment-provided AppleScript is not a registered safe tool.
+            return
         elif isinstance(action, Scroll):
             self.controller.scroll(action.amount)
         elif isinstance(action, SetVolume):
