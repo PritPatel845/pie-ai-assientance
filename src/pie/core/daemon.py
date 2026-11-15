@@ -106,17 +106,18 @@ class Daemon:
         self.stop_flag.set()
         for module in reversed(self._started):
             try:
-                if self.loop is None or not self.loop.is_running():
+                loop = self.loop
+                if loop is None or not loop.is_running():
                     module.stop()
                     continue
 
                 async def stop_one(target: Module = module) -> None:
-                    result = await self.loop.run_in_executor(None, target.stop)
+                    result = await loop.run_in_executor(None, target.stop)
                     if inspect.isawaitable(result):
                         await result
 
                 future = asyncio.run_coroutine_threadsafe(
-                    asyncio.wait_for(stop_one(), timeout=2.5), self.loop
+                    asyncio.wait_for(stop_one(), timeout=2.5), loop
                 )
                 future.result(timeout=2.7)
             except Exception:
