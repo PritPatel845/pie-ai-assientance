@@ -95,3 +95,13 @@ def test_pipeline_uses_one_dedicated_stt_worker() -> None:
     controller._stop.set()
     controller._stt_thread.join(timeout=1)
     assert worker_names == ["pie-stt"]
+
+
+def test_mlx_adapter_rejects_oversized_cached_model(tmp_path: Path) -> None:
+    model_dir = tmp_path / "base.en"
+    model_dir.mkdir()
+    with (model_dir / "oversized.bin").open("wb") as handle:
+        handle.truncate(1_000_000_001)
+    adapter = MlxWhisperTranscriber(cache_dir=tmp_path)
+    with pytest.raises(RuntimeError, match="1 GB"):
+        adapter.transcribe(np.zeros(1600, dtype=np.float32), "en")
