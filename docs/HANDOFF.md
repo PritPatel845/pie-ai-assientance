@@ -406,3 +406,90 @@ Phase 1 supplies the voice event publication interface only. Actual microphone c
 ### Acceptance decision
 
 All Phase 1 automated checks and owner-reported manual acceptance checks are complete. PR #3 is eligible to merge. The next implementation milestone is Phase 2A.
+
+
+## Phase 2A implementation progress — 2026-11-15
+
+### Branch and automated verification
+
+- Work is isolated on `phase-2a-implementation`, PR #4 targets `main`.
+- Latest automated run before this handoff update: GitHub Actions run
+  https://github.com/PritPatel845/pie-ai-assientance/actions/runs/43724419084
+  for commit `99675b526159e31be73d08c82385fa8fc2df3da0`.
+- Result: **290 passed**; Ruff lint, Ruff format, strict mypy, model-downloader verification,
+  and `python -m pie doctor` all passed. The model-asset job was skipped.
+- CI uses fake audio/transcribers. This is not evidence that the MLX model or the real Mac
+  microphone has been exercised.
+
+### Implemented
+
+- `VoiceController` captures 16 kHz mono float32 blocks from `sounddevice.InputStream`;
+  callback work is limited to copying/enqueueing blocks, the audio queue is bounded at 200
+  and drops oldest blocks on overflow.
+- A separate `pie-voice` thread runs VAD and wake-window state; a single `pie-stt` worker
+  consumes utterances from a FIFO queue, so model inference does not block audio processing.
+- Microphone stream errors and sustained all-zero samples publish the contracted
+  `system.error` fix text, retry every 10 seconds, and stop retrying after 60 seconds without
+  crashing the daemon.
+- `EnergyVad` is NumPy-only, uses sample-count timing, 200 ms pre-roll, adaptive noise floor,
+  at least 300 ms consecutive speech, silence termination, and a maximum utterance cap.
+- `TextWake` gates utterances and preserves unaddressed transcripts; transcript events carry
+  `addressed` and `raw`.
+- MLX Whisper is the preferred local backend; whisper.cpp is the fallback. Model loading is
+  lazy, logged, cached under `~/.pie/models/stt/`, checked against the 1 GB size budget, and
+  unloaded after the configured idle period. An unavailable backend/model disables STT for
+  the current process after one error instead of repeatedly attempting downloads.
+- The local voice integration test uses a fake input stream and fake transcriber, verifies
+  wake/listening/transcript ordering and legacy executor dispatch, and makes any
+  `socket.socket.connect` attempt fail the test.
+- TTS subscribes to `tts.say`, uses queued macOS `say` subprocesses with stdin and
+  `shell=False`, supports interruption, sanitisation, voice fallback, and echo guard.
+- Activation calls the existing `MacController.show_voice_activation()` notification
+  (`PIE ACTIVE`); optional debug WAVs are written only when enabled.
+
+### Public symbols and configuration
+
+- `pie.inputs.voice.vad.EnergyVad`, `Segment`
+- `pie.inputs.voice.stt.Transcriber`, `MlxWhisperTranscriber`,
+  `WhisperCppTranscriber`, `create_transcriber`, `is_hallucination`
+- `pie.inputs.voice.wake.TextWake`
+- `pie.inputs.voice.tts.Speaker`, `Speech`, `sanitise_speech`
+- `pie.inputs.voice.pipeline.VoiceController`
+- `pie.inputs.voice.executor.LegacyRuleExecutor` remains the action seam.
+- Phase 2A config keys: `voice.stt_backend`, `voice.stt_model`,
+  `voice.input_device`, `voice.vad_threshold`, `voice.vad_min_speech_ms`,
+  `voice.vad_end_silence_ms`, `voice.vad_max_utterance_s`,
+  `voice.stt_idle_unload_s`, `voice.tts_enabled`, `voice.tts_voice`,
+  `voice.tts_rate`, `voice.allow_cloud_stt`, `voice.debug_save_audio`.
+- Existing topics used: `input.voice.wake`, `input.voice.listening`,
+  `input.voice.transcript`, `tts.say`, and `system.error`. No new topic was added.
+
+### Remaining acceptance blockers / limitations
+
+- The Google backend remains an explicit unavailable-adapter error even when
+  `voice.allow_cloud_stt=true`; startup warns that cloud audio would leave the Mac. Do not
+  claim the Google compatibility option is complete. No additional speech-recognition
+  dependency was added because Phase 2A restricts runtime dependencies.
+- Target-Mac MLX verification is still outstanding. The latest user-reported environment audit
+  found MLX not installed; the `mlx-whisper==0.4.3` wheel had been downloaded but not
+  installed. Install the optional packages, run
+  `scripts/manual_checks/record_and_transcribe.py`, and then perform the full checklist in
+  `scripts/manual_checks/phase2a.md`.
+- Real microphone permission/retry, notification, TTS interruption, offline model use,
+  end-of-speech latency (target <= 1.5 s), and idle CPU (target < 5%) still require target-Mac
+  manual evidence. No model size or latency measurement is claimed.
+- The full Phase 2A acceptance gate is therefore **not closed**. Do not merge PR #4 or create
+  `pie-phase-2a-done` until the Google compatibility decision and target-Mac checks are
+  resolved.
+
+### Exact verification commands
+
+```bash
+pytest -q
+ruff check .
+ruff format --check .
+mypy src/pie
+python -m pie doctor
+python scripts/manual_checks/record_and_transcribe.py --seconds 5
+python -m pie run --voice-background --print-events
+```

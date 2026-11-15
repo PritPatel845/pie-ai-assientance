@@ -11,7 +11,7 @@ requires-python = ">=3.12,<3.13"
 dependencies = ["numpy==2.2.6"]
 
 [project.optional-dependencies]
-mac = ["opencv-contrib-python==4.11.0.86", "mediapipe==0.10.35", "pyautogui==0.9.54", "pyobjc-framework-Quartz==11.1", "pyobjc-framework-Cocoa==11.1"]
+mac = ["opencv-contrib-python==4.11.0.86", "mediapipe==0.10.35", "pyautogui==0.9.54", "pyobjc-framework-Quartz==11.1", "pyobjc-framework-Cocoa==11.1", "sounddevice==0.5.6", "mlx-whisper==0.4.3"]
 dev = ["pytest==8.3.5", "pytest-timeout==2.3.1", "ruff==0.11.2", "mypy==1.15.0"]
 
 [project.scripts]

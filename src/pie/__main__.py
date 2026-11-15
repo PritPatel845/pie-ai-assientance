@@ -15,8 +15,10 @@ from pie.core.daemon import Daemon
 from pie.events import Event
 from pie.inputs.gesture.engine import resolve_model_path
 from pie.inputs.gesture.runner import run
+from pie.inputs.voice.pipeline import VoiceController
 from pie.logging_setup import configure_logging
 from pie.paths import learning_dir, logs_dir, models_dir, pie_home, state_dir
+from pie.platform.mac import MacController
 
 
 class GestureModule:
@@ -32,11 +34,22 @@ class GestureModule:
 class VoiceModule:
     name = "voice"
 
+    def __init__(self, *, no_actions: bool = False) -> None:
+        self.no_actions = no_actions
+        self.controller: VoiceController | None = None
+
     def start(self, daemon: Daemon) -> None:
-        self.bus = daemon.bus
+        self.controller = VoiceController(
+            MacController(),
+            no_actions=self.no_actions,
+            bus=daemon.bus,
+            config=daemon.config.voice,
+        )
+        self.controller.start()
 
     def stop(self) -> None:
-        return None
+        if self.controller is not None:
+            self.controller.stop()
 
 
 def _truncate(value: Any) -> Any:
@@ -162,8 +175,7 @@ def main(argv: list[str] | None = None) -> int:
         if not args.voice_background:
             daemon.register_module(GestureModule())
         if config.voice.enabled:
-            print("Voice capture arrives in Phase 2A; event publication hooks are available.")
-            daemon.register_module(VoiceModule())
+            daemon.register_module(VoiceModule(no_actions=args.no_actions))
 
         def main_thread() -> None:
             if args.print_events and daemon.bus is not None:

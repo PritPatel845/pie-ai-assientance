@@ -126,7 +126,7 @@ The result is a frozen `Config` dataclass with frozen nested dataclasses. Unknow
 |---|---|
 | `[app]` | `name='pie'`, `log_level='INFO'` |
 | `[gesture]` | `camera=0`, `preview=true`, `arm_hold_seconds=2.0`, `steer_sensitivity=0.004`, `state_hz=10`, `model_path=''` (empty = `assets/hand_landmarker.task`, then `~/.pie/models`, then download) |
-| `[voice]` | `enabled=true`, `wake_words=['pie','hey pie','pi','jr','j r','jay r','jarvis']`, `listen_seconds=20`, `language='en'` |
+| `[voice]` | `enabled=true`, `wake_words=['pie','hey pie','pi','jr','j r','jay r','jarvis']`, `listen_seconds=20`, `language='en'`, `stt_backend='auto'`, `stt_model='base.en'`, `input_device=''`, `vad_threshold=0.015`, `vad_min_speech_ms=150`, `vad_end_silence_ms=600`, `vad_max_utterance_s=12`, `stt_idle_unload_s=300`, `tts_enabled=true`, `tts_voice='Samantha'`, `tts_rate=185`, `allow_cloud_stt=false`, `debug_save_audio=false` (Phase 2A additions) |
 | `[ui]` | `host='127.0.0.1'`, `port=8765` |
 | Later phases | `[brain]`, `[safety]`, `[tools]` and other phase-owned keys are additive only. |
 
