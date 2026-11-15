@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from jsonschema import Draft202012Validator
+from jsonschema.exceptions import SchemaError
 
 from pie.events import EventBus
 from pie.safety.audit import AuditLog, redact
@@ -144,7 +145,7 @@ class ToolRegistry:
             Draft202012Validator.check_schema(spec.parameters)
             errors = sorted(
                 Draft202012Validator(spec.parameters).iter_errors(safe_args),
-                key=lambda item: (list(item.absolute_path), item.message),
+                key=lambda item: (tuple(str(part) for part in item.absolute_path), item.message),
             )
             if errors:
                 location = ".".join(str(part) for part in errors[0].absolute_path) or "arguments"
@@ -174,7 +175,7 @@ class ToolRegistry:
                         resolved.relative_to(sandbox)
                     except ValueError:
                         tier = max(tier, Tier.CONFIRM)
-        except (ValueError, TypeError) as exc:
+        except (ValueError, TypeError, SchemaError) as exc:
             result = fail(str(exc))
             self._audit(
                 call_id=call_id, correlation_id=correlation_id, source=source, tool=name,
@@ -205,17 +206,18 @@ class ToolRegistry:
             {"call_id": call_id, "tool": name, "args": redacted_args, "tier": tier.name},
             call_id,
         )
-        prompt_builder = getattr(spec_tool, "confirmation_prompt", None)
-        custom_prompt = (
-            await asyncio.to_thread(prompt_builder, redacted_args, call_id)
-            if callable(prompt_builder) else None
+        is_dry_run = bool(
+            self._setting("tools", "dry_run", False) if dry_run is None else dry_run
         )
+        prompt_builder = getattr(spec_tool, "confirmation_prompt", None)
+        custom_prompt = None
+        if not is_dry_run and tier is Tier.CONFIRM and callable(prompt_builder):
+            custom_prompt = await asyncio.to_thread(
+                prompt_builder, redacted_args, call_id
+            )
         prompt = custom_prompt or (
             f"Allow {name}? {spec.description} Arguments: "
             f"{json.dumps(redacted_args, ensure_ascii=False, default=str)[:1000]}"
-        )
-        is_dry_run = bool(
-            self._setting("tools", "dry_run", False) if dry_run is None else dry_run
         )
         try:
             if tier is Tier.BLOCKED:
