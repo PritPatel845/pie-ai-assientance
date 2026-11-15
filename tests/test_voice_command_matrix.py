@@ -67,6 +67,38 @@ from pie.inputs.voice.commands import extract_wake_command, parse_voice_command
         ("type hello world", ("type", "hello world")),
         ("write hello", ("type", "hello")),
         ("enter hello", ("type", "hello")),
+        ("OPEN SAFARI", ("open", "safari")),
+        ("  open    notes  ", ("open", "notes")),
+        ("type   hello   world", ("type", "hello world")),
+        ("volume 000", ("volume", 0)),
+        ("volume 999", ("volume", 100)),
+        ("set volume 007", ("volume", 7)),
+        ("search the web for cats", ("search", "cats")),
+        ("search google cats", ("search", "cats")),
+        ("ask the web for weather", ("search", "weather")),
+        ("look up google maps", ("search", "maps")),
+        ("open https://example.com/?a=1&b=2", ("open", "https://example.com/?a=1&b=2")),
+        ("type $(touch /tmp/pie-test)", ("type", "$(touch /tmp/pie-test)")),
+        ("launch ~/Documents", ("open", "~/documents")),
+        ("start /Applications/Safari.app", ("open", "/applications/safari.app")),
+        ("volume -1", None),
+        ("volume 1000", None),
+        ("volume 1.5", None),
+        ("search", None),
+        ("ask", None),
+        ("look up", None),
+        ("open", None),
+        ("launch", None),
+        ("start", None),
+        ("type", None),
+        ("write", None),
+        ("enter", None),
+        ("scroll", None),
+        ("delete", None),
+        ("close", None),
+        ("hide", None),
+        ("pizza", None),
+        ("unknown command", None),
     ],
 )
 def test_phrase_matrix(phrase, expected) -> None:
@@ -91,3 +123,8 @@ def test_wake_word_punctuation_and_empty_remainder() -> None:
 
 def test_hostile_text_is_data_not_shell() -> None:
     assert parse_voice_command("open ; rm -rf ~") == ("open", "; rm -rf ~")
+
+
+@pytest.mark.parametrize("separator", [",", ".", "!", "?", ";", ":", "-", ")"])
+def test_wake_word_accepts_punctuation_boundaries(separator: str) -> None:
+    assert extract_wake_command(f"pie{separator} open safari") == "open safari"
