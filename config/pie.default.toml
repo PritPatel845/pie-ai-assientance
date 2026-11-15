@@ -15,6 +15,22 @@ enabled = true
 wake_words = ["hey pie", "pie", "pi", "jr", "j r", "jay r", "jarvis"]
 listen_seconds = 20
 language = "en"
+# Local speech recognition: auto prefers MLX Whisper, then whisper.cpp.
+stt_backend = "auto"
+stt_model = "base.en"
+# Empty selects the operating-system default input device.
+input_device = ""
+vad_threshold = 0.015
+vad_min_speech_ms = 150
+vad_end_silence_ms = 600
+vad_max_utterance_s = 12.0
+stt_idle_unload_s = 300
+tts_enabled = true
+tts_voice = "Samantha"
+tts_rate = 185
+# Audio is never sent to a cloud provider unless this is explicitly enabled.
+allow_cloud_stt = false
+debug_save_audio = false
 
 [ui]
 host = "127.0.0.1"
