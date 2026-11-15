@@ -48,7 +48,9 @@ def run_tool_command(action: str | None, arguments: list[str], config_path: Path
                 print(f"{spec.name}\t{spec.tier.name}\t{spec.description}")
             return 0
         if action != "run" or not arguments:
-            raise ValueError('use: pie tool list | pie tool run <name> --args-json "{}" [--dry-run]')
+            raise ValueError(
+                'use: pie tool list | pie tool run <name> --args-json "{}" [--dry-run]'
+            )
         name = arguments[0]
         parser = argparse.ArgumentParser(prog="pie tool run")
         parser.add_argument("--args-json", default="{}")
