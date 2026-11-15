@@ -178,7 +178,7 @@ TCC permissions attach to the executable that runs Python (Terminal, iTerm, VS C
 
 ## 10. Existing behaviour to preserve
 
-- Arm by holding an open palm for 2 seconds. Index finger moves the cursor. Pinch (distance/hand size < 0.48) = double click, 0.7-second debounce. Three fingers = double click. Two-finger horizontal move = scroll. Open palm with z < -0.12 = mute. Fist = run `JARVIS_VOICE_COMMAND`. Thumb up = play; thumb down = stop. Hand depth z → volume = clamp(72 - z*180, 0, 100).
+- Arm by holding an open palm for 2 seconds. Index finger moves the cursor. Pinch (distance/hand size < 0.48) = double click, 0.7-second debounce. Three fingers = double click. Two-finger horizontal move = scroll. Open palm with z < -0.12 = palm-push mute binding. Fist emits the legacy voice-command action but it is suppressed in the tool-bound runtime; environment-provided AppleScript is never executed. Thumb up/down use the configured media bindings. Hand depth z → volume = clamp(72 - z*180, 0, 100).
 - Voice: wake word followed by a bounded command set (`parse_voice_command`); never arbitrary shell.
 - Games: profiles `asphalt`, `temple-run`, `counter-strike`; keys 1/2/3 switch; `g` toggles.
 - CLI flags: `--camera`, `--no-actions`, `--game-profile`, `--steer-sensitivity`, `--voice/--no-voice`, `--voice-background`, `--learning-dir`, `--voice-listen-seconds`.
