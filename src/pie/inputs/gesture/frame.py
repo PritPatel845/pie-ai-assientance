@@ -138,6 +138,7 @@ class FrameProcessor:
             self.profile = profile
         self._disarm()
         self._previous.clear()
+        self._previous_index = None
         return actions
 
     def reset(self) -> list[Action]:
@@ -145,6 +146,7 @@ class FrameProcessor:
         self._disarm()
         self._previous.clear()
         self._previous_x = None
+        self._previous_index = None
         return actions
 
     def _disarm(self) -> None:
@@ -173,6 +175,7 @@ class FrameProcessor:
             self._disarm()
             self._previous.clear()
             self._previous_x = None
+            self._previous_index = None
             self._last_volume = None
             return FrameResult("NO HAND", None, None, False, actions)
 
