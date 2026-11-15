@@ -17,6 +17,7 @@ class GestureBindingsModule:
         self.clock = clock
         self._unsubscribe: Callable[[], None] | None = None
         self._last: dict[str, float] = {}
+        self._armed = False
         self.daemon: Daemon | None = None
 
     def start(self, daemon: Daemon) -> None:
@@ -24,11 +25,14 @@ class GestureBindingsModule:
         if daemon.bus is None or not daemon.config.gesture.bindings_via_tools:
             return
         self._unsubscribe = daemon.bus.subscribe(
-            "input.gesture.event", self._on_gesture, name=self.name
+            "input.gesture.*", self._on_gesture_event, name=self.name
         )
 
-    async def _on_gesture(self, event: Event) -> None:
-        if self.daemon is None:
+    async def _on_gesture_event(self, event: Event) -> None:
+        if event.topic == "input.gesture.state":
+            self._armed = bool(event.payload.get("armed", False))
+            return
+        if event.topic != "input.gesture.event" or not self._armed or self.daemon is None:
             return
         name = event.payload.get("name")
         if not isinstance(name, str):
@@ -55,6 +59,7 @@ class GestureBindingsModule:
             self._unsubscribe()
             self._unsubscribe = None
         self._last.clear()
+        self._armed = False
         self.daemon = None
 
 
