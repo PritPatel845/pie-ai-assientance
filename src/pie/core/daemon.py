@@ -4,7 +4,7 @@ import asyncio
 import logging
 import signal
 import threading
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable
 from typing import Protocol
 
 from pie.core.events import EventBus
