@@ -145,10 +145,6 @@ class VoiceController(_VoiceController):
         if self.echo_guard:
             return
         block = np.asarray(indata[:, 0], dtype=np.float32).copy()
-        if not np.any(block):
-            self._all_zero_frames += block.size
-        else:
-            self._all_zero_frames = 0
         try:
             self._audio_queue.put_nowait(block)
         except queue.Full:
@@ -232,6 +228,10 @@ class VoiceController(_VoiceController):
                 block = self._audio_queue.get(timeout=0.2)
             except queue.Empty:
                 continue
+            if not np.any(block):
+                self._all_zero_frames += block.size
+            else:
+                self._all_zero_frames = 0
             if self._all_zero_frames >= 3 * _SAMPLE_RATE:
                 now = self._clock()
                 if now - self._last_zero_notice >= 10:
@@ -265,7 +265,6 @@ class VoiceController(_VoiceController):
                         self._dropped_segments += 1
             if self._dropped_blocks and self._dropped_blocks % 50 == 0:
                 _LOG.warning("Voice input queue dropped %d audio blocks", self._dropped_blocks)
-
 
     def _process_stt(self) -> None:
         while not self._stop.is_set():
@@ -361,9 +360,7 @@ class VoiceController(_VoiceController):
                 },
                 source="voice",
             )
-        self._stt_thread = threading.Thread(
-            target=self._process_stt, name="pie-stt", daemon=True
-        )
+        self._stt_thread = threading.Thread(target=self._process_stt, name="pie-stt", daemon=True)
         self._stt_thread.start()
         self._thread = threading.Thread(target=self._process_audio, name="pie-voice", daemon=True)
         self._thread.start()
