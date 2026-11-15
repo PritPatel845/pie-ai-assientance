@@ -37,7 +37,8 @@ def test_wait_for_matches_predicate_and_unsubscribes() -> None:
         bus = EventBus(asyncio.get_running_loop())
         waiter = asyncio.create_task(
             bus.wait_for(
-                "demo.*", timeout=1,
+                "demo.*",
+                timeout=1,
                 predicate=lambda event: event.payload.get("ok") is True,
             )
         )
@@ -61,12 +62,17 @@ def test_publish_from_multiple_threads_delivers_each_event() -> None:
             if len(received) == 800:
                 done.set()
 
+        def publish_batch(base: int) -> None:
+            for index in range(100):
+                bus.publish(
+                    "thread.item",
+                    {"id": f"{base}-{index}"},
+                    source="thread",
+                )
+
         bus.subscribe("*", collect, name="threaded")
         threads = [
-            threading.Thread(target=lambda base=base: [
-                bus.publish("thread.item", {"id": f"{base}-{i}"}, source="thread")
-                for i in range(100)
-            ])
+            threading.Thread(target=publish_batch, args=(base,))
             for base in range(8)
         ]
         for thread in threads:
@@ -205,8 +211,14 @@ def test_voice_event_adapter_publishes_contract_payloads() -> None:
         controller.publish_transcript("open Safari")
         await asyncio.wait_for(ready.wait(), 1)
         assert [event.topic for event in received] == [
-            "input.voice.wake", "input.voice.listening", "input.voice.transcript"
+            "input.voice.wake",
+            "input.voice.listening",
+            "input.voice.transcript",
         ]
-        assert received[-1].payload == {"text": "open Safari", "final": True, "lang": "en"}
+        assert received[-1].payload == {
+            "text": "open Safari",
+            "final": True,
+            "lang": "en",
+        }
 
     asyncio.run(scenario())
