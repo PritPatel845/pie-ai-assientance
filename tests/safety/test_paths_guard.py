@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
+from pathlib import Path
 
 from pie.safety.paths_guard import PathGuardError, guard_paths
 from pie.safety.permissions import Tier
@@ -81,7 +80,9 @@ def test_audit_file_is_protected(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
         _guard(str(audit), home, allowed, audit)
 
 
-def test_audit_rotation_files_are_protected(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_audit_rotation_files_are_protected(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     home = tmp_path / "home"
     home.mkdir()
     monkeypatch.setenv("HOME", str(home))
