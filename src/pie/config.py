@@ -55,8 +55,12 @@ _DEFAULTS: dict[str, dict[str, Any]] = {
     "app": {"name": "pie", "log_level": "INFO"},
     "gesture": {"camera": 0, "preview": True, "arm_hold_seconds": 2.0,
                 "steer_sensitivity": 0.004, "state_hz": 10, "model_path": ""},
-    "voice": {"enabled": True, "wake_words": ["hey pie", "pie", "pi", "jr", "j r", "jay r", "jarvis"],
-              "listen_seconds": 20, "language": "en"},
+    "voice": {
+        "enabled": True,
+        "wake_words": ["hey pie", "pie", "pi", "jr", "j r", "jay r", "jarvis"],
+        "listen_seconds": 20,
+        "language": "en",
+    },
     "ui": {"host": "127.0.0.1", "port": 8765},
 }
 _TYPES = {section: {key: type(value) for key, value in values.items()}
