@@ -1,4 +1,5 @@
-"""Camera runner setup, processing, and unconditional cleanup follow Phase 0S §3.8 (PDF pp. 22–23)."""
+"""Camera runner setup, processing, and unconditional cleanup
+follow Phase 0S §3.8 (PDF pp. 22–23)."""
 
 from __future__ import annotations
 
