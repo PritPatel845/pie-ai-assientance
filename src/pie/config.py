@@ -47,6 +47,19 @@ class VoiceConfig:
     )
     listen_seconds: int = 20
     language: str = "en"
+    stt_backend: str = "auto"
+    stt_model: str = "base.en"
+    input_device: str = ""
+    vad_threshold: float = 0.015
+    vad_min_speech_ms: int = 150
+    vad_end_silence_ms: int = 600
+    vad_max_utterance_s: float = 12.0
+    stt_idle_unload_s: int = 300
+    tts_enabled: bool = True
+    tts_voice: str = "Samantha"
+    tts_rate: int = 185
+    allow_cloud_stt: bool = False
+    debug_save_audio: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -78,6 +91,19 @@ _DEFAULTS: dict[str, dict[str, Any]] = {
         "wake_words": ["hey pie", "pie", "pi", "jr", "j r", "jay r", "jarvis"],
         "listen_seconds": 20,
         "language": "en",
+        "stt_backend": "auto",
+        "stt_model": "base.en",
+        "input_device": "",
+        "vad_threshold": 0.015,
+        "vad_min_speech_ms": 150,
+        "vad_end_silence_ms": 600,
+        "vad_max_utterance_s": 12.0,
+        "stt_idle_unload_s": 300,
+        "tts_enabled": True,
+        "tts_voice": "Samantha",
+        "tts_rate": 185,
+        "allow_cloud_stt": False,
+        "debug_save_audio": False,
     },
     "ui": {"host": "127.0.0.1", "port": 8765},
 }
@@ -202,6 +228,16 @@ def load_config(
         raise ConfigError("ui.port must be between 1 and 65535")
     if config.voice.listen_seconds < 5:
         raise ConfigError("voice.listen_seconds must be at least 5")
+    if config.voice.stt_backend not in {"auto", "mlx", "whispercpp", "google"}:
+        raise ConfigError("voice.stt_backend must be auto, mlx, whispercpp, or google")
+    if config.voice.vad_threshold <= 0:
+        raise ConfigError("voice.vad_threshold must be positive")
+    if config.voice.vad_min_speech_ms < 1 or config.voice.vad_end_silence_ms < 1:
+        raise ConfigError("voice VAD durations must be positive")
+    if config.voice.vad_max_utterance_s <= 0 or config.voice.stt_idle_unload_s < 0:
+        raise ConfigError("voice utterance and unload durations are invalid")
+    if not 1 <= config.voice.tts_rate <= 500:
+        raise ConfigError("voice.tts_rate must be between 1 and 500")
     if config.gesture.arm_hold_seconds <= 0:
         raise ConfigError("gesture.arm_hold_seconds must be positive")
     return config
