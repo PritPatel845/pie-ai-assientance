@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import math
-from typing import Protocol, Sequence
+from collections.abc import Sequence
+from typing import Protocol
 
 
 class Landmark(Protocol):
