@@ -9,8 +9,15 @@ from typing import Any, Literal, Protocol
 from pie.events import EventBus
 from pie.inputs.gesture.engine import ensure_model
 from pie.inputs.gesture.features import (
-    Landmark, is_fist, is_four_finger, is_open_palm, is_pinch, is_three_finger,
-    is_thumb_down, is_thumb_up, is_two_finger,
+    Landmark,
+    is_fist,
+    is_four_finger,
+    is_open_palm,
+    is_pinch,
+    is_three_finger,
+    is_thumb_down,
+    is_thumb_up,
+    is_two_finger,
 )
 from pie.inputs.gesture.frame import (
     Action,
