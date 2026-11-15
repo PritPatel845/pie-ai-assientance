@@ -11,6 +11,8 @@ from pie.config import load_config
 from pie.core.daemon import Daemon
 from pie.inputs.voice.pipeline import VoiceController
 from pie.platform.mac import MacController
+from pie.safety.paths_guard import PathGuardError, guard_paths
+from pie.safety.permissions import Tier
 from pie.tools.module import ToolsModule
 
 
@@ -33,6 +35,55 @@ class _VoiceApprovalModule:
         if self.controller is not None:
             self.controller.stop()
             self.controller = None
+
+
+def _requires_confirmation(tool: Any, payload: dict[str, Any], config: Any) -> bool:
+    """Predict the registry's confirmation tier before starting voice approval.
+
+    Invalid or protected paths deliberately return False here: the registry
+    remains authoritative and rejects them before requesting permission.
+    """
+    tier = tool.spec.tier
+    if tier is Tier.CONFIRM:
+        return True
+
+    properties = tool.spec.parameters.get("properties", {})
+    sandbox = Path(str(config.safety.sandbox_dir)).expanduser()
+    args = dict(payload)
+    try:
+        for key, property_schema in properties.items():
+            raw_path = args.get(key)
+            if (
+                isinstance(property_schema, dict)
+                and property_schema.get("x-path") is True
+                and isinstance(raw_path, str)
+                and not raw_path.startswith("~")
+                and not Path(raw_path).is_absolute()
+            ):
+                args[key] = str(sandbox / raw_path)
+
+        path_tier = guard_paths(
+            args,
+            tool.spec.parameters,
+            allowed_folders=config.safety.allowed_folders,
+            audit_path=config.safety.audit_path,
+        )
+        tier = max(tier, path_tier)
+        for key, property_schema in properties.items():
+            if not isinstance(property_schema, dict) or not isinstance(args.get(key), str):
+                continue
+            candidate = Path(str(args[key])).expanduser()
+            if property_schema.get("x-confirm-if-exists") is True and candidate.exists():
+                tier = max(tier, Tier.CONFIRM)
+            if property_schema.get("x-confirm-outside-sandbox") is True:
+                try:
+                    candidate.resolve().relative_to(sandbox.resolve())
+                except ValueError:
+                    tier = max(tier, Tier.CONFIRM)
+    except (PathGuardError, TypeError, ValueError):
+        # Do not start the microphone for a request that the registry will deny.
+        return False
+    return bool(tier >= Tier.CONFIRM)
 
 
 def run_tool_command(
@@ -75,14 +126,10 @@ def run_tool_command(
         if tool is None:
             print(json.dumps({"ok": False, "error": "unknown tool"}))
             return 1
-        schema_properties = tool.spec.parameters.get("properties", {})
-        may_need_confirmation = tool.spec.tier.name == "CONFIRM" or any(
-            isinstance(item, dict) and item.get("x-path") is True
-            for item in schema_properties.values()
-        )
         dry_run = bool(config.tools.dry_run or parsed.dry_run)
         if parsed.dry_run:
             config = replace(config, tools=replace(config.tools, dry_run=True))
+        may_need_confirmation = _requires_confirmation(tool, payload, config)
         if may_need_confirmation and not dry_run and not no_voice and config.voice.enabled:
             voice_module = _VoiceApprovalModule()
             voice_module.start(daemon)

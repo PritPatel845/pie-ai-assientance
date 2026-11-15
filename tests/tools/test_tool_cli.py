@@ -1,6 +1,11 @@
 from __future__ import annotations
 
+from pathlib import Path
+from types import SimpleNamespace
+
 from pie.__main__ import build_parser
+from pie.safety.permissions import Tier
+from pie.tools.cli import _requires_confirmation
 
 
 def test_tool_cli_preserves_json_and_dry_run_options() -> None:
@@ -37,3 +42,82 @@ def test_global_no_actions_and_no_voice_flags_are_preserved() -> None:
     assert args.voice is False
     assert args.config_action == "run"
     assert args.brain_args == ["mac.close_app"]
+
+
+def _filesystem_tool() -> SimpleNamespace:
+    return SimpleNamespace(
+        spec=SimpleNamespace(
+            tier=Tier.REVERSIBLE,
+            parameters={
+                "type": "object",
+                "properties": {
+                    "path": {
+                        "type": "string",
+                        "x-path": True,
+                        "x-confirm-if-exists": True,
+                        "x-confirm-outside-sandbox": True,
+                    },
+                    "content": {"type": "string"},
+                },
+            },
+        )
+    )
+
+
+def _path_config(sandbox: Path, audit: Path) -> SimpleNamespace:
+    return SimpleNamespace(
+        safety=SimpleNamespace(
+            sandbox_dir=str(sandbox),
+            allowed_folders=(str(sandbox),),
+            audit_path=str(audit),
+        )
+    )
+
+
+def test_new_file_inside_sandbox_does_not_start_voice_approval(tmp_path: Path) -> None:
+    sandbox = tmp_path / "PieWorkspace"
+    sandbox.mkdir()
+    tool = _filesystem_tool()
+    config = _path_config(sandbox, tmp_path / "audit.jsonl")
+
+    assert not _requires_confirmation(
+        tool, {"path": str(sandbox / "new.txt"), "content": "safe"}, config
+    )
+
+
+def test_overwrite_inside_sandbox_requires_voice_approval(tmp_path: Path) -> None:
+    sandbox = tmp_path / "PieWorkspace"
+    sandbox.mkdir()
+    existing = sandbox / "existing.txt"
+    existing.write_text("original", encoding="utf-8")
+
+    assert _requires_confirmation(
+        _filesystem_tool(),
+        {"path": str(existing), "content": "replacement"},
+        _path_config(sandbox, tmp_path / "audit.jsonl"),
+    )
+
+
+def test_write_outside_sandbox_requires_voice_approval(tmp_path: Path) -> None:
+    sandbox = tmp_path / "PieWorkspace"
+    sandbox.mkdir()
+    outside = tmp_path / "Documents" / "new.txt"
+
+    assert _requires_confirmation(
+        _filesystem_tool(),
+        {"path": str(outside), "content": "outside"},
+        _path_config(sandbox, tmp_path / "audit.jsonl"),
+    )
+
+
+def test_protected_path_is_rejected_without_starting_voice_approval(tmp_path: Path) -> None:
+    sandbox = tmp_path / "PieWorkspace"
+    sandbox.mkdir()
+    home = tmp_path / "home"
+    (home / ".ssh").mkdir(parents=True)
+
+    assert not _requires_confirmation(
+        _filesystem_tool(),
+        {"path": str(home / ".ssh" / "id_rsa")},
+        _path_config(sandbox, tmp_path / "audit.jsonl"),
+    )
