@@ -242,11 +242,30 @@ class MacController:
         pyautogui.write(text, interval=0.01)
         return True
 
+    def screenshot_to(self, filename: str | Path) -> bool:
+        return self._run(("/usr/sbin/screencapture", "-x", str(filename)))
+
     def screenshot(self) -> bool:
         filename = (
             Path.home() / "Desktop" / f"Pie Screenshot {datetime.now():%Y-%m-%d %H-%M-%S}.png"
         )
-        return self._run(("/usr/sbin/screencapture", "-x", str(filename)))
+        return self.screenshot_to(filename)
+
+    def frontmost_app(self) -> str | None:
+        try:
+            result = self._runner(
+                [
+                    "/usr/bin/osascript", "-e",
+                    'tell application "System Events" to get name of first process whose frontmost is true',
+                ],
+                capture_output=True, text=True, timeout=3, check=False, shell=False,
+            )
+        except (OSError, subprocess.TimeoutExpired):
+            return None
+        if result.returncode != 0:
+            return None
+        name = (result.stdout or "").strip()
+        return name or None
 
     def lock_screen(self) -> bool:
         return self.key_combo("command", "control", "q")
