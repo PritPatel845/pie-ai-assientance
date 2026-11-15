@@ -5,8 +5,11 @@ import os
 import sys
 import tomllib
 from dataclasses import dataclass
+from importlib import resources
 from pathlib import Path
 from typing import Any
+
+from pie.paths import config_path
 
 
 # fmt: off
@@ -144,17 +147,24 @@ def load_config(
     cli_overrides: dict[str, dict[str, Any]] | None = None,
 ) -> Config:
     data = {section: dict(values) for section, values in _DEFAULTS.items()}
-    candidates = (
-        Path(__file__).resolve().parents[2] / "config" / "pie.default.toml",
-        Path(sys.prefix) / "config" / "pie.default.toml",
+    packaged_default = resources.files("pie").joinpath(
+        "..", "..", "..", "..", "config", "pie.default.toml"
     )
-    for defaults_path in candidates:
-        if defaults_path.is_file():
-            with defaults_path.open("rb") as handle:
-                _merge(data, tomllib.load(handle))
-            break
+    if packaged_default.is_file():
+        with packaged_default.open("rb") as handle:
+            _merge(data, tomllib.load(handle))
+    else:
+        candidates = (
+            Path(__file__).resolve().parents[2] / "config" / "pie.default.toml",
+            Path(sys.prefix) / "config" / "pie.default.toml",
+        )
+        for defaults_path in candidates:
+            if defaults_path.is_file():
+                with defaults_path.open("rb") as handle:
+                    _merge(data, tomllib.load(handle))
+                break
 
-    user_path = path or Path.home() / ".pie" / "config.toml"
+    user_path = path or config_path()
     if user_path.is_file():
         with user_path.open("rb") as handle:
             _merge(data, tomllib.load(handle))
