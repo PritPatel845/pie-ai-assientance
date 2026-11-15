@@ -291,7 +291,9 @@ def test_path_outside_sandbox_requires_confirmation(tmp_path: Path) -> None:
         }
         registry.register(_tool("fs.test", tier=Tier.READ, schema=schema))
         task = asyncio.create_task(
-            registry.execute("fs.test", {"path": str(tmp_path / "outside.txt")}, source="agent")
+            registry.execute(
+                "fs.test", {"path": str(tmp_path / "outside.txt")}, source="agent"
+            )
         )
         await asyncio.sleep(0.01)
         bus.publish(
@@ -405,7 +407,9 @@ def test_relative_filesystem_paths_resolve_inside_sandbox(tmp_path: Path) -> Non
     asyncio.run(scenario())
 
 
-def test_model_tool_schemas_hide_internal_path_policy_extensions(tmp_path: Path) -> None:
+def test_model_tool_schemas_hide_internal_path_policy_extensions(
+    tmp_path: Path,
+) -> None:
     async def scenario() -> None:
         registry, gate, _ = _registry(tmp_path)
         schema = {
