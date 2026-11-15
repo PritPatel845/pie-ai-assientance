@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 from collections.abc import Sequence
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -30,11 +31,13 @@ class LocalProvider:
         max_ram_gb: float = 6.0,
         keep_alive: str = "2m",
         client: httpx.AsyncClient | None = None,
+        model_cache_dir: Path | None = None,
     ) -> None:
         self.backend = backend
         self.model = model
         self.max_ram_bytes = int(max_ram_gb * 1024**3)
         self.keep_alive = keep_alive
+        self.model_cache_dir = model_cache_dir or Path.home() / ".cache" / "huggingface" / "hub"
         self.client = client or httpx.AsyncClient(timeout=45.0)
         self.base_url = ""
         self._models: list[tuple[str, int]] = []
@@ -61,7 +64,17 @@ class LocalProvider:
             response = await self.client.get(f"{endpoint}/models", timeout=2.0)
             response.raise_for_status()
             payload = response.json()
-            self._models = [(str(item.get("id", "")), 0) for item in payload.get("data", [])]
+            self._models = []
+            for item in payload.get("data", []):
+                name = str(item.get("id", ""))
+                raw_size = item.get("size_bytes", item.get("size", 0))
+                try:
+                    size = int(raw_size)
+                except (TypeError, ValueError):
+                    size = 0
+                if size <= 0:
+                    size = self._model_cache_size(name)
+                self._models.append((name, size))
             self.base_url = endpoint
             return bool(self._models)
         except (httpx.HTTPError, ValueError, TypeError):
@@ -74,12 +87,37 @@ class LocalProvider:
             return bool(self._choose_model())
         return False
 
+    def _model_cache_size(self, model_name: str) -> int:
+        if not model_name:
+            return 0
+        cache_name = "models--" + model_name.replace("/", "--")
+        model_path = self.model_cache_dir / cache_name
+        if not model_path.is_dir():
+            return 0
+        total = 0
+        for item in model_path.rglob("*"):
+            try:
+                if item.is_file():
+                    total += item.stat().st_size
+            except OSError:
+                continue
+        return total
+
     def _choose_model(self) -> str:
         if self.model:
-            selected = next((name for name, _ in self._models if name == self.model), None)
-            return selected or ""
+            selected = next(
+                (
+                    (name, size)
+                    for name, size in self._models
+                    if name == self.model and 0 < size <= self.max_ram_bytes
+                ),
+                None,
+            )
+            return selected[0] if selected else ""
         eligible = [
-            (name, size) for name, size in self._models if size <= self.max_ram_bytes and name
+            (name, size)
+            for name, size in self._models
+            if 0 < size <= self.max_ram_bytes and name
         ]
         if not eligible:
             return ""
