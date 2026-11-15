@@ -5,9 +5,9 @@ import queue
 import threading
 import time
 import wave
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
-from collections.abc import Callable
 from typing import Any
 
 import numpy as np
