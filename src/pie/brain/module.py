@@ -13,8 +13,8 @@ from pie.brain.types import ToolCall, ToolResult
 from pie.core.daemon import Daemon
 from pie.events import Event
 from pie.inputs.voice.executor import LegacyRuleExecutor
-from pie.tools.registry import ToolRegistry
 from pie.platform.mac import MacController
+from pie.tools.registry import ToolRegistry
 
 _LOG = logging.getLogger(__name__)
 
