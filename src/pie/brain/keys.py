@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import importlib
+import logging
 import os
 from getpass import getpass
 from typing import Any
 
 _SERVICE = "pie"
+_LOG = logging.getLogger(__name__)
 
 
 def _keyring() -> Any | None:
@@ -18,7 +20,12 @@ def _keyring() -> Any | None:
 def get_api_key(provider: str) -> str | None:
     env_name = {"anthropic": "ANTHROPIC_API_KEY", "openai": "OPENAI_API_KEY"}.get(provider)
     backend = _keyring()
-    stored = backend.get_password(_SERVICE, provider) if backend is not None else None
+    stored = None
+    if backend is not None:
+        try:
+            stored = backend.get_password(_SERVICE, provider)
+        except Exception:
+            _LOG.warning("Could not read %s from the system Keychain", provider)
     return stored or (os.environ.get(env_name) if env_name else None)
 
 
