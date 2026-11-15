@@ -337,7 +337,10 @@ class ToolRegistry:
                     ctx.cancel.set()
                     try:
                         await asyncio.wait_for(task, timeout=1.0)
-                    except (TimeoutError, asyncio.CancelledError, Exception):
+                    except asyncio.CancelledError:
+                        if not task.done():
+                            task.cancel()
+                    except Exception:
                         if not task.done():
                             task.cancel()
                     result = fail("timeout")
