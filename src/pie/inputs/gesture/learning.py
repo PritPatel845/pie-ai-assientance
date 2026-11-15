@@ -4,8 +4,8 @@ import json
 import os
 import time
 from collections import deque
-from pathlib import Path
 from collections.abc import Callable, Sequence
+from pathlib import Path
 
 from pie.inputs.gesture.features import Landmark, normalize_hand
 
