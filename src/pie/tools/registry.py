@@ -58,7 +58,11 @@ class ToolRegistry:
         return [self._tools[name].spec for name in sorted(self._tools)]
 
     def specs_for_model(self) -> list[ToolSpec]:
-        return [spec for spec in self.list() if spec.tier is not Tier.BLOCKED]
+        return [
+            spec
+            for spec in self.list()
+            if spec.tier is not Tier.BLOCKED and sys.platform in spec.platforms
+        ]
 
     def _setting(self, section: str, key: str, default: Any) -> Any:
         return getattr(getattr(self.config, section, None), key, default)
