@@ -37,4 +37,8 @@ Python. The preview and OpenCV GUI run on the main thread. No arbitrary shell co
 is generated from speech or model output. Real-world actions are disabled with
 `--no-actions`.
 
+Before the manual camera check, run `scripts/manual_checks/audit_macos.command` for a read-only
+architecture, dependency, MediaPipe API, PyAutoGUI key, model, and Spotlight audit. It does
+not access the camera or microphone.
+
 See docs/CONTRACTS.md, docs/ARCHITECTURE.md, and scripts/manual_checks/phase0s.md.
