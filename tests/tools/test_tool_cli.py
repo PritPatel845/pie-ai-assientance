@@ -127,7 +127,10 @@ def test_tool_command_configures_application_logging(monkeypatch) -> None:
     from pie.tools import cli as tool_cli
 
     calls: list[str] = []
-    fake_daemon = SimpleNamespace(register_module=lambda _module: None)
+    fake_daemon = SimpleNamespace(
+        register_module=lambda _module: None,
+        stop=lambda: None,
+    )
     monkeypatch.setattr(
         tool_cli,
         "load_config",
