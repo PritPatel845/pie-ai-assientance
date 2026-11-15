@@ -366,3 +366,43 @@ Forbidden in Phase 1: moving actions onto events, tools/brains/UI, new runtime d
   verification passed; `python -m pie doctor` passed.
 - Owner-run manual checks are still pending. Use `scripts/manual_checks/phase1.md` on the
   target Mac. Do not merge PR #3 until those checks are recorded and reviewed.
+
+## Phase 1 final acceptance — 2026-11-15
+
+### Owner-run macOS manual acceptance
+
+The project owner confirms that **all Phase 1 manual checks passed on the target Mac**, including:
+
+- `python -m pie config show` and the event-stream startup.
+- Gesture arming, supported gesture recognition, approximately configured 10 Hz state publication, and rising-edge event publication.
+- Desktop/game mode switching and all three game-profile selections.
+- Existing cursor, click, volume, media, and game actions remaining functional with the event bus observational only.
+- Clean `q` shutdown, camera indicator off, and held game keys released.
+- Counter-Strike forward movement after switching profiles, with no `KeyError: 'forward'` on shutdown. The regression fix updates the action sink's profile only after old-profile release actions have been applied.
+- Voice-background process starts, waits without claiming microphone capture, and exits on Ctrl+C with `system.stopping` and no traceback.
+- The remaining manual acceptance checks, including the Phase 0S idle-CPU comparison, were reported passed by the owner.
+
+This is owner-reported hardware/manual evidence, not automated CI coverage. No numeric idle-CPU measurements were supplied in the confirmation.
+
+### Automated verification
+
+Latest local target-Mac results reported by the owner:
+
+- `pytest -q`: **230 passed**.
+- `ruff check .`: passed.
+- `ruff format --check .`: passed after formatting the regression test.
+- `mypy src/pie`: passed; no issues in 24 source files.
+- `python -m pie doctor`: passed.
+
+Latest GitHub Actions run for PR head `1f39e8fad6b5b8ae383dc1bee939185128bcecb7`:
+https://github.com/PritPatel845/pie-ai-assientance/actions/runs/43719422240
+
+The test job passed, including Ruff lint/format, pytest, mypy, model downloader verification, and `pie doctor`. The model-asset job was skipped because no model asset changed.
+
+### Final scope boundary
+
+Phase 1 supplies the voice event publication interface only. Actual microphone capture and wake-word recognition remain Phase 2A work. No microphone activity is claimed or simulated by this phase.
+
+### Acceptance decision
+
+All Phase 1 automated checks and owner-reported manual acceptance checks are complete. PR #3 is eligible to merge. The next implementation milestone is Phase 2A.
