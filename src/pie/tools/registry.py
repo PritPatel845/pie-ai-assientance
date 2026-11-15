@@ -218,7 +218,9 @@ class ToolRegistry:
             self._setting("tools", "dry_run", False) if dry_run is None else dry_run
         )
         try:
-            if is_dry_run:
+            if tier is Tier.BLOCKED:
+                decision = PermissionDecision(False, "blocked")
+            elif is_dry_run:
                 decision = PermissionDecision(True, "dry_run")
             else:
                 decision = await self.permission_gate.request(
@@ -267,6 +269,32 @@ class ToolRegistry:
 
         self._publish("tool.approved", {"call_id": call_id, "by": decision.by}, call_id)
         self._publish("tool.started", {"call_id": call_id}, call_id)
+        if is_dry_run:
+            result = ToolResult(
+                True,
+                output={
+                    "dry_run": True,
+                    "tool": name,
+                    "args": redacted_args,
+                },
+            )
+            duration = max(0.0, self.clock() - started)
+            self._publish(
+                "tool.finished",
+                {
+                    "call_id": call_id,
+                    "ok": True,
+                    "summary": "dry run; no execution performed",
+                    "duration_s": duration,
+                },
+                call_id,
+            )
+            self._audit(
+                call_id=call_id, correlation_id=correlation_id, source=source, tool=name,
+                args=safe_args, tier=tier, decision="dry_run", by="dry_run", ok=True,
+                error=None, started=started, provider=provider,
+            )
+            return result
         workspace = Path(
             str(self._setting("safety", "sandbox_dir", "~/PieWorkspace"))
         ).expanduser()
