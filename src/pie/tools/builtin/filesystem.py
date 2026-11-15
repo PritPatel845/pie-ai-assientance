@@ -9,7 +9,7 @@ from pie.tools.base import FunctionTool, ToolContext, ToolResult, ToolSpec, fail
 
 
 def build_filesystem_tools() -> list[FunctionTool]:
-    async def list_dir(args: dict[str, Any], ctx: ToolContext) -> ToolResult:
+    async def list_dir(args: Mapping[str, Any], ctx: ToolContext) -> ToolResult:
         path = Path(str(args["path"])).expanduser()
         if ctx.dry_run:
             return ok({"path": str(path), "entries": [], "dry_run": True})
