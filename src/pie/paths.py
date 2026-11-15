@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import shutil
 from pathlib import Path
 
 
@@ -25,11 +24,8 @@ def models_dir(*, create: bool = False) -> Path:
 
 
 def learning_dir(*, create: bool = False) -> Path:
-    target = _directory("learning", create)
-    legacy = Path.home() / ".jarvis_learning"
-    if create and legacy.is_dir() and not any(target.iterdir()):
-        shutil.copytree(legacy, target, dirs_exist_ok=True)
-    return target
+    # Path B starts clean: Phase 0S does not import legacy Jarvis data.
+    return _directory("learning", create)
 
 
 def _directory(name: str, create: bool) -> Path:
