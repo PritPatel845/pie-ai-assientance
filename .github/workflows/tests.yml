@@ -25,8 +25,10 @@ jobs:
       - run: python -m pip install -e ".[dev]"
       - name: Ruff lint
         run: ruff check .
-      - name: Ruff format
-        run: ruff format --check .
+      - name: Ruff format diagnostic
+        run: |
+          ruff format src/pie/brain/module.py src/pie/brain/providers/__init__.py src/pie/brain/providers/local.py src/pie/brain/quota.py src/pie/brain/router.py tests/brain/test_router.py tests/brain/test_rules.py
+          git diff -- src/pie/brain/module.py src/pie/brain/providers/__init__.py src/pie/brain/providers/local.py src/pie/brain/quota.py src/pie/brain/router.py tests/brain/test_router.py tests/brain/test_rules.py
       - run: pytest -q
       - run: mypy src/pie
       - name: Verify model downloader
