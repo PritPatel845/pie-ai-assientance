@@ -127,16 +127,20 @@ def test_tool_command_configures_application_logging(monkeypatch) -> None:
     from pie.tools import cli as tool_cli
 
     calls: list[str] = []
-    monkeypatch.setattr(tool_cli, "load_config", lambda _path: SimpleNamespace(
-        app=SimpleNamespace(log_level="DEBUG")
-    ))
+    fake_daemon = SimpleNamespace(register_module=lambda _module: None)
+    monkeypatch.setattr(
+        tool_cli,
+        "load_config",
+        lambda _path: SimpleNamespace(app=SimpleNamespace(log_level="DEBUG")),
+    )
     monkeypatch.setattr(tool_cli, "configure_logging", calls.append)
-    monkeypatch.setattr(tool_cli, "Daemon", lambda _config: SimpleNamespace())
+    monkeypatch.setattr(tool_cli, "Daemon", lambda _config: fake_daemon)
     monkeypatch.setattr(tool_cli, "ToolsModule", lambda: SimpleNamespace())
     monkeypatch.setattr(tool_cli, "_requires_confirmation", lambda *_args: False)
-    # An invalid action exits before daemon startup but after logging setup.
+
     try:
         tool_cli.run_tool_command("invalid", [], None)
     except ValueError:
         pass
+
     assert calls == ["DEBUG"]
