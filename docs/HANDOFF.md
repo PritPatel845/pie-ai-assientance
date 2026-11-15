@@ -60,14 +60,14 @@ Branch: phase-0s-implementation. Target Python >=3.12,<3.13 on Apple Silicon mac
 
 ### Automated verification
 
-- GitHub Actions run for code commit `f74029b65a7e81725980c8f2c3d5ecd0947894ad`: https://github.com/PritPatel845/pie-ai-assientance/actions/runs/43671157131
-- `pytest -q`: **159 passed**.
+- GitHub Actions run for code commit `7b6b7c3ef82b2d497062bfe7d80f34f0380027f3`: https://github.com/PritPatel845/pie-ai-assientance/actions/runs/43671639201 (push and pull-request runs both passed).
+- `pytest -q`: **180 passed**.
 - `ruff check .`: passed.
 - `ruff format --check .`: passed.
 - `mypy src/pie`: passed; no issues in 20 source files.
 - `python -m pie doctor`: exited successfully on the CI runner.
 - CI is Linux/Python 3.12. It is not evidence of macOS/Apple Silicon or camera/permission compatibility.
-- `scripts/start_pie.command` and `scripts/download_model.sh` are executable (`100755`). The model downloader is checked by CI with `bash -n` and an executable-bit assertion.
+- `scripts/start_pie.command`, `scripts/download_model.sh`, and `scripts/manual_checks/audit_macos.command` are executable (`100755`). CI syntax-checks both maintenance scripts and verifies their executable bits.
 
 ### Configuration reference
 
@@ -122,7 +122,8 @@ The parser checks exact phrases first, then volume patterns, search patterns, th
 - Mode changes clear stale desktop scroll and volume state; malformed learning JSON structures are quarantined rather than crashing startup.
 - Doctor reports native-library import errors without crashing and does not create `~/.pie` directories.
 - Tests now identify the exact Phase 0S PDF section/page for their covered module.
-- Model path resolution and explicit downloads verify the pinned byte size and SHA-256; invalid or partial downloads are removed.
+- Model path resolution and explicit downloads verify the pinned byte size and SHA-256; invalid or partial downloads are removed. Downloads try Google's official URL first, then a Hugging Face mirror of the same model; the identical SHA-256 is required for either source.
+- `scripts/manual_checks/audit_macos.command` performs a read-only architecture/dependency/Tasks API/PyAutoGUI-key/model/Spotlight audit without accessing camera or microphone.
 - Learning ring-buffer test isolates the bounded-buffer assertion from periodic disk-flush I/O.
 
 ### Exact verification commands
