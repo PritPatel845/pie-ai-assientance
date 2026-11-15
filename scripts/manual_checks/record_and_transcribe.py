@@ -25,9 +25,10 @@ def main() -> int:
     device: int | str | None = None
     if wanted:
         for index, info in enumerate(sounddevice.query_devices()):
-            if wanted in str(info.get("name", "")).lower() and int(
-                info.get("max_input_channels", 0)
-            ) > 0:
+            if (
+                wanted in str(info.get("name", "")).lower()
+                and int(info.get("max_input_channels", 0)) > 0
+            ):
                 device = index
                 break
         if device is None:
