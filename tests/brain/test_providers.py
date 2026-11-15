@@ -4,11 +4,17 @@ import asyncio
 
 import pytest
 
-from pie.brain.providers.anthropic_api import _raise_vendor_error
 from pie.brain.providers import UnavailableProvider
+from pie.brain.providers.anthropic_api import _raise_vendor_error
 from pie.brain.providers.claude_cli import ClaudeCliProvider
 from pie.brain.providers.codex_cli import CodexCliProvider
-from pie.brain.types import AuthError, Message, ProviderUnavailable, QuotaExhausted, RateLimited
+from pie.brain.types import (
+    AuthError,
+    Message,
+    ProviderUnavailable,
+    QuotaExhausted,
+    RateLimited,
+)
 
 
 class AuthenticationError(Exception):
@@ -64,7 +70,9 @@ def test_cli_providers_are_safe_stubs_until_sandbox_flags_are_verified(provider:
 
 def test_missing_cloud_credential_stays_in_chain_and_raises_auth_error() -> None:
     async def scenario() -> None:
-        provider = UnavailableProvider("anthropic", AuthError("anthropic", "API key not configured"))
+        provider = UnavailableProvider(
+            "anthropic", AuthError("anthropic", "API key not configured")
+        )
         assert await provider.healthcheck()
         with pytest.raises(AuthError):
             await provider.complete(
