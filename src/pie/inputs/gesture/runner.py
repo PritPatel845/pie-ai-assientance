@@ -206,7 +206,9 @@ def run(
                     if key in (ord("q"), 27):
                         break
                     if key == ord("g"):
-                        mode: Literal["desktop", "game"] = (\n                            "game" if processor.mode == "desktop" else "desktop"\n                        )
+                        mode: Literal["desktop", "game"] = (
+                            "game" if processor.mode == "desktop" else "desktop"
+                        )
                         for action in processor.set_mode(mode):
                             sink.execute(action)
                     if key in (ord("1"), ord("2"), ord("3")):
