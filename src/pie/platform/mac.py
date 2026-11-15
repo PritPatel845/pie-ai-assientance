@@ -66,8 +66,10 @@ class MacController:
         *,
         poster: Any | None = None,
         screen_size: Callable[[], tuple[int, int]] | None = None,
+        media_key: Callable[[], None] | None = None,
     ) -> None:
         self._runner, self._poster, self._screen_size = runner, poster, screen_size
+        self._media_key = media_key
 
     def _run(self, argv: Sequence[str], timeout: float = 5.0) -> bool:
         if not argv or argv[0] not in {
@@ -145,11 +147,49 @@ class MacController:
     def set_volume(self, value: int) -> bool:
         return self._osascript(f"set volume output volume {max(0, min(100, int(value)))}")
 
+    def _press_media_key(self) -> bool:
+        try:
+            if self._media_key is not None:
+                self._media_key()
+            else:
+                pyautogui = importlib.import_module("pyautogui")
+                if "playpause" not in pyautogui.KEYBOARD_KEYS:
+                    return False
+                pyautogui.press("playpause")
+        except (ImportError, OSError, RuntimeError):
+            return False
+        return True
+
+    def _control_media(self, command: str) -> bool:
+        try:
+            result = self._runner(
+                [
+                    "/usr/bin/osascript",
+                    "-e",
+                    'tell application "System Events" to get name of every process whose background only is false',
+                ],
+                capture_output=True,
+                text=True,
+                timeout=3,
+                check=False,
+                shell=False,
+            )
+        except (OSError, subprocess.TimeoutExpired):
+            return self._press_media_key()
+        if result.returncode == 0:
+            running = set((result.stdout or "").split(", "))
+            for app in ("Spotify", "Music"):
+                if app in running:
+                    if self._osascript(f'tell application "{app}" to {command}'):
+                        return True
+                    break
+        return self._press_media_key()
+
     def play_media(self) -> bool:
-        return self._osascript('tell application "Music" to play')
+        return self._control_media("play")
 
     def stop_media(self) -> bool:
-        return self._osascript('tell application "Music" to pause')
+        return self._control_media("pause")
 
     def show_voice_activation(self, listen_seconds: int) -> bool:
         seconds = max(5, int(listen_seconds))
