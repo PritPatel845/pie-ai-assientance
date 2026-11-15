@@ -63,7 +63,29 @@ def test_bad_download_is_removed_and_rejected(tmp_path: Path, monkeypatch) -> No
         "urlopen",
         lambda *args, **kwargs: FakeResponse(payload),
     )
-    with pytest.raises(ValueError, match="SHA-256"):
+    with pytest.raises(RuntimeError, match="SHA-256 mismatch"):
         engine.ensure_model(download=True)
     assert not (tmp_path / ".pie" / "models" / "hand_landmarker.task").exists()
     assert not (tmp_path / ".pie" / "models" / "hand_landmarker.task.tmp").exists()
+
+
+def test_download_uses_checksum_pinned_mirror_after_primary_failure(
+    tmp_path: Path, monkeypatch
+) -> None:
+    payload = b"mirror-model"
+    monkeypatch.setattr(Path, "home", lambda: tmp_path)
+    monkeypatch.setattr(engine, "MODEL_BYTES", len(payload))
+    monkeypatch.setattr(engine, "MODEL_SHA256", hashlib.sha256(payload).hexdigest())
+    monkeypatch.setattr(engine, "MODEL_URLS", ("https://primary.invalid/model", "https://mirror.invalid/model"))
+    calls = []
+
+    def open_url(request, timeout):
+        calls.append(request.full_url)
+        if len(calls) == 1:
+            raise OSError("primary unavailable")
+        return FakeResponse(payload)
+
+    monkeypatch.setattr(engine.urllib.request, "urlopen", open_url)
+    result = engine.ensure_model(download=True)
+    assert result.read_bytes() == payload
+    assert calls == ["https://primary.invalid/model", "https://mirror.invalid/model"]
