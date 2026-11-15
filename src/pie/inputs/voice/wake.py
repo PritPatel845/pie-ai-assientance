@@ -29,7 +29,7 @@ class TextWake:
         if exact is not None:
             return exact
 
-        tokens = cleaned.split()
+        tokens = re.findall(r"[\w']+", cleaned)
         candidates = sorted(self._phrases, key=lambda value: len(value.split()), reverse=True)
         for phrase in candidates:
             expected = phrase.split()
