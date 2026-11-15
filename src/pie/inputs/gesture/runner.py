@@ -148,7 +148,7 @@ def run(
     model_path: str = "",
     preview: bool = True,
     learning_dir: Path | None = None,
-    capture_factory: Callable[[int], object] | None = None,
+    capture_factory: Callable[[int], Capture] | None = None,
 ) -> None:
     try:
         cv2 = importlib.import_module("cv2")
