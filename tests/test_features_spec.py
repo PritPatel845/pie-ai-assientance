@@ -32,7 +32,7 @@ class Point:
 
 
 def make_hand(
-    *, extended=(True, True, True, True), thumb=(0.2, 0.4, 0.0), index_tip=(0.5, 0.3, 0.0)
+    *, extended=(True, True, True, True), thumb=(0.2, 0.4, 0.0), index_tip=None
 ):
     hand = [Point(0.5, 0.7, 0.0) for _ in range(21)]
     hand[0] = Point(0.5, 0.8, 0.0)
@@ -42,7 +42,8 @@ def make_hand(
         hand[tip] = Point(0.5, 0.3 if is_up else 0.68, 0.0)
     hand[3] = Point(0.25, 0.55, 0.0)
     hand[4] = Point(*thumb)
-    hand[8] = Point(*index_tip)
+    if index_tip is not None:
+        hand[8] = Point(*index_tip)
     return hand
 
 
