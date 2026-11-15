@@ -4,7 +4,7 @@ import logging
 from collections.abc import Sequence
 from typing import Any, Literal
 
-from pie.brain.types import AuthError, Message, ProviderError, ProviderReply, ProviderUnavailable, ToolSpec
+from pie.brain.types import AuthError, Message, ProviderError, ProviderReply, ToolSpec
 
 _LOG = logging.getLogger(__name__)
 
