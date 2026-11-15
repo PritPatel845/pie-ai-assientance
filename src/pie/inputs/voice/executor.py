@@ -54,7 +54,7 @@ class LegacyRuleExecutor:
         if action == "settings":
             return bool(self.controller.open_system_settings())
         if action in {"volume", "scroll"}:
-            if not isinstance(value, (int, float, str)):
+            if not isinstance(value, int | float | str):
                 return False
             amount = int(value)
             if action == "volume":
