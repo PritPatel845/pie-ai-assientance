@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DEST="${1:-$ROOT/assets/hand_landmarker.task}"
 URL="https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task"
+MIRROR_URL="https://huggingface.co/Leo-TX/mediapipe-hand/resolve/main/hand_landmarker.task"
 EXPECTED_BYTES=7819105
 EXPECTED_SHA256="fbc2a30080c3c557093b5ddfc334698132eb341044ccee322ccf8bcf3607cde1"
 
@@ -12,7 +13,10 @@ TEMP="${DEST}.tmp"
 trap 'rm -f "$TEMP"' EXIT
 
 echo "Downloading the pinned MediaPipe Hand Landmarker model from the official Google URL..."
-curl --fail --location --retry 2 --connect-timeout 15 --max-time 120 "$URL" --output "$TEMP"
+if ! curl --fail --location --retry 2 --connect-timeout 15 --max-time 120 "$URL" --output "$TEMP"; then
+  echo "Official Google download failed; trying the byte-identical mirror (SHA-256 is still mandatory)..."
+  curl --fail --location --retry 2 --connect-timeout 15 --max-time 120 "$MIRROR_URL" --output "$TEMP"
+fi
 
 ACTUAL_BYTES="$(wc -c < "$TEMP" | tr -d '[:space:]')"
 if [[ "$ACTUAL_BYTES" != "$EXPECTED_BYTES" ]]; then
