@@ -30,8 +30,8 @@ Grant Camera and Accessibility permissions only when macOS prompts for them.
 
 ## Media and app automation
 
-1. With Spotify running, test the play and pause voice commands; repeat with Music running.
-2. Verify the system `playpause` fallback when neither app is running.
+1. With Spotify running, test play and pause through the Phase 0S gesture/action path; repeat with Music running. Confirm the applications actually respond.
+2. Close both apps and verify the system `playpause` fallback. Voice phrase parsing is present, but microphone/voice capture is deferred to Phase 2A and is not a Phase 0S manual acceptance requirement.
 3. Confirm screenshots are saved to the Desktop with the `Pie Screenshot` filename.
 4. Verify open-app lookup only searches the four approved application roots.
 
