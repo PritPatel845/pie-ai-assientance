@@ -31,7 +31,13 @@ class GestureConfig:
     steer_sensitivity: float = 0.004
     state_hz: int = 10
     model_path: str = ""
-    bindings: dict[str, str] = field(default_factory=lambda: {"thumb_up": "media.play", "thumb_down": "media.pause", "palm_push": "mac.mute"})
+    bindings: dict[str, str] = field(
+        default_factory=lambda: {
+            "thumb_up": "media.play",
+            "thumb_down": "media.pause",
+            "palm_push": "mac.mute",
+        }
+    )
     bindings_via_tools: bool = True
 
 
@@ -127,7 +133,11 @@ _DEFAULTS: dict[str, dict[str, Any]] = {
         "steer_sensitivity": 0.004,
         "state_hz": 10,
         "model_path": "",
-        "bindings": {"thumb_up": "media.play", "thumb_down": "media.pause", "palm_push": "mac.mute"},
+        "bindings": {
+            "thumb_up": "media.play",
+            "thumb_down": "media.pause",
+            "palm_push": "mac.mute",
+        },
         "bindings_via_tools": True,
     },
     "voice": {
