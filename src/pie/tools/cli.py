@@ -70,10 +70,12 @@ def run_tool_command(action: str | None, arguments: list[str], config_path: Path
             isinstance(item, dict) and item.get("x-path") is True
             for item in schema_properties.values()
         )
-        if may_need_confirmation and not parsed.dry_run:
+        if may_need_confirmation and not parsed.dry_run and not no_voice:
             voice_module = _VoiceApprovalModule()
             voice_module.start(daemon)
             print("Confirmation required. Say yes or no.")
+        elif may_need_confirmation and no_voice:
+            print("Voice approval is disabled; requests will fail closed without UI approval.")
         future = asyncio.run_coroutine_threadsafe(
             tools_module.registry.execute(name, payload, source="text", dry_run=parsed.dry_run),
             daemon.loop,
