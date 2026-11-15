@@ -97,6 +97,7 @@ from pie.inputs.voice.commands import extract_wake_command, parse_voice_command
         ("delete", None),
         ("close", None),
         ("hide", None),
+        ("lock", None),
         ("pizza", None),
         ("unknown command", None),
     ],
