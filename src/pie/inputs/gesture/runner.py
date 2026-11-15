@@ -4,7 +4,7 @@ import importlib
 import time
 from collections.abc import Callable, Sequence
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any, Literal, Protocol
 
 from pie.inputs.gesture.engine import ensure_model
 from pie.inputs.gesture.features import Landmark
@@ -206,7 +206,7 @@ def run(
                     if key in (ord("q"), 27):
                         break
                     if key == ord("g"):
-                        mode = "game" if processor.mode == "desktop" else "desktop"
+                        mode: Literal["desktop", "game"] = (\n                            "game" if processor.mode == "desktop" else "desktop"\n                        )
                         for action in processor.set_mode(mode):
                             sink.execute(action)
                     if key in (ord("1"), ord("2"), ord("3")):
