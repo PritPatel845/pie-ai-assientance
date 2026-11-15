@@ -59,7 +59,7 @@ def build_filesystem_tools() -> list[FunctionTool]:
                 }
             )
         try:
-            path.parent.mkdir(parents=False, exist_ok=True)
+            path.parent.mkdir(parents=True, exist_ok=True)
             flags = os.O_WRONLY | os.O_CREAT | os.O_NOFOLLOW
             flags |= os.O_TRUNC if path.exists() else os.O_EXCL
             descriptor = os.open(path, flags, 0o600)
