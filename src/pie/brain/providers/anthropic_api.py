@@ -6,8 +6,15 @@ from typing import Any
 
 from pie.brain.keys import get_api_key
 from pie.brain.types import (
-    AuthError, Message, ProviderReply, ProviderUnavailable, QuotaExhausted,
-    RateLimited, ToolCall, ToolSpec, Usage,
+    AuthError,
+    Message,
+    ProviderReply,
+    ProviderUnavailable,
+    QuotaExhausted,
+    RateLimited,
+    ToolCall,
+    ToolSpec,
+    Usage,
 )
 
 
@@ -19,6 +26,7 @@ class AnthropicProvider:
         self.model = model
         if client is None:
             from anthropic import AsyncAnthropic
+
             key = get_api_key("anthropic")
             if not key:
                 raise AuthError(self.name, "API key not configured")
@@ -29,24 +37,37 @@ class AnthropicProvider:
         return bool(self.model)
 
     async def complete(
-        self, messages: Sequence[Message], tools: list[ToolSpec], *,
-        max_tokens: int, timeout_s: float
+        self,
+        messages: Sequence[Message],
+        tools: list[ToolSpec],
+        *,
+        max_tokens: int,
+        timeout_s: float,
     ) -> ProviderReply:
-        system = "\n".join(m.content for m in messages if m.role == "system")
+        system = "\\n".join(m.content for m in messages if m.role == "system")
         history = [
             {"role": m.role, "content": m.content}
-            for m in messages if m.role in {"user", "assistant"}
+            for m in messages
+            if m.role in {"user", "assistant"}
         ]
-        tool_defs = [{
-            "name": item.name, "description": item.description,
-            "input_schema": item.parameters,
-        } for item in tools]
+        tool_defs = [
+            {
+                "name": item.name,
+                "description": item.description,
+                "input_schema": item.parameters,
+            }
+            for item in tools
+        ]
         try:
             response = await asyncio.wait_for(
                 self.client.messages.create(
-                    model=self.model, max_tokens=max_tokens, system=system,
-                    messages=history, tools=tool_defs or None,
-                ), timeout=timeout_s,
+                    model=self.model,
+                    max_tokens=max_tokens,
+                    system=system,
+                    messages=history,
+                    tools=tool_defs or None,
+                ),
+                timeout=timeout_s,
             )
         except Exception as exc:
             _raise_vendor_error(self.name, exc)
@@ -60,7 +81,8 @@ class AnthropicProvider:
                 calls.append(ToolCall(block.id, block.name, dict(block.input)))
         usage = getattr(response, "usage", None)
         return ProviderReply(
-            "".join(text_parts), tuple(calls),
+            "".join(text_parts),
+            tuple(calls),
             Usage(int(usage.input_tokens), int(usage.output_tokens)) if usage else None,
             str(getattr(response, "stop_reason", "stop")),
         )
