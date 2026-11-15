@@ -199,3 +199,113 @@ def test_volume_filter_emits_on_two_point_change_or_elapsed_interval() -> None:
     )
     elapsed = processor.process([one_step], 0.22)
     assert SetVolume(71) in elapsed.actions
+
+def arm_game(processor: FrameProcessor) -> None:
+    palm = hand()
+    processor.process([palm], 0.0)
+    assert processor.process([palm], 2.1).armed
+
+
+def test_unarmed_desktop_emits_no_actions_for_every_pose() -> None:
+    from pie.inputs.gesture.frame import FrameProcessor
+
+    poses = [
+        hand(),
+        hand(extended=(False, False, False, False), thumb_y=0.75),
+        hand(extended=(True, False, False, False), thumb_x=0.38),
+        hand(extended=(False, False, False, False), thumb_y=0.3),
+        hand(extended=(False, False, False, False), thumb_y=1.0),
+        hand(extended=(True, True, False, False)),
+        hand(extended=(True, True, True, False)),
+        hand(thumb_x=0.45, thumb_y=0.75),
+        hand(extended=(True, False, False, False), thumb_x=0.25, thumb_y=0.55),
+    ]
+    for pose in poses:
+        processor = FrameProcessor(arm_hold_seconds=2.0)
+        result = processor.process([pose], 0.0)
+        assert not result.armed
+        assert result.actions == []
+
+
+def test_racing_profile_emits_exact_key_states_for_three_and_four_finger_poses() -> None:
+    processor = FrameProcessor()
+    processor.set_mode("game", "asphalt")
+    arm_game(processor)
+
+    three = hand(extended=(True, True, True, False))
+    assert processor.process([three], 2.2).actions == [
+        KeyAction("left", True),
+        KeyAction("accelerate", True),
+    ]
+
+    four = hand(thumb_x=0.45, thumb_y=0.75)
+    assert processor.process([four], 2.3).actions == [
+        KeyAction("left", False),
+        KeyAction("right", True),
+    ]
+
+
+def test_racing_profile_drift_brake_and_nitro_sequences() -> None:
+    processor = FrameProcessor()
+    processor.set_mode("game", "asphalt")
+    arm_game(processor)
+
+    drifting_left = hand(extended=(True, True, False, False), shift=-0.1)
+    actions = processor.process([drifting_left], 2.2).actions
+    assert actions == [KeyAction("left", True), KeyAction("brake", True)]
+
+    fist = hand(extended=(False, False, False, False), thumb_y=0.75)
+    actions = processor.process([fist], 2.3).actions
+    assert KeyAction("left", False) in actions
+    assert KeyAction("brake", True) not in actions
+
+    pinch = hand(extended=(True, False, False, False), thumb_x=0.38)
+    actions = processor.process([pinch], 2.4).actions
+    assert Tap("nitro") in actions
+
+
+def test_runner_profile_covers_pose_taps_and_held_slide() -> None:
+    processor = FrameProcessor()
+    processor.set_mode("game", "temple-run")
+    arm_game(processor)
+
+    three = hand(extended=(True, True, True, False))
+    assert processor.process([three], 2.2).actions == [Tap("left")]
+
+    four = hand(thumb_x=0.45, thumb_y=0.75)
+    assert processor.process([four], 2.3).actions == [Tap("right")]
+
+    fist = hand(extended=(False, False, False, False), thumb_y=0.75)
+    assert processor.process([fist], 2.4).actions == [KeyAction("slide", True)]
+    assert processor.process([fist], 2.5).actions == []
+    assert processor.process([hand()], 2.6).actions == [KeyAction("slide", False)]
+
+
+def test_fps_profile_covers_directional_keys_click_and_jump() -> None:
+    from pie.inputs.gesture.frame import MouseClick
+
+    processor = FrameProcessor()
+    processor.set_mode("game", "counter-strike")
+    arm_game(processor)
+
+    assert processor.process([hand()], 2.2).actions == [KeyAction("forward", True)]
+
+    three = hand(extended=(True, True, True, False))
+    assert KeyAction("left", True) in processor.process([three], 2.3).actions
+
+    four = hand(thumb_x=0.45, thumb_y=0.75)
+    actions = processor.process([four], 2.4).actions
+    assert KeyAction("left", False) in actions
+    assert KeyAction("right", True) in actions
+
+    fist = hand(extended=(False, False, False, False), thumb_y=0.75)
+    actions = processor.process([fist], 2.5).actions
+    assert KeyAction("right", False) in actions
+    assert KeyAction("back", True) in actions
+
+    pinch = hand(extended=(True, False, False, False), thumb_x=0.38)
+    assert MouseClick() in processor.process([pinch], 2.6).actions
+
+    thumb_up = hand(extended=(False, False, False, False), thumb_y=0.3)
+    assert Tap("jump") in processor.process([thumb_up], 2.7).actions
+
