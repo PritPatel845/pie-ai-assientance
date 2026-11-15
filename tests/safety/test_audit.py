@@ -66,5 +66,5 @@ def test_audit_redacts_search_query_and_url_query_parameters() -> None:
         {"url": "https://example.com/path?access_token=secret"},
         tool="mac.open_url",
     )
-    assert search == {"query": {"length": 24}}
-    assert url == {"url": {"host": "example.com", "length": 52}}
+    assert search == {"query": {"length": 25}}
+    assert url == {"url": {"host": "example.com", "length": 44}}
