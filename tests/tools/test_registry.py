@@ -383,3 +383,24 @@ def test_relative_paths_are_resolved_inside_the_sandbox(tmp_path: Path) -> None:
         gate.stop()
 
     asyncio.run(scenario())
+
+
+def test_relative_filesystem_paths_resolve_inside_sandbox(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        from pie.tools.builtin.filesystem import build_filesystem_tools
+
+        sandbox = tmp_path / "sandbox"
+        sandbox.mkdir()
+        registry, gate, _ = _registry(tmp_path)
+        for tool in build_filesystem_tools():
+            registry.register(tool)
+        result = await registry.execute(
+            "fs.write_text",
+            {"path": "notes.txt", "content": "Pie sandbox"},
+            source="text",
+        )
+        assert result.ok
+        assert (sandbox / "notes.txt").read_text(encoding="utf-8") == "Pie sandbox"
+        gate.stop()
+
+    asyncio.run(scenario())
