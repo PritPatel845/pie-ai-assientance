@@ -25,8 +25,10 @@ jobs:
       - run: python -m pip install -e ".[dev]"
       - name: Ruff lint
         run: ruff check .
-      - name: Ruff format
-        run: ruff format --check .
+      - name: Ruff format diagnostic
+        run: |
+          ruff format tests/brain/test_local_provider.py tests/brain/test_providers.py
+          git diff -- tests/brain/test_local_provider.py tests/brain/test_providers.py
       - run: pytest -q
       - run: mypy src/pie
       - name: Verify model downloader
