@@ -88,7 +88,7 @@ def build_mac_tools(controller: MacController) -> list[FunctionTool]:
         filename = (
             Path.home()
             / "Desktop"
-            / f"Pie Screenshot {datetime.now():%Y-%m-%d %H-%M-%S}.png"
+            / f"Pie Screenshot {datetime.now():%Y-%m-%d %H-%M-%S-%f}.png"
         )
         if ctx.dry_run:
             return ok({"would_save": str(filename)})
