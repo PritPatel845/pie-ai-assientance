@@ -8,9 +8,10 @@ import wave
 from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
+from numpy.typing import NDArray
 
 from pie.config import VoiceConfig
 from pie.events import EventBus
@@ -23,6 +24,7 @@ from pie.inputs.voice.wake import TextWake
 _LOG = logging.getLogger(__name__)
 _SAMPLE_RATE = 16_000
 _BLOCK_SIZE = 512
+AudioBlock = NDArray[np.float32]
 
 
 class VoiceController(_VoiceController):
@@ -59,7 +61,7 @@ class VoiceController(_VoiceController):
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
         self._capture_thread: threading.Thread | None = None
-        self._audio_queue: queue.Queue[np.ndarray] = queue.Queue(maxsize=200)
+        self._audio_queue: queue.Queue[AudioBlock] = queue.Queue(maxsize=200)
         self._dropped_blocks = 0
         self._speaker = (
             Speaker(
@@ -117,15 +119,15 @@ class VoiceController(_VoiceController):
     def _make_stream_factory(self) -> Callable[..., Any]:
         if self._stream_factory is not None:
             return self._stream_factory
-        import sounddevice
+        import sounddevice  # type: ignore[import-not-found]
 
-        return sounddevice.InputStream
+        return cast(Callable[..., Any], sounddevice.InputStream)
 
     def _input_device(self) -> int | str | None:
         wanted = self.config.input_device.strip().lower()
         if not wanted:
             return None
-        import sounddevice
+        import sounddevice  # type: ignore[import-not-found]
 
         for index, device in enumerate(sounddevice.query_devices()):
             name_matches = wanted in str(device.get("name", "")).lower()
@@ -134,7 +136,7 @@ class VoiceController(_VoiceController):
                 return index
         raise RuntimeError(f"No microphone matches voice.input_device={self.config.input_device!r}")
 
-    def _audio_callback(self, indata: np.ndarray, frames: int, timing: Any, status: Any) -> None:
+    def _audio_callback(self, indata: AudioBlock, frames: int, timing: Any, status: Any) -> None:
         del frames, timing, status
         if self.echo_guard:
             return
