@@ -1,4 +1,5 @@
 """Game gesture precedence follows Phase 0S section 3.2."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -17,8 +18,7 @@ def make_hand(extended=(True, True, True, True), thumb=(0.2, 0.4, 0.0)):
     hand = [P(0.5, 0.7, 0.0) for _ in range(21)]
     hand[0] = P(0.5, 0.8, 0.0)
     hand[9] = P(0.5, 0.5, 0.0)
-    for (tip, pip), up in zip(((8, 6), (12, 10), (16, 14), (20, 18)),
-                              extended, strict=True):
+    for (tip, pip), up in zip(((8, 6), (12, 10), (16, 14), (20, 18)), extended, strict=True):
         hand[pip] = P(0.5, 0.6, 0.0)
         hand[tip] = P(0.5, 0.3 if up else 0.68, 0.0)
     hand[4] = P(*thumb)
