@@ -5,8 +5,8 @@ import queue
 import re
 import subprocess
 import threading
-from dataclasses import dataclass
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Any
 
 from pie.events import EventBus
