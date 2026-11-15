@@ -115,9 +115,9 @@ class Daemon:
                         await result
 
                 future = asyncio.run_coroutine_threadsafe(
-                    asyncio.wait_for(stop_one(), timeout=3.0), self.loop
+                    asyncio.wait_for(stop_one(), timeout=2.5), self.loop
                 )
-                future.result(timeout=3.2)
+                future.result(timeout=2.7)
             except Exception:
                 _LOG.exception("module %s failed to stop", module.name)
         self._started.clear()
