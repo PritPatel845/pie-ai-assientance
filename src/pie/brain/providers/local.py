@@ -9,7 +9,12 @@ import httpx
 import psutil
 
 from pie.brain.types import (
-    Message, ProviderReply, ProviderUnavailable, ToolCall, ToolSpec, Usage,
+    Message,
+    ProviderReply,
+    ProviderUnavailable,
+    ToolCall,
+    ToolSpec,
+    Usage,
 )
 
 
@@ -18,8 +23,13 @@ class LocalProvider:
     kind = "local"
 
     def __init__(
-        self, *, backend: str = "auto", model: str = "", max_ram_gb: float = 6.0,
-        keep_alive: str = "2m", client: httpx.AsyncClient | None = None,
+        self,
+        *,
+        backend: str = "auto",
+        model: str = "",
+        max_ram_gb: float = 6.0,
+        keep_alive: str = "2m",
+        client: httpx.AsyncClient | None = None,
     ) -> None:
         self.backend = backend
         self.model = model
@@ -51,7 +61,9 @@ class LocalProvider:
             response = await self.client.get(f"{endpoint}/models", timeout=2.0)
             response.raise_for_status()
             payload = response.json()
-            self._models = [(str(item.get("id", "")), 0) for item in payload.get("data", [])]
+            self._models = [
+                (str(item.get("id", "")), 0) for item in payload.get("data", [])
+            ]
             self.base_url = endpoint
             return bool(self._models)
         except (httpx.HTTPError, ValueError, TypeError):
@@ -67,11 +79,10 @@ class LocalProvider:
     def _choose_model(self) -> str:
         if self.model:
             selected = next((name for name, _ in self._models if name == self.model), None)
-            if selected is None:
-                return ""
-            return selected
+            return selected or ""
         eligible = [
-            (name, size) for name, size in self._models
+            (name, size)
+            for name, size in self._models
             if size <= self.max_ram_bytes and name
         ]
         if not eligible:
@@ -79,8 +90,12 @@ class LocalProvider:
         return max(eligible, key=lambda item: item[1])[0]
 
     async def complete(
-        self, messages: Sequence[Message], tools: list[ToolSpec], *,
-        max_tokens: int, timeout_s: float
+        self,
+        messages: Sequence[Message],
+        tools: list[ToolSpec],
+        *,
+        max_tokens: int,
+        timeout_s: float,
     ) -> ProviderReply:
         if not self.base_url and not await self.healthcheck():
             raise ProviderUnavailable(self.name, "local server unavailable; start Ollama")
@@ -96,8 +111,11 @@ class LocalProvider:
         payload: dict[str, Any] = {
             "model": model,
             "messages": [
-                {"role": item.role, "content": item.content,
-                 **({"tool_call_id": item.tool_call_id} if item.tool_call_id else {})}
+                {
+                    "role": item.role,
+                    "content": item.content,
+                    **({"tool_call_id": item.tool_call_id} if item.tool_call_id else {}),
+                }
                 for item in messages
             ],
             "max_tokens": max_tokens,
@@ -105,14 +123,22 @@ class LocalProvider:
             "keep_alive": self.keep_alive,
         }
         if tools:
-            payload["tools"] = [{
-                "type": "function",
-                "function": {"name": item.name, "description": item.description,
-                             "parameters": item.parameters},
-            } for item in tools]
+            payload["tools"] = [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": item.name,
+                        "description": item.description,
+                        "parameters": item.parameters,
+                    },
+                }
+                for item in tools
+            ]
         try:
             response = await self.client.post(
-                f"{self.base_url}/chat/completions", json=payload, timeout=timeout_s
+                f"{self.base_url}/chat/completions",
+                json=payload,
+                timeout=timeout_s,
             )
             response.raise_for_status()
             data = response.json()
@@ -127,9 +153,25 @@ class LocalProvider:
                 args = json.loads(function.get("arguments", "{}"))
             except json.JSONDecodeError:
                 args = {}
-            calls.append(ToolCall(str(item.get("id", "")), str(function.get("name", "")), args))
+            calls.append(
+                ToolCall(
+                    str(item.get("id", "")),
+                    str(function.get("name", "")),
+                    args,
+                )
+            )
         usage_data = data.get("usage")
-        usage = Usage(int(usage_data.get("prompt_tokens", 0)),
-                      int(usage_data.get("completion_tokens", 0))) if usage_data else None
-        return ProviderReply(str(message.get("content") or ""), tuple(calls), usage,
-                             str(choice.get("finish_reason", "stop")))
+        usage = (
+            Usage(
+                int(usage_data.get("prompt_tokens", 0)),
+                int(usage_data.get("completion_tokens", 0)),
+            )
+            if usage_data
+            else None
+        )
+        return ProviderReply(
+            str(message.get("content") or ""),
+            tuple(calls),
+            usage,
+            str(choice.get("finish_reason", "stop")),
+        )
