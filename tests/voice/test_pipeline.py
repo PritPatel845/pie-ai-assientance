@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import asyncio
+import socket
 import threading
 from typing import Any
 
 import numpy as np
+import pytest
 
 from pie.config import VoiceConfig
 from pie.events import Event, EventBus
@@ -52,7 +54,13 @@ class FakeMacController:
         return True
 
 
-def test_fake_microphone_pipeline_publishes_and_executes_in_order() -> None:
+def test_fake_microphone_pipeline_publishes_and_executes_in_order(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def deny_network(*args: object, **kwargs: object) -> None:
+        raise AssertionError("local voice pipeline attempted a network connection")
+
+    monkeypatch.setattr(socket.socket, "connect", deny_network)
     async def scenario() -> None:
         bus = EventBus(asyncio.get_running_loop())
         events: list[Event] = []
