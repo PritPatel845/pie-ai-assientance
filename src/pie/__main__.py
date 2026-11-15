@@ -5,7 +5,7 @@ import importlib
 import json
 import platform
 import sys
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from pathlib import Path
 from typing import Any
 
@@ -117,17 +117,26 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _effective_config(args: argparse.Namespace) -> Config:
-    overrides: dict[str, dict[str, Any]] = {"gesture": {}, "voice": {}}
-    if args.camera is not None:
-        overrides["gesture"]["camera"] = args.camera
-    if args.steer_sensitivity is not None:
-        overrides["gesture"]["steer_sensitivity"] = args.steer_sensitivity
-    if args.voice is not None:
-        overrides["voice"]["enabled"] = args.voice
-    if args.voice_listen_seconds is not None:
-        overrides["voice"]["listen_seconds"] = args.voice_listen_seconds
-    return load_config(args.config, cli_overrides=overrides)
-
+    config = load_config(args.config)
+    gesture = replace(
+        config.gesture,
+        camera=args.camera if args.camera is not None else config.gesture.camera,
+        steer_sensitivity=(
+            args.steer_sensitivity
+            if args.steer_sensitivity is not None
+            else config.gesture.steer_sensitivity
+        ),
+    )
+    voice = replace(
+        config.voice,
+        enabled=args.voice if args.voice is not None else config.voice.enabled,
+        listen_seconds=(
+            args.voice_listen_seconds
+            if args.voice_listen_seconds is not None
+            else config.voice.listen_seconds
+        ),
+    )
+    return replace(config, gesture=gesture, voice=voice)
 
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
