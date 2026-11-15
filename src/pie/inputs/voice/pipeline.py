@@ -251,7 +251,7 @@ class VoiceController(_VoiceController):
             # confirmation is pending; never search arbitrary sentences for
             # approval keywords.
             match = re.fullmatch(
-                r"(?:pie|pi|pai|pye|bye)[,.:;!?\\s]+(yes|no)[.!?]*",
+                r"(?:pie|pi|pai|pye|bye)[,.:;!?\s]+(yes|no)[.!?]*",
                 raw.casefold().strip(),
             )
             if match is not None:
