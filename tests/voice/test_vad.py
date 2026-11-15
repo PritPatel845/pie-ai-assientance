@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+# Ruff's import sorter disagrees on this third-party pair; keep the test imports explicit.
+# ruff: noqa: I001
+
 import pytest
 import numpy as np
 
