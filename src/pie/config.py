@@ -181,7 +181,7 @@ _DEFAULTS: dict[str, dict[str, Any]] = {
     "safety": {
         "sandbox_dir": "~/PieWorkspace",
         "allowed_folders": ["~/Desktop", "~/Documents", "~/Downloads", "~/PieWorkspace"],
-        "confirm_timeout_s": 20,
+        "confirm_timeout_s": 45,
         "max_calls_per_10s": 10,
         "max_confirm_prompts_per_min": 3,
         "audit_path": "~/.pie/logs/audit.jsonl",
