@@ -10,8 +10,12 @@
 - Model overview: https://developers.google.com/edge/mediapipe/solutions/vision/hand_landmarker
 
 The model is not currently committed in this repository. Download it explicitly with
-`scripts/download_model.sh`; the script verifies both the exact byte size and SHA-256
-before moving the file into `assets/hand_landmarker.task`. Do not bypass this check.
+`scripts/download_model.sh`; it tries the official Google URL first and then a Hugging Face
+mirror containing the byte-identical model. Both sources must pass the exact byte-size and
+SHA-256 checks before the file is moved into `assets/hand_landmarker.task`. Do not bypass
+this check.
+
+Verified mirror: https://huggingface.co/Leo-TX/mediapipe-hand/resolve/main/hand_landmarker.task
 
 Model checksum corroboration: Google's canonical model URL is used by the official
 MediaPipe examples; independent copies of this exact model report the same SHA-256.
