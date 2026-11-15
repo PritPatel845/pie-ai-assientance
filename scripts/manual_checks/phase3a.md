@@ -94,6 +94,7 @@ Verify that deterministic commands use the same registry and produce tool events
 ## 6. Verify safety modes and shutdown
 
 - Start Pie with `--no-actions`; all tool requests must be dry-run only.
+- Run a confirmation-tier CLI tool with `--no-voice` (or `voice.enabled=false`); Pie must not start the microphone and must fail closed when no UI approval arrives.
 - Set `tools.dry_run=true`; no tool implementation may run.
 - Add a tool name to `tools.disabled`; the registry must reject it.
 - Stop Pie while a confirmation is pending; it must deny the pending request and shut down cleanly.
