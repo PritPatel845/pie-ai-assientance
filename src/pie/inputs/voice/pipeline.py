@@ -93,6 +93,7 @@ class VoiceController(_VoiceController):
         self._stt_disabled = False
         self._all_zero_frames = 0
         self._mic_permission_missing = threading.Event()
+        self._echo_audio_seen = threading.Event()
         self._unsubscribe_tool_stop = (
             bus.subscribe("input.voice.listening", self._on_listening_event, name="voice-tool-stop")
             if bus is not None
@@ -179,6 +180,7 @@ class VoiceController(_VoiceController):
     def _audio_callback(self, indata: AudioBlock, frames: int, timing: Any, status: Any) -> None:
         del frames, timing, status
         if self.echo_guard:
+            self._echo_audio_seen.set()
             return
         block = np.asarray(indata[:, 0], dtype=np.float32).copy()
         try:
@@ -289,6 +291,17 @@ class VoiceController(_VoiceController):
     def _process_audio(self) -> None:
         while not self._stop.is_set():
             self._expire_window()
+            if self._echo_audio_seen.is_set():
+                # Playback can overlap audio already buffered by the callback/VAD.
+                # Discard that audio and VAD pre-roll before listening resumes.
+                self._echo_audio_seen.clear()
+                while True:
+                    try:
+                        self._audio_queue.get_nowait()
+                    except queue.Empty:
+                        break
+                self._vad.reset()
+                continue
             try:
                 block = self._audio_queue.get(timeout=0.2)
             except queue.Empty:
