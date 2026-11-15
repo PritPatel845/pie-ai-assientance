@@ -92,6 +92,13 @@ class ActionSink:
     ) -> None:
         self.controller, self.no_actions, self.profile = controller, no_actions, profile
 
+    def set_profile(self, profile: str) -> None:
+        from pie.inputs.gesture.game import GAME_PROFILES
+
+        if profile not in GAME_PROFILES:
+            raise ValueError(f"Unknown game profile: {profile}")
+        self.profile = profile
+
     def execute(self, action: Action) -> None:
         if self.no_actions:
             return
@@ -316,6 +323,9 @@ def run(
                         ]
                         for action in processor.set_mode("game", profile):
                             sink.execute(action)
+                        # Release actions use the previous profile mapping; new actions
+                        # must use the profile selected by this key press.
+                        sink.set_profile(profile)
                         if bus is not None:
                             bus.publish(
                                 "system.mode",
