@@ -51,3 +51,20 @@ def test_config_precedence_and_path_expansion(tmp_path) -> None:
     )
     assert config.gesture.camera == 4
     assert config.gesture.model_path == str(tmp_path.home() / "models" / "hand.task")
+
+
+def test_unknown_environment_section_is_rejected() -> None:
+    with pytest.raises(ValueError, match="Unknown environment variable"):
+        load_config(environ={"PIE_UNKNOWN_SETTING": "1"})
+
+
+def test_default_wake_words_are_longest_first() -> None:
+    assert load_config(environ={}).voice.wake_words == (
+        "hey pie",
+        "pie",
+        "pi",
+        "jr",
+        "j r",
+        "jay r",
+        "jarvis",
+    )
