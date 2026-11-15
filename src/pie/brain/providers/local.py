@@ -81,10 +81,12 @@ class LocalProvider:
             return False
 
     async def healthcheck(self) -> bool:
-        if self.backend in {"auto", "ollama"} and await self._probe_ollama():
-            return bool(self._choose_model())
-        if self.backend in {"auto", "mlx"} and await self._probe_mlx():
-            return bool(self._choose_model())
+        if self.backend in {"auto", "ollama"}:
+            if await self._probe_ollama() and self._choose_model():
+                return True
+        if self.backend in {"auto", "mlx"}:
+            if await self._probe_mlx() and self._choose_model():
+                return True
         return False
 
     def _model_cache_size(self, model_name: str) -> int:
@@ -134,8 +136,8 @@ class LocalProvider:
         max_tokens: int,
         timeout_s: float,
     ) -> ProviderReply:
-        if not self.base_url and not await self.healthcheck():
-            raise ProviderUnavailable(self.name, "local server unavailable; start Ollama")
+        if not self._choose_model() and not await self.healthcheck():
+            raise ProviderUnavailable(self.name, "local server unavailable or no eligible model; start Ollama")
         model = self._choose_model()
         if not model:
             raise ProviderUnavailable(
