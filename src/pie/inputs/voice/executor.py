@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Any
 from urllib.parse import quote_plus
 
 from pie.inputs.voice.commands import parse_voice_command
@@ -8,7 +9,7 @@ from pie.inputs.voice.commands import parse_voice_command
 class LegacyRuleExecutor:
     """Phase 0S phrase-to-controller adapter. Parsing is separate from effects."""
 
-    def __init__(self, controller, no_actions: bool = False) -> None:
+    def __init__(self, controller: Any, no_actions: bool = False) -> None:
         self.controller = controller
         self.no_actions = no_actions
 
