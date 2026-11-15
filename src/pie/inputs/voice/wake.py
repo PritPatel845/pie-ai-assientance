@@ -38,6 +38,7 @@ class TextWake:
                 continue
             actual = " ".join(tokens[:count])
             ratio = difflib.SequenceMatcher(None, actual, phrase).ratio()
-            if ratio >= 0.84 and (len(tokens) == count or tokens[count - 1] in {expected[-1], "pie"}):
+            boundary_ok = len(tokens) == count or tokens[count - 1] in {expected[-1], "pie"}
+            if ratio >= 0.84 and boundary_ok:
                 return " ".join(tokens[count:]).strip()
         return None
