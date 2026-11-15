@@ -53,13 +53,12 @@ jobs:
           fi
       - name: Commit verified model asset once
         run: |
-          if git diff --quiet -- assets/hand_landmarker.task && \
-             git diff --cached --quiet -- assets/hand_landmarker.task; then
+          git add assets/hand_landmarker.task
+          if git diff --cached --quiet; then
             echo "Model asset is already committed."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add assets/hand_landmarker.task
           git commit -m "assets: add verified Hand Landmarker model [verified-model]"
           git push origin "HEAD:\${{ github.ref_name }}"
