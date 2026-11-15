@@ -83,11 +83,11 @@ def run_tool_command(
         dry_run = bool(config.tools.dry_run or parsed.dry_run)
         if parsed.dry_run:
             config = replace(config, tools=replace(config.tools, dry_run=True))
-        if may_need_confirmation and not dry_run and not no_voice:
+        if may_need_confirmation and not dry_run and not no_voice and config.voice.enabled:
             voice_module = _VoiceApprovalModule()
             voice_module.start(daemon)
             print("Confirmation required. Say yes or no.")
-        elif may_need_confirmation and no_voice and not dry_run:
+        elif may_need_confirmation and not dry_run and (no_voice or not config.voice.enabled):
             print("Voice approval is disabled; requests will fail closed without UI approval.")
         future = asyncio.run_coroutine_threadsafe(
             tools_module.registry.execute(name, payload, source="text", dry_run=dry_run),
