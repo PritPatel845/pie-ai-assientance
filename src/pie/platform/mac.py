@@ -151,6 +151,12 @@ class MacController:
     def stop_media(self) -> bool:
         return self._osascript('tell application "Music" to pause')
 
+    def show_voice_activation(self, listen_seconds: int) -> bool:
+        seconds = max(5, int(listen_seconds))
+        message = f"Listening for your command for {seconds} seconds."
+        script = f'display notification "{message}" with title "PIE ACTIVE"'
+        return self._osascript(script)
+
     def open_system_settings(self) -> bool:
         return self.open_application("System Settings")
 
