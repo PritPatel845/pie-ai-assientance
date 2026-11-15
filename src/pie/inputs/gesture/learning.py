@@ -5,7 +5,7 @@ import os
 import time
 from collections import deque
 from pathlib import Path
-from typing import Callable, Sequence
+from collections.abc import Callable, Sequence
 
 from pie.inputs.gesture.features import Landmark, normalize_hand
 
