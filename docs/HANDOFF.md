@@ -26,9 +26,15 @@ Branch: phase-0s-implementation. Target Python >=3.12,<3.13 on Apple Silicon mac
 - The target Mac audit has not been run: Apple Silicon architecture, macOS version, Homebrew
   Python 3.12, MediaPipe Tasks imports, Quartz/AppKit, and PyAutoGUI key support remain
   unverified on the actual device.
+- The OpenCV packaging blocker is confirmed from MediaPipe 0.10.35 PyPI metadata: its
+  `Requires-Dist` includes `opencv-contrib-python`, while this project's frozen dependency
+  is `opencv-python==4.11.0.86`. OpenCV's own package guidance says to install only one
+  distribution because both provide the `cv2` namespace. No dependency or frozen contract
+  was changed. The read-only Mac audit now prints both installed distributions and MediaPipe's
+  declared OpenCV requirements, and flags the dual-install case.
 - The offline-first model is now committed at `assets/hand_landmarker.task` and CI verifies
   its exact size and SHA-256 on every test run. See the acceptance ledger below.
-- Linux/Python 3.12 CI is green (205 tests, Ruff, strict mypy, and doctor); this does not
+- Linux/Python 3.12 CI is green (206 tests, Ruff, strict mypy, and doctor); this does not
   establish macOS or camera compatibility.
 - Real camera preview, HUD poses, camera release, Accessibility permission, and safe cursor
   control still require manual checks on the target Mac.
@@ -51,8 +57,9 @@ Branch: phase-0s-implementation. Target Python >=3.12,<3.13 on Apple Silicon mac
 - paths: pie_home, config_path, state_dir, logs_dir, models_dir, learning_dir.
 
 ### Next
-1. Resolve the MediaPipe/OpenCV packaging conflict on the target Mac and record the tested
-   install procedure.
+1. Obtain an approved resolution for the frozen MediaPipe/OpenCV dependency conflict. A
+   contract change may be required; do not install both OpenCV distributions or silently
+   alter the frozen package pin.
 2. Run `scripts/manual_checks/audit_macos.command` on the target Mac.
 3. Run `scripts/manual_checks/phase0s.md` for camera, HUD, permissions, cursor, and cleanup.
 4. Verify `playpause` and Spotify/Music control on the target Mac.
@@ -63,7 +70,7 @@ Branch: phase-0s-implementation. Target Python >=3.12,<3.13 on Apple Silicon mac
 
 ### Automated verification
 
-- GitHub Actions run for code commit `10bcda0091280d30863bdd1ebaf82d42b63e6633`: https://github.com/PritPatel845/pie-ai-assientance/actions/runs/43673193185 (push and pull-request runs both passed).
+- Baseline GitHub Actions run for code commit `c50dfe817eb61261362a33f0127bd5baa8cc9d7a`: https://github.com/PritPatel845/pie-ai-assientance/actions/runs/43673248117 (push passed; PR run also passed). The packaging-audit additions are covered by the next run linked from the branch checks.
 - `pytest -q`: **206 passed**.
 - `ruff check .`: passed.
 - `ruff format --check .`: passed.
