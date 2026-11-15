@@ -1,13 +1,17 @@
 from __future__ import annotations
 
+import importlib
 import time
 from collections.abc import Callable, Sequence\nfrom typing import Any, Protocol
 from pathlib import Path
+from typing import Any, Protocol
 
 from pie.inputs.gesture.engine import ensure_model\nfrom pie.inputs.gesture.features import Landmark
 from pie.inputs.gesture.frame import (
+    Action,
     DoubleClick,
     FrameProcessor,
+    FrameResult,
     KeyAction,
     MouseClick,
     MoveCursor,
@@ -23,7 +27,13 @@ from pie.inputs.gesture.learning import LearningEngine
 from pie.platform.mac import MacController
 
 
-class Capture(Protocol):\n    def isOpened(self) -> bool: ...\n    def read(self) -> tuple[bool, Any]: ...\n    def release(self) -> None: ...\n\n\nclass ActionSink:
+class Capture(Protocol):\n    def isOpened(self) -> bool: ...\n    def read(self) -> tuple[bool, Any]: ...\n    def release(self) -> None: ...\n\n\nclass Capture(Protocol):
+    def isOpened(self) -> bool: ...
+    def read(self) -> tuple[bool, Any]: ...
+    def release(self) -> None: ...
+
+
+class ActionSink:
     """Translate pure FrameProcessor actions into an injectable platform adapter."""
 
     def __init__(
@@ -134,8 +144,8 @@ def run(
     capture_factory: Callable[[int], object] | None = None,
 ) -> None:
     try:
-        import cv2
-        import mediapipe as mp
+        cv2 = importlib.import_module("cv2")
+        mp = importlib.import_module("mediapipe")
     except ImportError as exc:
         raise RuntimeError("Install Pie with the [mac] extra to run camera tracking") from exc
 
