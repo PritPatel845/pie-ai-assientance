@@ -154,7 +154,11 @@ class EventBus:
                 _LOG.exception("event handler %s failed for topic %s", subscriber.name, event.topic)
                 self.publish(
                     "system.error",
-                    {"where": f"bus:{subscriber.name}", "error": type(exc).__name__, "detail": str(exc)},
+                    {
+                        "where": f"bus:{subscriber.name}",
+                        "error": type(exc).__name__,
+                        "detail": str(exc),
+                    },
                     source="event_bus",
                 )
             finally:
