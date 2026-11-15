@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Local-first macOS hand-gesture and voice assistant"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
-dependencies = ["numpy==2.2.6"]
+dependencies = ["numpy==2.2.6", "jsonschema==4.26.0"]
 
 [project.optional-dependencies]
 mac = ["opencv-contrib-python==4.11.0.86", "mediapipe==0.10.35", "pyautogui==0.9.54", "pyobjc-framework-Quartz==11.1", "pyobjc-framework-Cocoa==11.1", "sounddevice==0.5.6", "mlx-whisper==0.4.3"]
