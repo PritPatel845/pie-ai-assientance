@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -44,7 +45,7 @@ def run_tool_command(
 ) -> int:
     config = load_config(config_path)
     if no_actions:
-        config.tools.dry_run = True
+        config = replace(config, tools=replace(config.tools, dry_run=True))
     tools_module = ToolsModule()
     daemon = Daemon(config)
     daemon.register_module(tools_module)
@@ -81,7 +82,7 @@ def run_tool_command(
         )
         dry_run = bool(config.tools.dry_run or parsed.dry_run)
         if parsed.dry_run:
-            config.tools.dry_run = True
+            config = replace(config, tools=replace(config.tools, dry_run=True))
         if may_need_confirmation and not dry_run and not no_voice:
             voice_module = _VoiceApprovalModule()
             voice_module.start(daemon)
