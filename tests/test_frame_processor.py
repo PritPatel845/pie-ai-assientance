@@ -19,14 +19,14 @@ class P:
     z: float = 0.0
 
 
-def hand(*, extended=(True, True, True, True), thumb_y=0.3, z=0.0, shift=0.0):
+def hand(*, extended=(True, True, True, True), thumb_x=0.35, thumb_y=0.3, z=0.0, shift=0.0):
     points = [P(0.5 + shift, 0.7, z) for _ in range(21)]
     points[0] = P(0.5 + shift, 0.8, z)
     points[9] = P(0.5 + shift, 0.5, z)
     for (tip, pip), is_up in zip(((8, 6), (12, 10), (16, 14), (20, 18)), extended, strict=False):
         points[pip] = P(0.5 + shift, 0.6, z)
         points[tip] = P(0.5 + shift, 0.3 if is_up else 0.68, z)
-    points[4] = P(0.35 + shift, thumb_y, z)
+    points[4] = P(thumb_x + shift, thumb_y, z)
     points[8] = P(0.5 + shift, 0.3 if extended[0] else 0.68, z)
     return points
 
@@ -108,3 +108,95 @@ def test_mode_switch_resets_previous_desktop_scroll_position() -> None:
     two_finger[8] = P(0.9, 0.3)
     result = processor.process([two_finger], 1.2)
     assert not any(type(action).__name__ == "Scroll" for action in result.actions)
+
+
+def arm(processor: FrameProcessor, palm, start: float = 0.0) -> None:
+    processor.process([palm], start)
+    processor.process([palm], start + 0.01)
+    assert processor.armed
+
+
+def test_desktop_pinch_double_click_debounce() -> None:
+    from pie.inputs.gesture.frame import DoubleClick
+
+    processor = FrameProcessor(arm_hold_seconds=0)
+    arm(processor, hand())
+    pinch = hand(extended=(True, False, False, False), thumb_x=0.38)
+    assert DoubleClick() in processor.process([pinch], 0.1).actions
+    processor.process([hand()], 0.2)
+    assert DoubleClick() not in processor.process([pinch], 0.6).actions
+    processor.process([hand()], 0.7)
+    assert DoubleClick() in processor.process([pinch], 0.9).actions
+
+
+def test_desktop_three_finger_rising_edge_double_clicks() -> None:
+    from pie.inputs.gesture.frame import DoubleClick
+
+    processor = FrameProcessor(arm_hold_seconds=0)
+    arm(processor, hand())
+    three = hand(extended=(True, True, True, False))
+    assert DoubleClick() in processor.process([three], 0.1).actions
+    assert DoubleClick() not in processor.process([three], 0.2).actions
+
+
+def test_desktop_open_palm_depth_triggers_mute_once() -> None:
+    from pie.inputs.gesture.frame import Mute
+
+    processor = FrameProcessor(arm_hold_seconds=0)
+    deep_palm = hand(z=-0.2)
+    processor.process([deep_palm], 0.0)
+    result = processor.process([deep_palm], 0.01)
+    assert Mute() in result.actions
+    assert Mute() not in processor.process([deep_palm], 0.02).actions
+
+
+def test_desktop_fist_runs_voice_command_on_rising_edge() -> None:
+    from pie.inputs.gesture.frame import RunVoiceCommand
+
+    processor = FrameProcessor(arm_hold_seconds=0)
+    arm(processor, hand())
+    fist = hand(extended=(False, False, False, False), thumb_y=0.75)
+    assert RunVoiceCommand() in processor.process([fist], 0.1).actions
+    assert RunVoiceCommand() not in processor.process([fist], 0.2).actions
+
+
+def test_desktop_thumb_gestures_emit_media_actions() -> None:
+    from pie.inputs.gesture.frame import PlayMedia, StopMedia
+
+    processor = FrameProcessor(arm_hold_seconds=0)
+    arm(processor, hand())
+    thumb_up = hand(extended=(False, False, False, False), thumb_y=0.3)
+    thumb_down = hand(extended=(False, False, False, False), thumb_y=1.0)
+    assert PlayMedia() in processor.process([thumb_up], 0.1).actions
+    processor.process([hand()], 0.2)
+    assert StopMedia() in processor.process([thumb_down], 0.3).actions
+
+
+def test_two_finger_scroll_threshold_and_direction() -> None:
+    from pie.inputs.gesture.frame import Scroll
+
+    processor = FrameProcessor(arm_hold_seconds=0)
+    arm(processor, hand())
+    two = hand(extended=(True, True, False, False))
+    processor.process([two], 0.1)
+    right = hand(extended=(True, True, False, False), shift=0.09)
+    assert Scroll(-5) in processor.process([right], 0.2).actions
+    left = hand(extended=(True, True, False, False), shift=0.0)
+    assert Scroll(5) in processor.process([left], 0.3).actions
+
+
+def test_volume_filter_emits_on_two_point_change_or_elapsed_interval() -> None:
+    from pie.inputs.gesture.frame import SetVolume
+
+    processor = FrameProcessor(arm_hold_seconds=0)
+    palm = hand()
+    processor.process([palm], 0.0)
+    first = processor.process([palm], 0.01)
+    assert SetVolume(72) in first.actions
+    one_step = hand(z=0.005)
+    assert not any(
+        isinstance(action, SetVolume)
+        for action in processor.process([one_step], 0.1).actions
+    )
+    elapsed = processor.process([one_step], 0.22)
+    assert SetVolume(71) in elapsed.actions
