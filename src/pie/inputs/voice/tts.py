@@ -6,7 +6,7 @@ import re
 import subprocess
 import threading
 from dataclasses import dataclass
-from typing import Any, Callable
+from collections.abc import Callable\nfrom typing import Any
 
 from pie.events import EventBus
 
