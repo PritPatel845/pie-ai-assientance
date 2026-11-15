@@ -71,10 +71,7 @@ def test_publish_from_multiple_threads_delivers_each_event() -> None:
                 )
 
         bus.subscribe("*", collect, name="threaded")
-        threads = [
-            threading.Thread(target=publish_batch, args=(base,))
-            for base in range(8)
-        ]
+        threads = [threading.Thread(target=publish_batch, args=(base,)) for base in range(8)]
         for thread in threads:
             thread.start()
         for thread in threads:
@@ -215,10 +212,6 @@ def test_voice_event_adapter_publishes_contract_payloads() -> None:
             "input.voice.listening",
             "input.voice.transcript",
         ]
-        assert received[-1].payload == {
-            "text": "open Safari",
-            "final": True,
-            "lang": "en",
-        }
+        assert received[-1].payload == {"text": "open Safari", "final": True, "lang": "en"}
 
     asyncio.run(scenario())
