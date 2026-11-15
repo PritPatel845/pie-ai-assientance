@@ -159,6 +159,14 @@ class ToolRegistry:
                 audit_path=self._setting("safety", "audit_path", "~/.pie/logs/audit.jsonl"),
             )
             tier = max(tier, path_tier)
+            for key, property_schema in spec.parameters.get("properties", {}).items():
+                if (
+                    isinstance(property_schema, dict)
+                    and property_schema.get("x-confirm-if-exists") is True
+                    and isinstance(safe_args.get(key), str)
+                    and Path(str(safe_args[key])).expanduser().exists()
+                ):
+                    tier = max(tier, Tier.CONFIRM)
         except (ValueError, TypeError) as exc:
             result = fail(str(exc))
             self._audit(
