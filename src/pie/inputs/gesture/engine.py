@@ -71,7 +71,8 @@ def ensure_model(
         except Exception as exc:
             errors.append(f"{url}: {type(exc).__name__}: {exc}")
             temporary.unlink(missing_ok=True)
-    raise RuntimeError("Unable to download a verified Hand Landmarker model: " + " | ".join(errors))
+    details = " | ".join(errors)
+    raise RuntimeError(f"Unable to download a verified Hand Landmarker model: {details}")
 
 
 def sha256_file(path: Path) -> str:
