@@ -26,6 +26,8 @@ def build_mac_tools(controller: MacController) -> list[FunctionTool]:
 
     async def open_app(args: Mapping[str, Any], ctx: ToolContext) -> ToolResult:
         name = str(args["name"]).strip()
+        if any(ord(char) < 32 or ord(char) == 127 for char in name):
+            return fail("control characters are not allowed in app names")
         if "://" in name or name.startswith(("/", "~", ".")):
             return fail("use mac.open_url or mac.open_path for URLs and paths")
         if ctx.dry_run:
