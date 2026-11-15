@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
+import pytest
 
 from pie.inputs.voice.vad import EnergyVad
 
@@ -75,7 +76,5 @@ def test_preroll_is_included() -> None:
 
 
 def test_invalid_vad_parameters_are_rejected() -> None:
-    import pytest
-
     with pytest.raises(ValueError):
         EnergyVad(threshold=0)
