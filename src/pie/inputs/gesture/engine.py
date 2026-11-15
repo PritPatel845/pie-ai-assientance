@@ -8,7 +8,8 @@ MODEL_URL = (
     "https://storage.googleapis.com/mediapipe-models/hand_landmarker/"
     "hand_landmarker/float16/1/hand_landmarker.task"
 )
-MIN_MODEL_BYTES = 1_000_000
+MODEL_BYTES = 7_819_105
+MODEL_SHA256 = "fbc2a30080c3c557093b5ddfc334698132eb341044ccee322ccf8bcf3607cde1"
 
 
 def resolve_model_path(
@@ -25,8 +26,9 @@ def resolve_model_path(
         )
     )
     for candidate in candidates:
-        if candidate.is_file() and candidate.stat().st_size > MIN_MODEL_BYTES:
-            return candidate
+        if candidate.is_file() and candidate.stat().st_size == MODEL_BYTES:
+            if sha256_file(candidate) == MODEL_SHA256:
+                return candidate
     return None
 
 
@@ -42,19 +44,26 @@ def ensure_model(
         return found
     if not download:
         raise FileNotFoundError(
-            "Hand model not found. Run with explicit --download-model to fetch it."
+            "Hand model not found or failed integrity validation. Run with explicit --download-model to fetch it."
         )
     target = Path.home() / ".pie" / "models" / "hand_landmarker.task"
     target.parent.mkdir(parents=True, exist_ok=True)
     temporary = target.with_suffix(".task.tmp")
     request = urllib.request.Request(MODEL_URL, headers={"User-Agent": "PieAssistant/0.1"})
-    with urllib.request.urlopen(request, timeout=timeout) as response, temporary.open("wb") as out:
-        while chunk := response.read(1024 * 1024):
-            out.write(chunk)
-    if temporary.stat().st_size <= MIN_MODEL_BYTES:
+    try:
+        with (
+            urllib.request.urlopen(request, timeout=timeout) as response,
+            temporary.open("wb") as out,
+        ):
+            while chunk := response.read(1024 * 1024):
+                out.write(chunk)
+        if temporary.stat().st_size != MODEL_BYTES:
+            raise ValueError("Downloaded hand model has an unexpected byte size")
+        if sha256_file(temporary) != MODEL_SHA256:
+            raise ValueError("Downloaded hand model SHA-256 does not match the pinned model")
+        temporary.replace(target)
+    finally:
         temporary.unlink(missing_ok=True)
-        raise ValueError("Downloaded hand model is unexpectedly small")
-    temporary.replace(target)
     return target
 
 
