@@ -146,9 +146,16 @@ class LocalProvider:
                 self.name, "no installed local model within configured budget"
             )
         model_size = next((size for name, size in self._models if name == model), 0)
-        available = psutil.virtual_memory().available
-        if available < model_size + 2 * 1024**3:
-            raise ProviderUnavailable(self.name, "not enough free memory")
+        # Ollama owns model loading and memory management. A local estimate based
+        # on the model's on-disk size can reject valid Ollama inference on macOS,
+        # where compressed/inactive memory accounting differs from psutil's
+        # available-memory estimate. Let Ollama return the authoritative error.
+        # Keep the conservative preflight for an externally hosted MLX server.
+        is_ollama = self.base_url == "http://127.0.0.1:11434/v1"
+        if not is_ollama:
+            available = psutil.virtual_memory().available
+            if available < model_size + 2 * 1024**3:
+                raise ProviderUnavailable(self.name, "not enough free memory")
         payload: dict[str, Any] = {
             "model": model,
             "messages": [
