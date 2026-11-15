@@ -1,4 +1,4 @@
-"""Game gesture precedence follows Phase 0S section 3.2."""
+"""Game gesture precedence follows Phase 0S §3.2 (PDF p. 17)."""
 
 from __future__ import annotations
 
