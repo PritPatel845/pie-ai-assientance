@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import numpy as np
 import pytest
+
+import numpy as np
 
 from pie.inputs.voice.vad import EnergyVad
 
