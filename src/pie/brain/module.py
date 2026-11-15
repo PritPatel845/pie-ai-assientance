@@ -82,6 +82,7 @@ class BrainModule:
             self._unsubscribe()
             self._unsubscribe = None
         if self._daemon is not None and self._daemon.loop is not None:
+
             async def close_providers() -> None:
                 for provider in self._providers.values():
                     client = getattr(provider, "client", None)
