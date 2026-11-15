@@ -93,6 +93,7 @@ def test_vendor_http_date_retry_after_is_parsed() -> None:
 
     assert 0 < caught.value.retry_after <= 30
 
+
 def test_anthropic_adapter_round_trips_tool_use_and_tool_result() -> None:
     messages = [
         Message("system", "system instructions"),
