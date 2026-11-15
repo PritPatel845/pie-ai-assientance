@@ -2,16 +2,57 @@ from __future__ import annotations
 
 import argparse
 import importlib
+import json
 import platform
 import sys
+from dataclasses import asdict
 from pathlib import Path
+from typing import Any
 
 from pie import __version__
-from pie.config import load_config
+from pie.config import Config, load_config
+from pie.core.daemon import Daemon, Module
+from pie.events import Event, EventBus
 from pie.inputs.gesture.engine import resolve_model_path
 from pie.inputs.gesture.runner import run
 from pie.logging_setup import configure_logging
 from pie.paths import learning_dir, logs_dir, models_dir, pie_home, state_dir
+
+
+class GestureModule:
+    name = "gesture"
+
+    def start(self, daemon: Daemon) -> None:
+        self.daemon = daemon
+
+    def stop(self) -> None:
+        return None
+
+
+class VoiceModule:
+    name = "voice"
+
+    def start(self, daemon: Daemon) -> None:
+        self.bus = daemon.bus
+
+    def stop(self) -> None:
+        return None
+
+
+def _truncate(value: Any) -> Any:
+    if isinstance(value, str):
+        return value if len(value) <= 200 else value[:197] + "..."
+    if isinstance(value, dict):
+        return {key: _truncate(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_truncate(item) for item in value]
+    if isinstance(value, tuple):
+        return [_truncate(item) for item in value]
+    return value
+
+
+def _print_event(event: Event) -> None:
+    print(json.dumps(_truncate(asdict(event)), ensure_ascii=False, default=str), flush=True)
 
 
 def doctor() -> int:
@@ -38,12 +79,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="pie", description="Pie hand-gesture and voice assistant")
     parser.add_argument("--version", action="version", version=f"Pie {__version__}")
     parser.add_argument("--camera", type=int, default=None)
-    parser.add_argument(
-        "--no-actions", action="store_true", help="Preview and classify without OS actions"
-    )
-    parser.add_argument(
-        "--game-profile", choices=("asphalt", "temple-run", "counter-strike"), default="asphalt"
-    )
+    parser.add_argument("--no-actions", action="store_true",
+                        help="Preview and classify without OS actions")
+    parser.add_argument("--game-profile",
+                        choices=("asphalt", "temple-run", "counter-strike"), default="asphalt")
     parser.add_argument("--steer-sensitivity", type=float, default=None)
     voice = parser.add_mutually_exclusive_group()
     voice.add_argument("--voice", dest="voice", action="store_true", default=None)
@@ -53,8 +92,24 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--voice-listen-seconds", type=int, default=None)
     parser.add_argument("--config", type=Path)
     parser.add_argument("--download-model", action="store_true")
-    parser.add_argument("command", nargs="?", choices=("doctor",))
+    parser.add_argument("--print-events", action="store_true",
+                        help="Print each event as one JSON line")
+    parser.add_argument("command", nargs="?", choices=("run", "doctor", "config"), default="run")
+    parser.add_argument("config_action", nargs="?", choices=("show",))
     return parser
+
+
+def _effective_config(args: argparse.Namespace) -> Config:
+    overrides: dict[str, dict[str, Any]] = {"gesture": {}, "voice": {}}
+    if args.camera is not None:
+        overrides["gesture"]["camera"] = args.camera
+    if args.steer_sensitivity is not None:
+        overrides["gesture"]["steer_sensitivity"] = args.steer_sensitivity
+    if args.voice is not None:
+        overrides["voice"]["enabled"] = args.voice
+    if args.voice_listen_seconds is not None:
+        overrides["voice"]["listen_seconds"] = args.voice_listen_seconds
+    return load_config(args.config, cli_overrides=overrides)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -63,38 +118,46 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "doctor":
         return doctor()
     try:
-        config = load_config(args.config)
-        listen_seconds = (
-            args.voice_listen_seconds
-            if args.voice_listen_seconds is not None
-            else config.voice.listen_seconds
-        )
-        if listen_seconds < 5:
-            parser.error("--voice-listen-seconds must be at least 5")
-        voice_enabled = config.voice.enabled if args.voice is None else args.voice
-        configure_logging(config.app.log_level)
+        config = _effective_config(args)
+        if args.command == "config":
+            if args.config_action != "show":
+                parser.error("use: pie config show")
+            print(json.dumps(asdict(config), indent=2, ensure_ascii=False))
+            return 0
         if args.download_model:
             from pie.inputs.gesture.engine import ensure_model
 
             model_file = ensure_model(config.gesture.model_path or None, download=True)
             print(f"Hand model ready: {model_file}")
             return 0
-        if voice_enabled:
-            print("Voice capture arrives in Phase 2A; phrase parsing is available now.")
-        run(
-            camera=args.camera if args.camera is not None else config.gesture.camera,
-            no_actions=args.no_actions,
-            game_profile=args.game_profile,
-            steer_sensitivity=(
-                args.steer_sensitivity
-                if args.steer_sensitivity is not None
-                else config.gesture.steer_sensitivity
-            ),
-            arm_hold_seconds=config.gesture.arm_hold_seconds,
-            model_path=config.gesture.model_path,
-            preview=config.gesture.preview,
-            learning_dir=args.learning_dir,
-        )
+        configure_logging(config.app.log_level)
+        daemon = Daemon(config)
+        if not args.voice_background:
+            daemon.register_module(GestureModule())
+        if config.voice.enabled:
+            daemon.register_module(VoiceModule())
+
+        def main_thread() -> None:
+            if args.print_events and daemon.bus is not None:
+                daemon.bus.subscribe("*", _print_event, name="stdout")
+            if args.voice_background:
+                daemon.stop_flag.wait()
+                return
+            run(
+                camera=config.gesture.camera,
+                no_actions=args.no_actions,
+                game_profile=args.game_profile,
+                steer_sensitivity=config.gesture.steer_sensitivity,
+                arm_hold_seconds=config.gesture.arm_hold_seconds,
+                model_path=config.gesture.model_path,
+                preview=config.gesture.preview,
+                learning_dir=args.learning_dir,
+                bus=daemon.bus,
+                stop=daemon.stop_flag,
+                state_hz=config.gesture.state_hz,
+            )
+
+        daemon.run_main(main_thread)
         return 0
     except (OSError, RuntimeError, ValueError) as exc:
         parser.error(str(exc))
