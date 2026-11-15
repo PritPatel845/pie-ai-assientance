@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Any, Literal, Protocol, Sequence
+from collections.abc import Sequence
+from dataclasses import dataclass
+from typing import Any, Literal, Protocol
 
 
 @dataclass(frozen=True, slots=True)
