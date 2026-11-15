@@ -255,3 +255,46 @@ this log does not itself declare Phase 0S accepted. Review the complete Phase 0S
 acceptance requirements against the implementation and this evidence before closing the
 gate. Do not merge PR #2, create `pie-phase-0-done`, or start Phase 1 until that review
 explicitly confirms every acceptance criterion.
+
+## Phase 0S final verification — 2026-11-15
+
+- Final implementation commit: 9089a89ec397aaaa66c533a361506c3799a1f2a5.
+- The synthetic test hand now supplies a distinct thumb-base landmark; this fixes the false four-finger classification in the regression fixtures. The FPS regression now asserts the forward-key press on the arming frame, where the state machine emits it.
+- GitHub Actions push run https://github.com/PritPatel845/pie-ai-assientance/actions/runs/43678871735 and PR run https://github.com/PritPatel845/pie-ai-assientance/actions/runs/43678875609 both completed successfully for this exact commit.
+- CI: ruff check ., ruff format --check ., pytest -q (212 passed), mypy src/pie, model downloader verification, and python -m pie doctor all passed. The push workflow's model-asset job also passed.
+- Target Mac evidence remains as recorded above: arm64/macOS 27.2.1/Python 3.12.14, OpenCV contrib 4.11.0.86 only, MediaPipe Tasks API and model hash verified, pie doctor passed, and 207 tests passed in the earlier local run before the five new regression tests. The latest 212-test result is CI evidence, not a new local Mac test run.
+- Owner-reported manual checks: camera preview and gesture poses work; q closes preview; cursor control works perfectly; screenshot creation and Preview lookup work; media adapter play/stop calls return success; safe exit/cleanup was reported working. These are manual reports, not CI tests.
+- PR #2's push and pull-request checks are green at this commit. PR #2 remains open pending release finalization.
+- The Phase 0S implementation and automated acceptance checks are complete. Do not claim a Git tag exists unless independently verified. The Phase 1 specification requires the pie-phase-0-done tag and a green test suite as its gate.
+
+## Phase 1 kickoff plan — 2026-11-15 (Path B / Phase 0S)
+
+Phase 1 scope is daemon, asyncio event bus, full config, and event publication only. The Phase 0S FrameProcessor.process loop body is already extracted; publish events around it from the runner and test event derivation directly through fakes. Preserve all existing action execution paths; do not move actions onto events.
+
+### Allowed files
+
+Create: src/pie/events.py, src/pie/core/daemon.py, src/pie/core/state.py, src/pie/inputs/text.py, config/pie.default.toml, tests/test_events.py, tests/test_config.py, tests/test_daemon.py, tests/test_gesture_events.py, and scripts/manual_checks/phase1.md.
+
+Modify only: src/pie/config.py, src/pie/__main__.py, src/pie/logging_setup.py, src/pie/inputs/gesture/runner.py, src/pie/inputs/voice/pipeline.py, pyproject.toml, and docs/ARCHITECTURE.md. No other files without an approved scope change.
+
+### Implementation sequence
+
+1. Read and preserve docs/CONTRACTS.md; implement the thread-safe, non-blocking asyncio EventBus with per-subscriber FIFO queues, overflow handling, pattern subscriptions, exception isolation, and wait_for cleanup.
+2. Add StopFlag and immutable thread-safe RuntimeState snapshots.
+3. Add the daemon-owned event loop thread, ordered module startup, reverse bounded shutdown, rollback on startup failure, and main-thread camera execution.
+4. Complete frozen config dataclasses, packaged default TOML, typed environment parsing, strict unknown-key errors, and pie config show.
+5. Publish throttled gesture state, rising-edge gesture events, and mode changes from the runner without changing action decisions or moving actions onto the bus.
+6. Publish voice wake/listening/transcript events after existing wake gating; preserve existing command execution.
+7. Add pie run --print-events; preserve existing CLI flags and no-bus behaviour.
+8. Add hardware-free concurrency, lifecycle, config, and gesture-event tests; write the Phase 1 manual check and architecture diagram.
+
+### Phase 1 acceptance gates
+
+- All Phase 0S tests remain unchanged and pass; new pytest, Ruff, and mypy checks pass.
+- No-bus behaviour remains identical to Phase 0S.
+- Idle CPU with no hand in view is measured and is not higher than Phase 0S.
+- docs/ARCHITECTURE.md documents threads, loop, bus, and modules.
+- Handoff records public symbols, emitted topics, and how to add a Module.
+- Manual check: pie run --print-events; verify gesture state near 10 Hz, edge events, voice events and existing command execution; Ctrl+C exits in under 3 seconds and releases camera.
+
+Forbidden in Phase 1: moving actions onto events, tools/brains/UI, new runtime dependencies, or changing topic names/payload keys in docs/CONTRACTS.md.
