@@ -314,5 +314,5 @@ class FrameProcessor:
             current.add("thumb_up")
         if is_thumb_down(hand):
             current.add("thumb_down")
-        self._previous = current
+        self._previous = current if self.armed and self.mode == "desktop" else set()
         return FrameResult(gesture, depth, volume, self.armed, actions)
