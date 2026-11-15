@@ -64,9 +64,8 @@ class VoiceController(_VoiceController):
         self._capture_thread: threading.Thread | None = None
         self._stt_thread: threading.Thread | None = None
         self._audio_queue: queue.Queue[AudioBlock] = queue.Queue(maxsize=200)
-        self._stt_queue: queue.Queue[Segment | None] = queue.Queue(maxsize=20)
+        self._stt_queue: queue.Queue[Segment | None] = queue.Queue()
         self._dropped_blocks = 0
-        self._dropped_segments = 0
         self._speaker = (
             Speaker(
                 bus,
@@ -208,6 +207,7 @@ class VoiceController(_VoiceController):
             )
             return
         self._last_stt_activity = self._clock()
+        _LOG.debug("Voice transcript: %s", raw)
         rms = float(np.sqrt(np.mean(np.square(segment.audio, dtype=np.float64))))
         if is_hallucination(raw, rms=rms, threshold=self.config.vad_threshold):
             return
@@ -242,18 +242,7 @@ class VoiceController(_VoiceController):
                 self._mic_permission_missing.set()
                 continue
             for segment in self._vad.feed(block):
-                try:
-                    self._stt_queue.put_nowait(segment)
-                except queue.Full:
-                    try:
-                        self._stt_queue.get_nowait()
-                    except queue.Empty:
-                        pass
-                    self._dropped_segments += 1
-                    try:
-                        self._stt_queue.put_nowait(segment)
-                    except queue.Full:
-                        self._dropped_segments += 1
+                self._stt_queue.put_nowait(segment)
             if self._dropped_blocks and self._dropped_blocks % 50 == 0:
                 _LOG.warning("Voice input queue dropped %d audio blocks", self._dropped_blocks)
 
@@ -273,8 +262,6 @@ class VoiceController(_VoiceController):
                 return
             self._handle_segment(segment)
             self._last_stt_activity = self._clock()
-            if self._dropped_segments and self._dropped_segments % 10 == 0:
-                _LOG.warning("Voice STT queue dropped %d utterances", self._dropped_segments)
 
     def _capture(self) -> None:
         retry_window = 0.0
@@ -369,14 +356,7 @@ class VoiceController(_VoiceController):
             self._thread.join(timeout=2)
             self._thread = None
         if self._stt_thread is not None:
-            try:
-                self._stt_queue.put_nowait(None)
-            except queue.Full:
-                try:
-                    self._stt_queue.get_nowait()
-                except queue.Empty:
-                    pass
-                self._stt_queue.put_nowait(None)
+            self._stt_queue.put_nowait(None)
             self._stt_thread.join(timeout=2)
             self._stt_thread = None
         if self._transcriber is not None:
