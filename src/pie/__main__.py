@@ -45,7 +45,7 @@ class VoiceModule:
             no_actions=self.no_actions,
             bus=daemon.bus,
             config=daemon.config.voice,
-            brain_enabled=daemon.config.brain.enabled,
+            brain_enabled=True,
         )
         self.controller.start()
 
