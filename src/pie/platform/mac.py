@@ -247,7 +247,7 @@ class MacController:
 
     def screenshot(self) -> bool:
         filename = (
-            Path.home() / "Desktop" / f"Pie Screenshot {datetime.now():%Y-%m-%d %H-%M-%S}.png"
+            Path.home() / "Desktop" / f"Pie Screenshot {datetime.now():%Y-%m-%d %H-%M-%S-%f}.png"
         )
         return self.screenshot_to(filename)
 
