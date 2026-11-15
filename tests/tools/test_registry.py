@@ -403,3 +403,32 @@ def test_relative_filesystem_paths_resolve_inside_sandbox(tmp_path: Path) -> Non
         gate.stop()
 
     asyncio.run(scenario())
+
+
+
+def test_model_tool_schemas_hide_internal_path_policy_extensions(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        registry, gate, _ = _registry(tmp_path)
+        schema = {
+            "type": "object",
+            "properties": {
+                "path": {
+                    "type": "string",
+                    "x-path": True,
+                    "x-confirm-outside-sandbox": True,
+                }
+            },
+            "required": ["path"],
+            "additionalProperties": False,
+        }
+        registry.register(_tool("fs.policy", schema=schema))
+        public_spec = registry.specs_for_model()[0]
+        assert public_spec.parameters["properties"]["path"] == {"type": "string"}
+        assert registry.get("fs.policy").spec.parameters["properties"]["path"] == {
+            "type": "string",
+            "x-path": True,
+            "x-confirm-outside-sandbox": True,
+        }
+        gate.stop()
+
+    asyncio.run(scenario())
