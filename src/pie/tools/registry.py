@@ -365,14 +365,18 @@ class ToolRegistry:
             raise
         except Exception as exc:
             clear_confirmation_state()
-            result = fail(f"{type(exc).__name__}: {exc}")
+            result = fail(f"tool raised {type(exc).__name__}")
 
         clear_confirmation_state()
         limit = int(self._setting("tools", "result_max_chars", 20000))
         if isinstance(result.output, str) and len(result.output) > limit:
             result.output = result.output[: max(0, limit - 11)] + "[truncated]"
         duration = max(0.0, self.clock() - started)
-        summary = result.output if isinstance(result.output, str) else result.error or "completed"
+        summary = (
+            f"text result ({len(result.output)} characters)"
+            if isinstance(result.output, str)
+            else result.error or "completed"
+        )
         self._publish(
             "tool.finished",
             {
