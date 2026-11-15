@@ -47,7 +47,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--steer-sensitivity", type=float, default=None)
     voice = parser.add_mutually_exclusive_group()
     voice.add_argument("--voice", dest="voice", action="store_true", default=None)
-    voice.add_argument("--no-voice", dest="voice", action="store_false")
+    voice.add_argument("--no-voice", dest="voice", action="store_false", default=None)
     parser.add_argument("--voice-background", action="store_true")
     parser.add_argument("--learning-dir", type=Path)
     parser.add_argument("--voice-listen-seconds", type=int, default=None)
