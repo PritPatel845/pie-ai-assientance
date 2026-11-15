@@ -86,7 +86,7 @@ def test_quota_fallback_event_order(tmp_path: Path) -> None:
             "brain.request",
             "brain.response",
         )
-        for topic in expected_topics:
+        for topic in dict.fromkeys(expected_topics):
             bus.subscribe(topic, collect, name=f"fallback-{topic}")
         providers = {
             "anthropic": EventProvider(
