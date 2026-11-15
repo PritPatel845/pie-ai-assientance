@@ -91,3 +91,18 @@ def test_media_commands_fall_back_when_running_player_script_fails() -> None:
     controller = MacController(runner=fake, media_key=lambda: media_keys.append("playpause"))
     assert controller.stop_media()
     assert media_keys == ["playpause"]
+
+
+def test_screenshot_uses_macos_system_binary() -> None:
+    calls = []
+
+    def fake(argv, **kwargs):
+        calls.append((argv, kwargs))
+        return subprocess.CompletedProcess(argv, 0, stdout="", stderr="")
+
+    controller = MacController(runner=fake)
+    assert controller.screenshot()
+    assert calls[0][0][0:2] == ["/usr/sbin/screencapture", "-x"]
+    assert calls[0][0][2].endswith(".png")
+    assert "/Desktop/Pie Screenshot " in calls[0][0][2]
+    assert calls[0][1]["shell"] is False
