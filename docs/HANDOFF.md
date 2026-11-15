@@ -157,3 +157,33 @@ The parser checks exact phrases first, then volume patterns, search patterns, th
 - `scripts/manual_checks/audit_macos.command` and `scripts/manual_checks/phase0s.md` have not been run on the target Mac. Camera preview, HUD poses, camera release, Accessibility permission, and safe cursor/pinch behaviour remain unverified.
 - macOS-specific media-key behaviour and app automation have not been verified on the target Mac. `play_media()`/`stop_media()` now target an already-running Spotify or Music process via AppleScript and fall back to PyAutoGUI's `playpause` key; CI tests both routing and fallback. The actual key's availability and behaviour still require target-Mac verification.
 - Phase 0S is **not accepted**. Do not create `pie-phase-0-done` or begin Phase 1 until the model and Mac/manual acceptance gates are satisfied.
+
+
+## Phase 0S dependency contract change — 2026-11-15
+
+The project owner explicitly approved a narrowly scoped change: replace
+`opencv-python==4.11.0.86` with `opencv-contrib-python==4.11.0.86` in the `[mac]`
+optional extra. All other dependency pins, including `mediapipe==0.10.35`, remain
+unchanged. The approval, rationale, explicit non-changes, and acceptance tests are recorded
+in `docs/CONTRACT_CHANGE_REQUEST.md`.
+
+Implemented on `phase-0s-implementation`:
+- `pyproject.toml` now selects only `opencv-contrib-python==4.11.0.86` for the macOS extra.
+- README and the Phase 0S manual checklist describe the approved dependency and install path.
+- The read-only macOS audit checks the exact contrib pin and flags an accidental additional
+  `opencv-python` distribution.
+- No Phase 0S contract sections 3–8, runtime code, or other dependency pins were changed.
+
+External wheel metadata review:
+- MediaPipe 0.10.35 has a macOS 11+ ARM64 wheel.
+- OpenCV contrib 4.11.0.86 has a macOS 13+ ARM64 abi3 wheel; the target reports macOS
+  27.2.1 and CPython 3.12.14, so the published wheel tags are compatible.
+- This metadata review does not establish successful installation or runtime operation.
+
+### Target Mac verification still required
+
+On the user's Mac, update the checkout to this branch commit, then install the macOS extra
+in the existing Python 3.12 virtual environment. Verify `pip check`, the exact installed
+OpenCV distribution/version, imports for cv2/MediaPipe Tasks/PyAutoGUI/Quartz/AppKit, and
+the read-only audit. Only then proceed to camera and hardware checks. Phase 0S remains
+unaccepted until all manual checklist items pass.
