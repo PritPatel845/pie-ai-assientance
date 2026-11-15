@@ -40,6 +40,10 @@ class Capture(Protocol):
 
 
 
+class StopSignal(Protocol):
+    def is_set(self) -> bool: ...
+
+
 class GestureEventTracker:
     """Pure rising-edge/debounce tracker for canonical gesture event names."""
 
@@ -185,7 +189,7 @@ def run(
     learning_dir: Path | None = None,
     capture_factory: Callable[[int], Capture] | None = None,
     bus: EventBus | None = None,
-    stop: Any | None = None,
+    stop: StopSignal | None = None,
     state_hz: int = 10,
 ) -> None:
     try:
@@ -242,8 +246,12 @@ def run(
                 frame_result = processor.process(hands)
                 if bus is not None:
                     for name in gesture_events.update(hands, time.monotonic()):
+                        hand_label = "unknown"
+                        handedness = getattr(result, "handedness", None)
+                        if handedness and handedness[0]:
+                            hand_label = str(handedness[0][0].category_name).lower()
                         bus.publish("input.gesture.event",
-                                    {"name": name, "hand": "unknown", "confidence": 1.0},
+                                    {"name": name, "hand": hand_label, "confidence": 1.0},
                                     source="gesture")
                 elif not hands:
                     gesture_events.update((), time.monotonic())
