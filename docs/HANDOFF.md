@@ -70,7 +70,7 @@ Branch: phase-0s-implementation. Target Python >=3.12,<3.13 on Apple Silicon mac
 
 ### Automated verification
 
-- Baseline GitHub Actions run for code commit `c50dfe817eb61261362a33f0127bd5baa8cc9d7a`: https://github.com/PritPatel845/pie-ai-assientance/actions/runs/43673248117 (push passed; PR run also passed). The packaging-audit additions are covered by the next run linked from the branch checks.
+- Latest GitHub Actions runs for code commit `f906bc23546831d9446d60f864fb8689183cd7b2`: push https://github.com/PritPatel845/pie-ai-assientance/actions/runs/43673643751 and pull request https://github.com/PritPatel845/pie-ai-assientance/actions/runs/43673646615 (both passed). The README now directs contributors to install only the `[dev]` extra until the macOS dependency contract is resolved.
 - `pytest -q`: **206 passed**.
 - `ruff check .`: passed.
 - `ruff format --check .`: passed.
