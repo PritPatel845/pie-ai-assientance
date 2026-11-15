@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import re
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -20,7 +21,7 @@ class ToolSpec:
     platforms: tuple[str, ...] = ("darwin",)
 
     def __post_init__(self) -> None:
-        if not self.name or not all(char.islower() or char.isdigit() or char in "._" for char in self.name):
+        if not re.fullmatch(r"[a-z0-9_]+(?:\\.[a-z0-9_]+)+", self.name):
             raise ValueError("tool name must use lowercase domain.verb characters")
         if not isinstance(self.parameters, dict) or self.parameters.get("type") != "object":
             raise ValueError("tool parameters must be a JSON Schema object")
@@ -58,6 +59,12 @@ class Tool(Protocol):
 class FunctionTool:
     spec: ToolSpec
     function: Callable[[Mapping[str, Any], ToolContext], Awaitable[ToolResult]]
+    confirmation_prompt_builder: Callable[[Mapping[str, Any]], str] | None = None
+
+    def confirmation_prompt(self, args: Mapping[str, Any]) -> str | None:
+        if self.confirmation_prompt_builder is None:
+            return None
+        return self.confirmation_prompt_builder(args)
 
     async def run(self, args: Mapping[str, Any], ctx: ToolContext) -> ToolResult:
         return await self.function(args, ctx)
