@@ -23,9 +23,9 @@ def redact(value: Any, *, tool: str = "", key: str = "") -> Any:
         return {"length": len(str(value))}
     if isinstance(value, dict):
         return {str(name): redact(item, tool=tool, key=str(name)) for name, item in value.items()}
-    if isinstance(value, (list, tuple)):
+    if isinstance(value, list | tuple):
         return [redact(item, tool=tool) for item in value]
-    if isinstance(value, (str, int, float, bool)) or value is None:
+    if isinstance(value, str | int | float | bool) or value is None:
         return value
     return str(value)
 
@@ -54,7 +54,15 @@ class AuditLog:
         safe["ts"] = safe.get("ts", time.time())
         safe["args"] = redact(safe.get("args", {}), tool=str(safe.get("tool", "")))
         try:
-            encoded = json.dumps(safe, ensure_ascii=False, separators=(",", ":"), default=str) + "\n"
+            encoded = (
+                json.dumps(
+                    safe,
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                    default=str,
+                )
+                + "\n"
+            )
             with self._lock:
                 self.path.parent.mkdir(parents=True, exist_ok=True)
                 self._rotate()
