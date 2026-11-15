@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import time
+from dataclasses import FrozenInstanceError
 
 import pytest
 
 from pie.config import Config
 from pie.core.daemon import Daemon
+from pie.core.state import RuntimeState, StopFlag
 
 
 class RecordingModule:
@@ -60,13 +62,13 @@ def test_hanging_module_stop_is_bounded() -> None:
 
 
 def test_runtime_state_snapshots_are_immutable_and_thread_safe() -> None:
-    from dataclasses import FrozenInstanceError
-
-    from pie.core.state import RuntimeState, StopFlag
-
     state = RuntimeState()
-    state.update(mode="game", game_profile="counter-strike", armed=True,
-                 last_gesture="OPEN PALM")
+    state.update(
+        mode="game",
+        game_profile="counter-strike",
+        armed=True,
+        last_gesture="OPEN PALM",
+    )
     snapshot = state.snapshot()
     assert snapshot.mode == "game"
     assert snapshot.game_profile == "counter-strike"
