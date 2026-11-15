@@ -23,13 +23,15 @@ Branch: phase-0s-implementation. Target Python >=3.12,<3.13 on Apple Silicon mac
 3. Renamed section 10 to FOUNDATION BEHAVIOUR (specified by Phase 0S).
 
 ### Not complete / not verified
-- Target Mac environment audit has not been run: arm64, macOS version, Homebrew Python 3.12,
-  and MediaPipe 0.10.35 Tasks API must be checked on the actual Mac.
-- Hand model has not yet been downloaded/committed; no SHA-256 recorded.
-- Phase 0S test suite has not yet passed CI. Frame processor game sequences and predicate
-  boundaries need broader tests. Runner cleanup needs a fake-capture failure test.
-- Script executable bit is not verified via GitHub contents API.
-- Real camera preview, HUD, permission flow and safe action test require manual Mac checks.
+- The target Mac audit has not been run: Apple Silicon architecture, macOS version, Homebrew
+  Python 3.12, MediaPipe Tasks imports, Quartz/AppKit, and PyAutoGUI key support remain
+  unverified on the actual device.
+- The offline-first model is now committed at `assets/hand_landmarker.task` and CI verified
+  its exact size and SHA-256. See the acceptance ledger below.
+- Linux/Python 3.12 CI is green (205 tests, Ruff, strict mypy, and doctor); this does not
+  establish macOS or camera compatibility.
+- Real camera preview, HUD poses, camera release, Accessibility permission, and safe cursor
+  control still require manual checks on the target Mac.
 - Phase 0S is NOT accepted; do not tag pie-phase-0-done.
 
 ### Public symbols
@@ -49,10 +51,11 @@ Branch: phase-0s-implementation. Target Python >=3.12,<3.13 on Apple Silicon mac
 - paths: pie_home, config_path, state_dir, logs_dir, models_dir, learning_dir.
 
 ### Next
-1. Get Python 3.12 CI green, fix all failures.
-2. Expand acceptance tests, run strict mypy and Ruff.
-3. Verify model download size and SHA-256; add the model only after verification.
-4. Run manual hardware checks on the target Mac.
+1. Resolve the MediaPipe/OpenCV packaging conflict on the target Mac and record the tested
+   install procedure.
+2. Run `scripts/manual_checks/audit_macos.command` on the target Mac.
+3. Run `scripts/manual_checks/phase0s.md` for camera, HUD, permissions, cursor, and cleanup.
+4. Verify `playpause` and Spotify/Music control on the target Mac.
 5. Only after every gate passes, tag Phase 0S and start Phase 1 from that tag.
 
 
@@ -60,14 +63,15 @@ Branch: phase-0s-implementation. Target Python >=3.12,<3.13 on Apple Silicon mac
 
 ### Automated verification
 
-- GitHub Actions run for code commit `daa0b77ae5eb08768e6ce56e22169e778ec3a560`: https://github.com/PritPatel845/pie-ai-assientance/actions/runs/43671711112 (push and pull-request runs both passed).
-- `pytest -q`: **180 passed**.
+- GitHub Actions run for code commit `10bcda0091280d30863bdd1ebaf82d42b63e6633`: https://github.com/PritPatel845/pie-ai-assientance/actions/runs/43673002508 (push and pull-request runs both passed).
+- `pytest -q`: **205 passed**.
 - `ruff check .`: passed.
 - `ruff format --check .`: passed.
 - `mypy src/pie`: passed; no issues in 20 source files.
 - `python -m pie doctor`: exited successfully on the CI runner.
 - CI is Linux/Python 3.12. It is not evidence of macOS/Apple Silicon or camera/permission compatibility.
 - `scripts/start_pie.command`, `scripts/download_model.sh`, and `scripts/manual_checks/audit_macos.command` are executable (`100755`). CI syntax-checks both maintenance scripts and verifies their executable bits.
+- The model-asset job downloaded the official Google model, verified its exact 7,819,105-byte size and SHA-256, then committed it as `9e173f61fc8cae8883932c879a5623666f38ae51`.
 
 ### Configuration reference
 
@@ -140,9 +144,9 @@ The parser checks exact phrases first, then volume patterns, search patterns, th
 
 ### Still blocking Phase 0S completion
 
-- `assets/hand_landmarker.task` is not in the repository. The canonical Google-hosted float16/1 model is pinned at **7,819,105 bytes**, SHA-256 `fbc2a30080c3c557093b5ddfc334698132eb341044ccee322ccf8bcf3607cde1`. `ensure_model()` verifies both; `scripts/download_model.sh` downloads to `assets/` and verifies before moving the file. The actual binary download still failed in this environment, so no local file has yet been independently hashed or committed.
+- `assets/hand_landmarker.task` is committed (7,819,105 bytes). The model-asset workflow downloaded it from Google's official URL and verified SHA-256 `fbc2a30080c3c557093b5ddfc334698132eb341044ccee322ccf8bcf3607cde1` before committing. `ensure_model()` independently verifies both size and hash at runtime.
 - The actual target Mac has not been audited here: `uname -m`, `sw_vers`, Homebrew Python 3.12 path, and imports/versions for MediaPipe 0.10.35 Tasks API, OpenCV, PyAutoGUI, Quartz, and AppKit remain unverified.
 - Packaging risk to resolve on the target Mac: PyPI's MediaPipe 0.10.35 metadata advertises a macOS 11+ arm64 wheel, but its dependencies include `opencv-contrib-python`, `sounddevice`, and `matplotlib`; the Phase 0S dependency contract names `opencv-python`. Do not blindly install both OpenCV wheel distributions; determine a compliant, working install strategy on the target Mac and record it before accepting the phase.
-- `scripts/manual_checks/phase0s.md` has not been performed on the target Mac. Camera preview, HUD poses, camera release, Accessibility permission, and safe cursor/pinch behaviour remain unverified.
-- macOS-specific media-key behaviour and app automation have not been verified on the target Mac. `play_media()`/`stop_media()` currently use the Music AppleScript path; the PDF also calls for Spotify/system-media-key handling and explicit `pyautogui` `playpause` verification, which remains an unresolved target-Mac item.
+- `scripts/manual_checks/audit_macos.command` and `scripts/manual_checks/phase0s.md` have not been run on the target Mac. Camera preview, HUD poses, camera release, Accessibility permission, and safe cursor/pinch behaviour remain unverified.
+- macOS-specific media-key behaviour and app automation have not been verified on the target Mac. `play_media()`/`stop_media()` now target an already-running Spotify or Music process via AppleScript and fall back to PyAutoGUI's `playpause` key; CI tests both routing and fallback. The actual key's availability and behaviour still require target-Mac verification.
 - Phase 0S is **not accepted**. Do not create `pie-phase-0-done` or begin Phase 1 until the model and Mac/manual acceptance gates are satisfied.
