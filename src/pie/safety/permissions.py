@@ -108,6 +108,7 @@ class PermissionGate:
         if not payload.get("final") or not payload.get("addressed"):
             return
         text = " ".join(str(payload.get("text", "")).casefold().split())
+        text = text.strip(" .,!?:;")
         if text in self._YES:
             await self._resolve_oldest(event, True, "voice")
         elif text in self._NO:
