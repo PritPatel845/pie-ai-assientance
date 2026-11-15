@@ -29,9 +29,21 @@ class LearningEngine:
             return
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
-            self._samples.extend(data.get("samples", []))
-            self._voice.extend(data.get("voice", []))
-        except (OSError, json.JSONDecodeError, TypeError):
+            if not isinstance(data, dict):
+                raise ValueError("Learning data must be a JSON object")
+            samples = data.get("samples", [])
+            voice = data.get("voice", [])
+            if not isinstance(samples, list) or not all(
+                isinstance(sample, dict) for sample in samples
+            ):
+                raise ValueError("Learning samples must be a list of objects")
+            if not isinstance(voice, list) or not all(
+                isinstance(command, str) for command in voice
+            ):
+                raise ValueError("Learning voice history must be a list of strings")
+            self._samples.extend(samples)
+            self._voice.extend(voice)
+        except (OSError, json.JSONDecodeError, TypeError, ValueError):
             corrupt = path.with_name(f"{path.name}.corrupt-{int(self._clock())}")
             path.replace(corrupt)
 
