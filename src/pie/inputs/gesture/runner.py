@@ -45,7 +45,6 @@ class Capture(Protocol):
     def release(self) -> None: ...
 
 
-
 class StopSignal(Protocol):
     def is_set(self) -> bool: ...
 
@@ -75,7 +74,8 @@ class GestureEventTracker:
         }
         current = {name for name, active in predicates.items() if active}
         emitted = tuple(
-            name for name in sorted(current - self._previous)
+            name
+            for name in sorted(current - self._previous)
             if now - self._last_emitted.get(name, float("-inf")) >= self.debounce_seconds
         )
         for name in emitted:
@@ -234,8 +234,11 @@ def run(
         last_state_at = float("-inf")
         gesture_events = GestureEventTracker()
         if bus is not None:
-            bus.publish("system.mode", {"mode": processor.mode, "game_profile": processor.profile},
-                        source="gesture")
+            bus.publish(
+                "system.mode",
+                {"mode": processor.mode, "game_profile": processor.profile},
+                source="gesture",
+            )
         with mp.tasks.vision.HandLandmarker.create_from_options(options) as landmarker:
             while True:
                 if stop is not None and stop.is_set():
@@ -256,9 +259,11 @@ def run(
                         handedness = getattr(result, "handedness", None)
                         if handedness and handedness[0]:
                             hand_label = str(handedness[0][0].category_name).lower()
-                        bus.publish("input.gesture.event",
-                                    {"name": name, "hand": hand_label, "confidence": 1.0},
-                                    source="gesture")
+                        bus.publish(
+                            "input.gesture.event",
+                            {"name": name, "hand": hand_label, "confidence": 1.0},
+                            source="gesture",
+                        )
                 elif not hands:
                     gesture_events.update((), time.monotonic())
                 for action in frame_result.actions:
@@ -272,15 +277,17 @@ def run(
                     fps = 0.9 * fps + 0.1 / elapsed if fps else 1.0 / elapsed
                 previous_time = now
                 if bus is not None and now - last_state_at >= 1.0 / state_hz:
-                    bus.publish("input.gesture.state",
-                                {
-                                    "hands": len(hands),
-                                    "gesture": frame_result.gesture,
-                                    "depth": frame_result.depth,
-                                    "armed": frame_result.armed,
-                                    "fps": fps,
-                                },
-                                source="gesture")
+                    bus.publish(
+                        "input.gesture.state",
+                        {
+                            "hands": len(hands),
+                            "gesture": frame_result.gesture,
+                            "depth": frame_result.depth,
+                            "armed": frame_result.armed,
+                            "fps": fps,
+                        },
+                        source="gesture",
+                    )
                     last_state_at = now
                 if preview:
                     draw_hud(frame, frame_result, fps, cv2, no_actions=no_actions)
@@ -310,8 +317,11 @@ def run(
                         for action in processor.set_mode("game", profile):
                             sink.execute(action)
                         if bus is not None:
-                            bus.publish("system.mode", {"mode": "game", "game_profile": profile},
-                                        source="gesture")
+                            bus.publish(
+                                "system.mode",
+                                {"mode": "game", "game_profile": profile},
+                                source="gesture",
+                            )
     finally:
         try:
             if processor is not None and sink is not None:
