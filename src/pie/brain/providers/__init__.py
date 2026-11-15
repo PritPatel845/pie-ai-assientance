@@ -35,4 +35,10 @@ def build_providers(config: Any) -> dict[str, Any]:
         )
     except ImportError as exc:
         _LOG.warning("Local provider dependencies unavailable: %s", type(exc).__name__)
+    if config.cli_providers_enabled:
+        from pie.brain.providers.claude_cli import ClaudeCliProvider
+        from pie.brain.providers.codex_cli import CodexCliProvider
+
+        providers["claude_cli"] = ClaudeCliProvider()
+        providers["codex_cli"] = CodexCliProvider()
     return providers
