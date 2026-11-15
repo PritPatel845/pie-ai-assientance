@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import uuid
+from dataclasses import dataclass
+
 from pie.brain.types import ToolCall
 
 from pie.inputs.voice.commands import parse_voice_command
