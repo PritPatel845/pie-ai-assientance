@@ -405,7 +405,6 @@ def test_relative_filesystem_paths_resolve_inside_sandbox(tmp_path: Path) -> Non
     asyncio.run(scenario())
 
 
-
 def test_model_tool_schemas_hide_internal_path_policy_extensions(tmp_path: Path) -> None:
     async def scenario() -> None:
         registry, gate, _ = _registry(tmp_path)
