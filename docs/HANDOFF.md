@@ -570,12 +570,30 @@ https://github.com/PritPatel845/pie-ai-assientance/pull/9
 - Added automated safety, permission, registry, built-in, config, CLI, and deterministic phrase-mapping tests.
 - Added `scripts/manual_checks/phase3a.md` and the Phase 3A additive contract details.
 
-### Phase 3A status and remaining work
-Phase 3A is **not accepted or ready to merge yet**. Continue until:
-1. CI is green for Ruff lint, Ruff format, mypy, all pytest suites, and model-asset checks.
-2. Fix any integration/security issues exposed by CI.
-3. Complete target-Mac manual checks in `scripts/manual_checks/phase3a.md`, including consent denial/timeout, armed gesture gating, protected paths, symlink escape, no-actions dry-run, and audit redaction.
-4. Verify that every legacy deterministic action uses the registry; no environment-provided shell/AppleScript command may execute outside it.
-5. Update this handoff with exact passing test counts, CI run, PR review, and owner manual results before merging.
+### Phase 3A status — automated gates passed; target-Mac acceptance pending
 
-Do not start Phase 3B until Phase 3A is merged and its acceptance gate is recorded. Phase 3C and 3D remain unstarted.
+Current branch head: `33b718e5c1faf6d1b45d3e02c87826b3280e2668`.
+Current CI run: [#43745617134](https://github.com/PritPatel845/pie-ai-assientance/actions/runs/43745617134) — **all jobs passed**:
+- Ruff lint and Ruff format passed.
+- `pytest -q`: **476 passed**.
+- `mypy src/pie`: passed.
+- Model downloader / maintenance-script verification passed.
+- `python -m pie doctor`: exited successfully on the Linux CI runner.
+
+Integration fixes made while closing CI:
+- Filesystem built-ins now explicitly support macOS, Linux, and Windows; the prior implicit macOS-only default was inappropriate for generic filesystem operations.
+- The CLI's mutually exclusive `--voice` / `--no-voice` parser uses `args.voice`; the tool runner now receives `no_voice=args.voice is False`.
+- Strict mypy issues in deterministic rule arguments, path iterator typing, registry model-spec typing, and BrainModule's registry reference were corrected.
+- Ruff formatting/import-order checks pass on all 104 Python files.
+
+PR #9 remains **open as a draft**. The automated CI result is not evidence of macOS-specific permissions, microphone, gesture, or AppleScript behaviour.
+
+### Remaining Phase 3A acceptance work
+The owner must complete the target-Mac checklist in `scripts/manual_checks/phase3a.md`, especially:
+1. Filesystem sandbox writes, overwrite confirmation, protected paths, and symlink escape.
+2. Confirmation bound to the frontmost app, delete/type safeguards, stale-consent denial, timeout, and prompt rate limiting.
+3. Deterministic voice routing and armed gesture gating.
+4. `--no-actions`, `--no-voice`, disabled tools, shutdown cancellation, and audit redaction, mode `0600`, and rotation.
+5. Record exact manual outcomes and any failures here before requesting final review.
+
+Do not merge PR #9 or start Phase 3B until the target-Mac checklist passes and its evidence is recorded. Phase 3C and 3D remain unstarted.
