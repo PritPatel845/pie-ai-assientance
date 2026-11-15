@@ -68,3 +68,12 @@ def test_audit_redacts_search_query_and_url_query_parameters() -> None:
     )
     assert search == {"query": {"length": 25}}
     assert url == {"url": {"host": "example.com", "length": 44}}
+
+
+def test_audit_refuses_symlink_target(tmp_path: Path) -> None:
+    target = tmp_path / "private.jsonl"
+    link = tmp_path / "audit.jsonl"
+    link.symlink_to(target)
+    assert not AuditLog(link).write({"tool": "system.time", "args": {}})
+    assert not target.exists()
+
