@@ -76,7 +76,11 @@ def test_download_uses_checksum_pinned_mirror_after_primary_failure(
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
     monkeypatch.setattr(engine, "MODEL_BYTES", len(payload))
     monkeypatch.setattr(engine, "MODEL_SHA256", hashlib.sha256(payload).hexdigest())
-    monkeypatch.setattr(engine, "MODEL_URLS", ("https://primary.invalid/model", "https://mirror.invalid/model"))
+    monkeypatch.setattr(
+        engine,
+        "MODEL_URLS",
+        ("https://primary.invalid/model", "https://mirror.invalid/model"),
+    )
     calls = []
 
     def open_url(request, timeout):
