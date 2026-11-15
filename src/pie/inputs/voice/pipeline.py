@@ -45,6 +45,7 @@ class VoiceController(_VoiceController):
         transcriber_factory: Callable[..., Transcriber] = create_transcriber,
         clock: Callable[[], float] = time.monotonic,
         wall_clock: Callable[[], float] = time.time,
+        brain_enabled: bool = False,
     ) -> None:
         super().__init__(
             controller,
@@ -54,6 +55,7 @@ class VoiceController(_VoiceController):
         )
         self.bus = bus
         self.config = config or VoiceConfig(listen_seconds=listen_seconds, language=language)
+        self.brain_enabled = brain_enabled
         self.language = self.config.language
         self._stream_factory = stream_factory
         self._transcriber_factory = transcriber_factory
@@ -223,7 +225,7 @@ class VoiceController(_VoiceController):
         else:
             command_text = raw if addressed else ""
         self.publish_transcript(command_text if addressed else raw, raw=raw, addressed=addressed)
-        if addressed and command_text.strip():
+        if addressed and command_text.strip() and (self.bus is None or not self.brain_enabled):
             self.execute(command_text.strip())
 
     def _process_audio(self) -> None:
