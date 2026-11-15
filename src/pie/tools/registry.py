@@ -14,7 +14,7 @@ from typing import Any
 from jsonschema import Draft202012Validator
 
 from pie.events import EventBus
-from pie.safety.audit import AuditLog
+from pie.safety.audit import AuditLog, redact
 from pie.safety.paths_guard import PathGuardError, guard_paths
 from pie.safety.permissions import PermissionGate, Tier
 from pie.tools.base import Tool, ToolContext, ToolResult, ToolSpec, fail
@@ -184,12 +184,16 @@ class ToolRegistry:
 
         if pre_approved_by is not None and source != "rule":
             pre_approved_by = None
+        redacted_args = redact(safe_args, tool=name)
         self._publish(
             "tool.requested",
-            {"call_id": call_id, "tool": name, "args": safe_args, "tier": tier.name},
+            {"call_id": call_id, "tool": name, "args": redacted_args, "tier": tier.name},
             call_id,
         )
-        prompt = f"Allow {name}? {spec.description} Arguments: {json.dumps(safe_args, ensure_ascii=False, default=str)[:1000]}"
+        prompt = (
+            f"Allow {name}? {spec.description} Arguments: "
+            f"{json.dumps(redacted_args, ensure_ascii=False, default=str)[:1000]}"
+        )
         decision = await self.permission_gate.request(
             call_id=call_id,
             tool=name,
@@ -237,6 +241,8 @@ class ToolRegistry:
                 task = asyncio.create_task(spec_tool.run(safe_args, ctx))
                 try:
                     result = await asyncio.wait_for(asyncio.shield(task), timeout=spec.timeout_s)
+                    if not isinstance(result, ToolResult):
+                        result = fail("tool returned an invalid result")
                 except TimeoutError:
                     ctx.cancel.set()
                     try:
