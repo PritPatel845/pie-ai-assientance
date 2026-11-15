@@ -1,18 +1,17 @@
 from __future__ import annotations
 
 import importlib
-import threading
 import time
 from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any, Literal, Protocol
 
+from pie.events import EventBus
 from pie.inputs.gesture.engine import ensure_model
 from pie.inputs.gesture.features import (
     Landmark, is_fist, is_four_finger, is_open_palm, is_pinch, is_three_finger,
     is_thumb_down, is_thumb_up, is_two_finger,
 )
-from pie.events import EventBus
 from pie.inputs.gesture.frame import (
     Action,
     DoubleClick,
@@ -267,8 +266,13 @@ def run(
                 previous_time = now
                 if bus is not None and now - last_state_at >= 1.0 / state_hz:
                     bus.publish("input.gesture.state",
-                                {"hands": len(hands), "gesture": frame_result.gesture,
-                                 "depth": frame_result.depth, "armed": frame_result.armed, "fps": fps},
+                                {
+                                    "hands": len(hands),
+                                    "gesture": frame_result.gesture,
+                                    "depth": frame_result.depth,
+                                    "armed": frame_result.armed,
+                                    "fps": fps,
+                                },
                                 source="gesture")
                     last_state_at = now
                 if preview:
@@ -287,8 +291,11 @@ def run(
                         for action in processor.set_mode(mode):
                             sink.execute(action)
                         if bus is not None:
-                            bus.publish("system.mode", {"mode": mode, "game_profile": processor.profile},
-                                        source="gesture")
+                            bus.publish(
+                                "system.mode",
+                                {"mode": mode, "game_profile": processor.profile},
+                                source="gesture",
+                            )
                     if key in (ord("1"), ord("2"), ord("3")):
                         profile = {"1": "asphalt", "2": "temple-run", "3": "counter-strike"}[
                             chr(key)
