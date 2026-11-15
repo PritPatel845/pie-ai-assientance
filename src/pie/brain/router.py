@@ -6,7 +6,7 @@ import time
 import uuid
 from collections import deque
 from collections.abc import Awaitable, Callable, Mapping
-from typing import Any
+from typing import Any, Literal
 
 from pie.brain.rules import RuleMatch, match_rule, wants_local
 from pie.brain.types import (
@@ -88,9 +88,7 @@ class BrainRouter:
                 if self._running is current:
                     self._running = None
 
-    async def _handle_locked(
-        self, text: str, *, source: str, correlation_id: str
-    ) -> RouterResult:
+    async def _handle_locked(self, text: str, *, source: str, correlation_id: str) -> RouterResult:
         if not self.config.enabled:
             return self._unavailable(correlation_id, "brain is disabled in configuration")
         match = match_rule(text)
@@ -124,7 +122,7 @@ class BrainRouter:
         if selected is None:
             return self._unavailable(correlation_id, last_error)
 
-        route = "local" if selected.kind == "local" else "cloud"
+        route: Literal["cloud", "local"] = "local" if selected.kind == "local" else "cloud"
         remaining = cloud_names[selected_index + 1 :] if selected_index >= 0 else []
         self._publish(
             "intent.resolved",
@@ -146,7 +144,7 @@ class BrainRouter:
         self,
         provider: Provider,
         text: str,
-        route: str,
+        route: Literal["cloud", "local"],
         source: str,
         correlation_id: str,
         *,
@@ -192,30 +190,53 @@ class BrainRouter:
                         )
                     except ProviderError as retry_exc:
                         return await self._fallback(
-                            provider, retry_exc, text, route, source, correlation_id,
+                            provider,
+                            retry_exc,
+                            text,
+                            route,
+                            source,
+                            correlation_id,
                             remaining_clouds or [],
                         )
                     except TimeoutError:
                         return await self._fallback(
                             provider,
                             ProviderUnavailable(provider.name, "provider timeout"),
-                            text, route, source, correlation_id, remaining_clouds or [],
+                            text,
+                            route,
+                            source,
+                            correlation_id,
+                            remaining_clouds or [],
                         )
                 else:
                     return await self._fallback(
-                        provider, exc, text, route, source, correlation_id,
+                        provider,
+                        exc,
+                        text,
+                        route,
+                        source,
+                        correlation_id,
                         remaining_clouds or [],
                     )
             except ProviderError as exc:
                 return await self._fallback(
-                    provider, exc, text, route, source, correlation_id,
+                    provider,
+                    exc,
+                    text,
+                    route,
+                    source,
+                    correlation_id,
                     remaining_clouds or [],
                 )
             except TimeoutError:
                 return await self._fallback(
                     provider,
                     ProviderUnavailable(provider.name, "provider timeout"),
-                    text, route, source, correlation_id, remaining_clouds or [],
+                    text,
+                    route,
+                    source,
+                    correlation_id,
+                    remaining_clouds or [],
                 )
 
             if not reply.tool_calls:
@@ -286,11 +307,7 @@ class BrainRouter:
         # Try the next configured cloud provider before using the local model.
         for name in remaining_clouds:
             candidate = self.providers.get(name)
-            if (
-                candidate is None
-                or not self._configured(name)
-                or not self.quota.is_available(name)
-            ):
+            if candidate is None or not self._configured(name) or not self.quota.is_available(name):
                 continue
             try:
                 if not await candidate.healthcheck():
@@ -342,9 +359,7 @@ class BrainRouter:
         return messages
 
     def _remember(self, text: str, answer: str) -> None:
-        self._history.append(
-            (self.clock(), Message("user", text), Message("assistant", answer))
-        )
+        self._history.append((self.clock(), Message("user", text), Message("assistant", answer)))
 
     def _unavailable(self, correlation_id: str, detail: str | None) -> RouterResult:
         self._publish(
@@ -352,6 +367,4 @@ class BrainRouter:
             {"text": "No AI model is available right now.", "interrupt": False},
             correlation_id,
         )
-        return RouterResult(
-            "local", None, "No AI model is available right now.", 0, False, detail
-        )
+        return RouterResult("local", None, "No AI model is available right now.", 0, False, detail)
