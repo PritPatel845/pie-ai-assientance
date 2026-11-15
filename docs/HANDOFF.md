@@ -512,12 +512,12 @@ python -m pie run --voice-background --print-events
 - Claude CLI and Codex CLI provider classes are deliberately **safe stubs**. No sandbox flags were verified, so they return `ProviderUnavailable("unsafe: cannot sandbox")`; they never launch a shell or CLI.
 - `BrainModule` connects voice and typed input to the router; shutdown closes provider clients.
 - CLI: `pie brain status`, `pie brain test <provider>`, `pie brain ask "text"`, `pie brain set-key <provider>`, and `pie quota show|reset <provider|all>`.
-- Router emits request/response/switch/quota events, keeps short in-memory context with TTL, supports stop/cancel, and speaks only the contracted quota-switch message on quota fallback. If no model is available it returns a failed result and publishes the contracted unavailable message.
+- Router emits request/response/switch/quota events, keeps short in-memory context with TTL, supports stop/cancel, and applies one total timeout across the complete cloud/local fallback chain. It speaks only the contracted quota-switch message on quota fallback. If no model is available it returns a failed result and publishes the contracted unavailable message.
 
 ### Current boundaries and limitations
 - Phase 2B remains chat-only. Tool calls from a model are not executed; tool registry and reversible actions belong to Phase 3A.
 - Claude CLI and Codex CLI are intentionally disabled stubs until their installed CLI help can be checked for flags that guarantee no file or shell access.
-- The local provider expects an already-running Ollama service or a configured OpenAI-compatible MLX server at `PIE_MLX_BASE_URL`. It never starts a local model server. Ollama reports model disk sizes; an MLX-compatible endpoint may not report model size, so the exact size is unknown in that mode.
+- The local provider expects an already-running Ollama service or a configured OpenAI-compatible MLX server at `PIE_MLX_BASE_URL`. It never starts a local model server. Ollama reports model disk sizes; for MLX, the provider reads model size from endpoint metadata or the Hugging Face model cache and excludes models whose size cannot be established or exceeds the configured budget. Cached snapshots are de-duplicated by file identity.
 - No cloud model identifier is hard-coded. The owner must set `anthropic_model` / `openai_model` in the user config and add keys using `pie brain set-key` or environment variables.
 - CI uses fake providers only. Real API credentials, a running local model, offline fallback, voice command handoff, and local model memory/latency still require manual verification on the target Mac.
 
