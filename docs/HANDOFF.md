@@ -60,14 +60,14 @@ Branch: phase-0s-implementation. Target Python >=3.12,<3.13 on Apple Silicon mac
 
 ### Automated verification
 
-- GitHub Actions run for code commit `03fb6ba5cd0af72eceb87c9b868b6dc896d04a8c`: https://github.com/PritPatel845/pie-ai-assientance/actions/runs/43670182660
-- `pytest -q`: **151 passed**.
+- GitHub Actions run for code commit `f74029b65a7e81725980c8f2c3d5ecd0947894ad`: https://github.com/PritPatel845/pie-ai-assientance/actions/runs/43671157131
+- `pytest -q`: **159 passed**.
 - `ruff check .`: passed.
 - `ruff format --check .`: passed.
 - `mypy src/pie`: passed; no issues in 20 source files.
 - `python -m pie doctor`: exited successfully on the CI runner.
 - CI is Linux/Python 3.12. It is not evidence of macOS/Apple Silicon or camera/permission compatibility.
-- `scripts/start_pie.command` Git mode verified as `100755` after commit `21ce135253450391fe6e293363a1181ba1a3c47b`.
+- `scripts/start_pie.command` and `scripts/download_model.sh` are executable (`100755`). The model downloader is checked by CI with `bash -n` and an executable-bit assertion.
 
 ### Configuration reference
 
@@ -117,6 +117,10 @@ The parser checks exact phrases first, then volume patterns, search patterns, th
 - Ruff CI is read-only; it never formats and pushes commits from a pull-request merge checkout.
 - `FrameProcessor` action-list annotations satisfy strict mypy.
 - The voice parser now has a 90-row phrase matrix plus punctuation-boundary wake-word tests.
+- Runner cleanup now covers failures during model setup and controller initialization, not only exceptions in the capture loop.
+- Mode changes clear stale desktop scroll and volume state; malformed learning JSON structures are quarantined rather than crashing startup.
+- Doctor reports native-library import errors without crashing and does not create `~/.pie` directories.
+- Tests now identify the exact Phase 0S PDF section/page for their covered module.
 - Model path resolution and explicit downloads verify the pinned byte size and SHA-256; invalid or partial downloads are removed.
 - Learning ring-buffer test isolates the bounded-buffer assertion from periodic disk-flush I/O.
 
@@ -133,8 +137,9 @@ The parser checks exact phrases first, then volume patterns, search patterns, th
 
 ### Still blocking Phase 0S completion
 
-- `assets/hand_landmarker.task` is not in the repository. The canonical Google-hosted float16/1 model is pinned in code at **7,819,105 bytes**, SHA-256 `fbc2a30080c3c557093b5ddfc334698132eb341044ccee322ccf8bcf3607cde1`. The expected size/hash are corroborated by [model metadata](https://github.com/kiya0908/gesture-synth-weld/blob/main/mediapipe-version.json) and [the upstream MediaPipe issue](https://github.com/google-ai-edge/mediapipe/issues/6293). `ensure_model()` now verifies both before accepting or installing a model and removes partial/invalid downloads. The actual binary download still failed in this environment, so no local file has yet been independently hashed or committed.
+- `assets/hand_landmarker.task` is not in the repository. The canonical Google-hosted float16/1 model is pinned at **7,819,105 bytes**, SHA-256 `fbc2a30080c3c557093b5ddfc334698132eb341044ccee322ccf8bcf3607cde1`. `ensure_model()` verifies both; `scripts/download_model.sh` downloads to `assets/` and verifies before moving the file. The actual binary download still failed in this environment, so no local file has yet been independently hashed or committed.
 - The actual target Mac has not been audited here: `uname -m`, `sw_vers`, Homebrew Python 3.12 path, and imports/versions for MediaPipe 0.10.35 Tasks API, OpenCV, PyAutoGUI, Quartz, and AppKit remain unverified.
+- Packaging risk to resolve on the target Mac: PyPI's MediaPipe 0.10.35 metadata advertises a macOS 11+ arm64 wheel, but its dependencies include `opencv-contrib-python`, `sounddevice`, and `matplotlib`; the Phase 0S dependency contract names `opencv-python`. Do not blindly install both OpenCV wheel distributions; determine a compliant, working install strategy on the target Mac and record it before accepting the phase.
 - `scripts/manual_checks/phase0s.md` has not been performed on the target Mac. Camera preview, HUD poses, camera release, Accessibility permission, and safe cursor/pinch behaviour remain unverified.
 - macOS-specific media-key behaviour and app automation have not been verified on the target Mac.
 - Phase 0S is **not accepted**. Do not create `pie-phase-0-done` or begin Phase 1 until the model and Mac/manual acceptance gates are satisfied.
