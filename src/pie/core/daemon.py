@@ -19,7 +19,7 @@ _LOG = logging.getLogger(__name__)
 class Module(Protocol):
     name: str
 
-    def start(self, daemon: "Daemon") -> None: ...
+    def start(self, daemon: Daemon) -> None: ...
     def stop(self) -> object: ...
 
 
@@ -80,7 +80,8 @@ class Daemon:
                     signal.signal(signum, self._signal_stop)
         except Exception as exc:
             self.stop()
-            raise RuntimeError(f"daemon module startup failed: {type(exc).__name__}: {exc}") from exc
+            message = f"daemon module startup failed: {type(exc).__name__}: {exc}"
+            raise RuntimeError(message) from exc
 
     def _signal_stop(self, signum: int, frame: object) -> None:
         self.stop_flag.set()
