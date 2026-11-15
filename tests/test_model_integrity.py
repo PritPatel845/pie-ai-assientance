@@ -56,7 +56,11 @@ def test_bad_download_is_removed_and_rejected(tmp_path: Path, monkeypatch) -> No
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
     monkeypatch.setattr(engine, "MODEL_BYTES", len(payload))
     monkeypatch.setattr(engine, "MODEL_SHA256", "0" * 64)
-    monkeypatch.setattr(engine.urllib.request, "urlopen", lambda *args, **kwargs: FakeResponse(payload))
+    monkeypatch.setattr(
+        engine.urllib.request,
+        "urlopen",
+        lambda *args, **kwargs: FakeResponse(payload),
+    )
     with pytest.raises(ValueError, match="SHA-256"):
         engine.ensure_model(download=True)
     assert not (tmp_path / ".pie" / "models" / "hand_landmarker.task").exists()
