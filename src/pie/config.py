@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-# fmt: off  # Keep the layered configuration loader's intentional layout stable.
-
 import json
 import os
 import sys
@@ -11,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 
+# fmt: off
 class ConfigError(ValueError):
     """Raised when a configuration source contains an invalid value."""
 
