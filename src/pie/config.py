@@ -32,7 +32,15 @@ class GestureConfig:
 @dataclass(frozen=True, slots=True)
 class VoiceConfig:
     enabled: bool = True
-    wake_words: tuple[str, ...] = ("hey pie", "pie", "pi", "jr", "j r", "jay r", "jarvis")
+    wake_words: tuple[str, ...] = (
+        "hey pie",
+        "pie",
+        "pi",
+        "jr",
+        "j r",
+        "jay r",
+        "jarvis",
+    )
     listen_seconds: int = 20
     language: str = "en"
 
@@ -79,7 +87,7 @@ def _merge(target: dict[str, dict[str, Any]], source: dict[str, Any]) -> None:
     unknown_sections = set(source) - set(target)
     if unknown_sections:
         raise ConfigError(
-            f"Unknown config section(s): {', '.join(sorted(unknown_sections))}"
+            f"Unknown config section(s): {', '.join(sorted(unknown_sections))}",
         )
     for section, values in source.items():
         if not isinstance(values, dict):
@@ -87,7 +95,7 @@ def _merge(target: dict[str, dict[str, Any]], source: dict[str, Any]) -> None:
         unknown = set(values) - set(target[section])
         if unknown:
             raise ConfigError(
-                f"Unknown config key(s) in {section}: {', '.join(sorted(unknown))}"
+                f"Unknown config key(s) in {section}: {', '.join(sorted(unknown))}",
             )
         for key, value in values.items():
             expected = _TYPES[section][key]
@@ -119,7 +127,10 @@ def _parse_environment_value(name: str, raw: str, current: Any) -> Any:
             value = json.loads(raw)
         except json.JSONDecodeError as exc:
             raise ConfigError(f"{name} must be a JSON array") from exc
-        if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+        valid_string_list = isinstance(value, list) and all(
+            isinstance(item, str) for item in value
+        )
+        if not valid_string_list:
             raise ConfigError(f"{name} must be a JSON array of strings")
         return value
     return raw
