@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from pie.inputs.gesture.frame import FrameProcessor, KeyAction, MoveCursor, SetVolume
+from pie.inputs.gesture.frame import FrameProcessor, KeyAction, MoveCursor, SetVolume, Tap
 
 
 @dataclass
@@ -57,3 +57,29 @@ def test_no_hand_disarms_and_releases_keys() -> None:
     result = processor.process([], 1.0)
     assert not result.armed
     assert result.actions == [KeyAction("left", False)]
+
+
+def test_runner_profile_maps_swipe_right() -> None:
+    processor = FrameProcessor()
+    processor.set_mode("game", "temple-run")
+    processor.armed = True
+    processor.process([hand()], 0.0)
+    result = processor.process([hand(shift=0.1)], 0.1)
+    assert Tap("right") in result.actions
+
+def test_runner_profile_maps_palm_up_to_jump() -> None:
+    processor = FrameProcessor()
+    processor.set_mode("game", "temple-run")
+    processor.armed = True
+    processor.process([hand()], 0.0)
+    palm_up = hand()
+    palm_up[8] = P(0.5, 0.2, 0.0)
+    result = processor.process([palm_up], 0.1)
+    assert Tap("jump") in result.actions
+
+def test_fps_profile_emits_forward_key_action() -> None:
+    processor = FrameProcessor()
+    processor.set_mode("game", "counter-strike")
+    processor.armed = True
+    result = processor.process([hand()], 0.0)
+    assert KeyAction("forward", True) in result.actions
