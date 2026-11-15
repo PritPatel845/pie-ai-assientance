@@ -32,7 +32,15 @@ class GestureConfig:
 @dataclass(frozen=True, slots=True)
 class VoiceConfig:
     enabled: bool = True
-    wake_words: tuple[str, ...] = ("hey pie", "pie", "pi", "jr", "j r", "jay r", "jarvis")
+    wake_words: tuple[str, ...] = (
+        "hey pie",
+        "pie",
+        "pi",
+        "jr",
+        "j r",
+        "jay r",
+        "jarvis",
+    )
     listen_seconds: int = 20
     language: str = "en"
 
@@ -53,8 +61,14 @@ class Config:
 
 _DEFAULTS: dict[str, dict[str, Any]] = {
     "app": {"name": "pie", "log_level": "INFO"},
-    "gesture": {"camera": 0, "preview": True, "arm_hold_seconds": 2.0,
-                "steer_sensitivity": 0.004, "state_hz": 10, "model_path": ""},
+    "gesture": {
+        "camera": 0,
+        "preview": True,
+        "arm_hold_seconds": 2.0,
+        "steer_sensitivity": 0.004,
+        "state_hz": 10,
+        "model_path": "",
+    },
     "voice": {
         "enabled": True,
         "wake_words": ["hey pie", "pie", "pi", "jr", "j r", "jay r", "jarvis"],
@@ -63,8 +77,10 @@ _DEFAULTS: dict[str, dict[str, Any]] = {
     },
     "ui": {"host": "127.0.0.1", "port": 8765},
 }
-_TYPES = {section: {key: type(value) for key, value in values.items()}
-          for section, values in _DEFAULTS.items()}
+_TYPES = {
+    section: {key: type(value) for key, value in values.items()}
+    for section, values in _DEFAULTS.items()
+}
 
 
 def _merge(target: dict[str, dict[str, Any]], source: dict[str, Any]) -> None:
@@ -136,8 +152,11 @@ def load_config(
             _merge(data, tomllib.load(handle))
 
     env = os.environ if environ is None else environ
-    known_env = {f"PIE_{section.upper()}_{key.upper()}"
-                 for section, values in data.items() for key in values}
+    known_env = {
+        f"PIE_{section.upper()}_{key.upper()}"
+        for section, values in data.items()
+        for key in values
+    }
     for name, raw in env.items():
         if name in known_env:
             section, key = name.removeprefix("PIE_").lower().split("_", 1)
@@ -153,8 +172,12 @@ def load_config(
     if model_path:
         data["gesture"]["model_path"] = str(Path(model_path).expanduser())
 
-    config = Config(AppConfig(**data["app"]), GestureConfig(**data["gesture"]),
-                    VoiceConfig(**data["voice"]), UiConfig(**data["ui"]))
+    config = Config(
+        AppConfig(**data["app"]),
+        GestureConfig(**data["gesture"]),
+        VoiceConfig(**data["voice"]),
+        UiConfig(**data["ui"]),
+    )
     if not 1 <= config.gesture.state_hz <= 60:
         raise ConfigError("gesture.state_hz must be between 1 and 60")
     if not 1 <= config.ui.port <= 65535:
