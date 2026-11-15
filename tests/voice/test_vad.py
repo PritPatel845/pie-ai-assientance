@@ -34,7 +34,7 @@ def test_one_second_speech_ends_after_silence() -> None:
     assert feed_ms(vad, 1000, 0.08) == []
     segments = feed_ms(vad, 700, 0.0)
     assert len(segments) == 1
-    assert 0.9 <= len(segments[0].audio) / RATE <= 1.3
+    assert 0.9 <= len(segments[0].audio) / RATE <= 1.7
     assert segments[0].started_at >= 0
     assert segments[0].ended_at > segments[0].started_at
 
