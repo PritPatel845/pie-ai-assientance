@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# fmt: off  # Keep the layered configuration loader's intentional layout stable.
+
 import json
 import os
 import sys
@@ -194,3 +196,5 @@ def load_config(
     if config.gesture.arm_hold_seconds <= 0:
         raise ConfigError("gesture.arm_hold_seconds must be positive")
     return config
+
+# fmt: on
