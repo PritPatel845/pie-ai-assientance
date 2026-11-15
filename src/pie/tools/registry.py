@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import builtins
 import json
 import logging
 import sys
@@ -58,7 +59,7 @@ class ToolRegistry:
     def list(self) -> list[ToolSpec]:
         return [self._tools[name].spec for name in sorted(self._tools)]
 
-    def specs_for_model(self) -> list[ToolSpec]:
+    def specs_for_model(self) -> builtins.list[ToolSpec]:
         def public_schema(value: Any) -> Any:
             if isinstance(value, dict):
                 return {
