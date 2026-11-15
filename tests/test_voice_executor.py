@@ -40,7 +40,6 @@ def test_voice_controller_redacts_type_history(tmp_path) -> None:
     assert learning._voice == ["type <redacted>"]
 
 
-
 @pytest.mark.parametrize(
     ("phrase", "expected"),
     [
