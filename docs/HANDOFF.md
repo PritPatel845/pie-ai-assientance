@@ -116,7 +116,7 @@ The parser checks exact phrases first, then volume patterns, search patterns, th
 - Config environment parsing and strict unknown-key checks are covered by regression tests.
 - Ruff CI is read-only; it never formats and pushes commits from a pull-request merge checkout.
 - `FrameProcessor` action-list annotations satisfy strict mypy.
-- Wake-word punctuation boundaries are covered by a table-driven test.
+- The voice parser now has a 90-row phrase matrix plus punctuation-boundary wake-word tests.
 - Learning ring-buffer test isolates the bounded-buffer assertion from periodic disk-flush I/O.
 
 ### Exact verification commands
