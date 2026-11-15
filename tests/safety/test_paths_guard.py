@@ -162,3 +162,13 @@ def test_unmarked_path_property_is_ignored(tmp_path: Path) -> None:
         schema,
         allowed_folders=(str(tmp_path),),
     ) is Tier.READ
+
+
+
+def test_control_characters_in_paths_are_rejected(tmp_path) -> None:
+    with pytest.raises(PathGuardError):
+        guard_paths(
+            {"path": str(tmp_path / "notes\n.txt")},
+            SCHEMA,
+            allowed_folders=(str(tmp_path),),
+        )
