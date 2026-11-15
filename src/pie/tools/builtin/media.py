@@ -14,16 +14,44 @@ def build_media_tools(controller: MacController) -> list[FunctionTool]:
         del args
         if ctx.dry_run:
             return ok({"would_play": True})
-        return ok({"playing": True}) if await asyncio.to_thread(controller.play_media) else fail("media play failed")
+        result = await asyncio.to_thread(controller.play_media)
+        return ok({"playing": True}) if result else fail("media play failed")
 
     async def pause(args: Mapping[str, Any], ctx: ToolContext) -> ToolResult:
         del args
         if ctx.dry_run:
             return ok({"would_pause": True})
-        return ok({"paused": True}) if await asyncio.to_thread(controller.stop_media) else fail("media pause failed")
+        result = await asyncio.to_thread(controller.stop_media)
+        return ok({"paused": True}) if result else fail("media pause failed")
 
-    schema = {"type": "object", "properties": {}, "additionalProperties": False}
+    schema = {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": False,
+    }
     return [
-        FunctionTool(ToolSpec("media.play", "Play or resume the active media session. Do not use to start a specific track.", schema, Tier.REVERSIBLE), play),
-        FunctionTool(ToolSpec("media.pause", "Pause the active media session. Do not use to stop or delete media.", schema, Tier.REVERSIBLE), pause),
+        FunctionTool(
+            ToolSpec(
+                "media.play",
+                (
+                    "Play or resume the active media session. "
+                    "Do not use to start a specific track."
+                ),
+                schema,
+                Tier.REVERSIBLE,
+            ),
+            play,
+        ),
+        FunctionTool(
+            ToolSpec(
+                "media.pause",
+                (
+                    "Pause the active media session. "
+                    "Do not use to stop or delete media."
+                ),
+                schema,
+                Tier.REVERSIBLE,
+            ),
+            pause,
+        ),
     ]
