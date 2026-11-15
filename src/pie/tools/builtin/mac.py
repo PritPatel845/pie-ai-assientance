@@ -153,6 +153,9 @@ def build_mac_tools(controller: MacController) -> list[FunctionTool]:
         label = app or "unknown frontmost application"
         return f"Close {label}? This will quit the currently frontmost application."
 
+    def clear_close_prompt(call_id: str) -> None:
+        confirmed_apps.pop(call_id, None)
+
     async def close_app(args: Mapping[str, Any], ctx: ToolContext) -> ToolResult:
         del args
         confirmed_app = confirmed_apps.pop(ctx.call_id, None)
@@ -348,6 +351,7 @@ def build_mac_tools(controller: MacController) -> list[FunctionTool]:
             ),
             close_app,
             close_prompt,
+            clear_close_prompt,
         ),
         FunctionTool(
             ToolSpec(
