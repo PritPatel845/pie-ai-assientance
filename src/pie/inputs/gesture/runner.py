@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import importlib
 import time
-from collections.abc import Callable, Sequence\nfrom typing import Any, Protocol
+from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any, Protocol
 
-from pie.inputs.gesture.engine import ensure_model\nfrom pie.inputs.gesture.features import Landmark
+from pie.inputs.gesture.engine import ensure_model
+from pie.inputs.gesture.features import Landmark
 from pie.inputs.gesture.frame import (
     Action,
     DoubleClick,
@@ -27,7 +28,13 @@ from pie.inputs.gesture.learning import LearningEngine
 from pie.platform.mac import MacController
 
 
-class Capture(Protocol):\n    def isOpened(self) -> bool: ...\n    def read(self) -> tuple[bool, Any]: ...\n    def release(self) -> None: ...\n\n\nclass Capture(Protocol):
+class Capture(Protocol):
+    def isOpened(self) -> bool: ...
+    def read(self) -> tuple[bool, Any]: ...
+    def release(self) -> None: ...
+
+
+class Capture(Protocol):
     def isOpened(self) -> bool: ...
     def read(self) -> tuple[bool, Any]: ...
     def release(self) -> None: ...
