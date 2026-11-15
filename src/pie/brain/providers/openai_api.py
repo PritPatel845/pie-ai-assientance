@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Sequence
+import json
+from collections.abc import Sequence
+from typing import Any
 
 from pie.brain.keys import get_api_key
 from pie.brain.providers.anthropic_api import _raise_vendor_error
@@ -39,7 +41,7 @@ class OpenAIProvider:
             if message.tool_calls:
                 row["tool_calls"] = [{
                     "id": call.id, "type": "function",
-                    "function": {"name": call.name, "arguments": __import__("json").dumps(call.args)},
+                    "function": {"name": call.name, "arguments": json.dumps(call.args)},
                 } for call in message.tool_calls]
             rows.append(row)
         tool_defs = [{
