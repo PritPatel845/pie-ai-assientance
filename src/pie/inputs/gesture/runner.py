@@ -6,8 +6,19 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any, Literal, Protocol
 
+from pie.events import EventBus
 from pie.inputs.gesture.engine import ensure_model
-from pie.inputs.gesture.features import Landmark
+from pie.inputs.gesture.features import (
+    Landmark,
+    is_fist,
+    is_four_finger,
+    is_open_palm,
+    is_pinch,
+    is_three_finger,
+    is_thumb_down,
+    is_thumb_up,
+    is_two_finger,
+)
 from pie.inputs.gesture.frame import (
     Action,
     DoubleClick,
@@ -32,6 +43,45 @@ class Capture(Protocol):
     def isOpened(self) -> bool: ...
     def read(self) -> tuple[bool, Any]: ...
     def release(self) -> None: ...
+
+
+class StopSignal(Protocol):
+    def is_set(self) -> bool: ...
+
+
+class GestureEventTracker:
+    """Pure rising-edge/debounce tracker for canonical gesture event names."""
+
+    def __init__(self, debounce_seconds: float = 0.3) -> None:
+        self.debounce_seconds = debounce_seconds
+        self._previous: set[str] = set()
+        self._last_emitted: dict[str, float] = {}
+
+    def update(self, hands: Sequence[Sequence[Landmark]], now: float) -> tuple[str, ...]:
+        if not hands:
+            self._previous.clear()
+            return ()
+        hand = hands[0]
+        predicates = {
+            "pinch": is_pinch(hand),
+            "open_palm": is_open_palm(hand),
+            "fist": is_fist(hand),
+            "thumb_up": is_thumb_up(hand),
+            "thumb_down": is_thumb_down(hand),
+            "two_finger": is_two_finger(hand),
+            "three_finger": is_three_finger(hand),
+            "four_finger": is_four_finger(hand),
+        }
+        current = {name for name, active in predicates.items() if active}
+        emitted = tuple(
+            name
+            for name in sorted(current - self._previous)
+            if now - self._last_emitted.get(name, float("-inf")) >= self.debounce_seconds
+        )
+        for name in emitted:
+            self._last_emitted[name] = now
+        self._previous = current
+        return emitted
 
 
 class ActionSink:
@@ -144,6 +194,9 @@ def run(
     preview: bool = True,
     learning_dir: Path | None = None,
     capture_factory: Callable[[int], Capture] | None = None,
+    bus: EventBus | None = None,
+    stop: StopSignal | None = None,
+    state_hz: int = 10,
 ) -> None:
     try:
         cv2 = importlib.import_module("cv2")
@@ -178,8 +231,18 @@ def run(
         learning = LearningEngine(learning_dir)
         previous_time = time.monotonic()
         fps = 0.0
+        last_state_at = float("-inf")
+        gesture_events = GestureEventTracker()
+        if bus is not None:
+            bus.publish(
+                "system.mode",
+                {"mode": processor.mode, "game_profile": processor.profile},
+                source="gesture",
+            )
         with mp.tasks.vision.HandLandmarker.create_from_options(options) as landmarker:
             while True:
+                if stop is not None and stop.is_set():
+                    break
                 ok, frame = capture.read()
                 if not ok:
                     break
@@ -190,6 +253,19 @@ def run(
                 result = landmarker.detect_for_video(image, timestamp_ms)
                 hands = result.hand_landmarks or []
                 frame_result = processor.process(hands)
+                if bus is not None:
+                    for name in gesture_events.update(hands, time.monotonic()):
+                        hand_label = "unknown"
+                        handedness = getattr(result, "handedness", None)
+                        if handedness and handedness[0]:
+                            hand_label = str(handedness[0][0].category_name).lower()
+                        bus.publish(
+                            "input.gesture.event",
+                            {"name": name, "hand": hand_label, "confidence": 1.0},
+                            source="gesture",
+                        )
+                elif not hands:
+                    gesture_events.update((), time.monotonic())
                 for action in frame_result.actions:
                     sink.execute(action)
                 if hands:
@@ -200,6 +276,19 @@ def run(
                 if elapsed > 0:
                     fps = 0.9 * fps + 0.1 / elapsed if fps else 1.0 / elapsed
                 previous_time = now
+                if bus is not None and now - last_state_at >= 1.0 / state_hz:
+                    bus.publish(
+                        "input.gesture.state",
+                        {
+                            "hands": len(hands),
+                            "gesture": frame_result.gesture,
+                            "depth": frame_result.depth,
+                            "armed": frame_result.armed,
+                            "fps": fps,
+                        },
+                        source="gesture",
+                    )
+                    last_state_at = now
                 if preview:
                     draw_hud(frame, frame_result, fps, cv2, no_actions=no_actions)
                     cv2.namedWindow("Pie Air Control", cv2.WINDOW_NORMAL)
@@ -215,12 +304,24 @@ def run(
                         )
                         for action in processor.set_mode(mode):
                             sink.execute(action)
+                        if bus is not None:
+                            bus.publish(
+                                "system.mode",
+                                {"mode": mode, "game_profile": processor.profile},
+                                source="gesture",
+                            )
                     if key in (ord("1"), ord("2"), ord("3")):
                         profile = {"1": "asphalt", "2": "temple-run", "3": "counter-strike"}[
                             chr(key)
                         ]
                         for action in processor.set_mode("game", profile):
                             sink.execute(action)
+                        if bus is not None:
+                            bus.publish(
+                                "system.mode",
+                                {"mode": "game", "game_profile": profile},
+                                source="gesture",
+                            )
     finally:
         try:
             if processor is not None and sink is not None:
