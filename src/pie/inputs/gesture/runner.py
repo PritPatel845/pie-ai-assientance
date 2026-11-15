@@ -64,8 +64,9 @@ class ActionSink:
         elif isinstance(action, KeyAction):
             from pie.inputs.gesture.game import MAC_KEY_CODES
 
+            profile_key = GAME_PROFILES[self.profile].get(action.name, action.name)
             key = {"accelerate": "up", "brake": "down", "slide": "down"}.get(
-                action.name, action.name
+                profile_key, profile_key
             )
             self.controller.key_event(MAC_KEY_CODES[key], action.pressed)
         elif isinstance(action, Tap):
