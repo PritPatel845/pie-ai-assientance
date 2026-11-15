@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
+import pytest
+
 from pie.inputs.voice.executor import LegacyRuleExecutor, VoiceController
 
 
@@ -35,9 +39,6 @@ def test_voice_controller_redacts_type_history(tmp_path) -> None:
     controller.execute("type my secret")
     assert learning._voice == ["type <redacted>"]
 
-
-import pytest
-from pathlib import Path
 
 
 @pytest.mark.parametrize(
