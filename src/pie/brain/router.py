@@ -99,6 +99,7 @@ class BrainRouter:
 
         explicit_local, request = wants_local(text)
         request = request or text
+        deadline = self.clock() + self.config.total_timeout_s
         cloud_names = [] if explicit_local else list(self.config.cloud_order)
         if self.config.cli_providers_enabled and not explicit_local:
             cloud_names.extend(("claude_cli", "codex_cli"))
@@ -108,6 +109,10 @@ class BrainRouter:
         quota_blocked = False
         offline_seen = False
         for index, name in enumerate(cloud_names):
+            remaining_time = deadline - self.clock()
+            if remaining_time <= 0:
+                last_error = "total timeout"
+                break
             provider = self.providers.get(name)
             if provider is None or not self._configured(name):
                 continue
@@ -115,7 +120,10 @@ class BrainRouter:
                 quota_blocked = True
                 continue
             try:
-                if await provider.healthcheck():
+                if await asyncio.wait_for(
+                    provider.healthcheck(),
+                    timeout=min(self.config.provider_timeout_s, remaining_time),
+                ):
                     selected = provider
                     selected_index = index
                     break
@@ -163,7 +171,13 @@ class BrainRouter:
             correlation_id,
         )
         return await self._agent_run(
-            selected, request, route, source, correlation_id, remaining_clouds=remaining
+            selected,
+            request,
+            route,
+            source,
+            correlation_id,
+            deadline,
+            remaining_clouds=remaining,
         )
 
     def _configured(self, name: str) -> bool:
@@ -182,6 +196,7 @@ class BrainRouter:
         route: Literal["cloud", "local"],
         source: str,
         correlation_id: str,
+        deadline: float,
         *,
         remaining_clouds: list[str] | None = None,
     ) -> RouterResult:
@@ -189,7 +204,6 @@ class BrainRouter:
         messages = self._context_messages(text)
         # Phase 2B deliberately exposes no tools; reversible tools arrive in Phase 3A.
         specs: list[ToolSpec] = []
-        deadline = self.clock() + self.config.total_timeout_s
         calls_made = 0
         for _step in range(self.config.max_steps):
             remaining = deadline - self.clock()
@@ -211,11 +225,25 @@ class BrainRouter:
                     timeout=min(self.config.provider_timeout_s, remaining),
                 )
             except RateLimited as exc:
-                if 0 <= exc.retry_after <= self.config.rate_limit_max_wait_s:
+                remaining_time = deadline - self.clock()
+                if (
+                    0 <= exc.retry_after <= self.config.rate_limit_max_wait_s
+                    and exc.retry_after < remaining_time
+                ):
                     await asyncio.sleep(exc.retry_after)
-                    retry_timeout = min(
-                        self.config.provider_timeout_s, max(0.1, deadline - self.clock())
-                    )
+                    remaining_time = deadline - self.clock()
+                    if remaining_time <= 0:
+                        return await self._fallback(
+                            provider,
+                            ProviderUnavailable(provider.name, "total timeout"),
+                            text,
+                            route,
+                            source,
+                            correlation_id,
+                            deadline,
+                            remaining_clouds or [],
+                        )
+                    retry_timeout = min(self.config.provider_timeout_s, remaining_time)
                     try:
                         reply = await asyncio.wait_for(
                             provider.complete(
@@ -231,6 +259,7 @@ class BrainRouter:
                             route,
                             source,
                             correlation_id,
+                            deadline,
                             remaining_clouds or [],
                         )
                     except TimeoutError:
@@ -251,6 +280,7 @@ class BrainRouter:
                         route,
                         source,
                         correlation_id,
+                        deadline,
                         remaining_clouds or [],
                     )
             except ProviderError as exc:
@@ -261,6 +291,7 @@ class BrainRouter:
                     route,
                     source,
                     correlation_id,
+                    deadline,
                     remaining_clouds or [],
                 )
             except TimeoutError:
@@ -310,6 +341,7 @@ class BrainRouter:
         route: Literal["cloud", "local"],
         source: str,
         correlation_id: str,
+        deadline: float,
         remaining_clouds: list[str],
     ) -> RouterResult:
         reason = "error"
@@ -344,8 +376,14 @@ class BrainRouter:
             candidate = self.providers.get(name)
             if candidate is None or not self._configured(name) or not self.quota.is_available(name):
                 continue
+            remaining_time = deadline - self.clock()
+            if remaining_time <= 0:
+                break
             try:
-                if not await candidate.healthcheck():
+                if not await asyncio.wait_for(
+                    candidate.healthcheck(),
+                    timeout=min(self.config.provider_timeout_s, remaining_time),
+                ):
                     continue
             except Exception:
                 continue
@@ -361,6 +399,7 @@ class BrainRouter:
                 "cloud",
                 source,
                 correlation_id,
+                deadline,
                 remaining_clouds=next_remaining,
             )
 
@@ -380,7 +419,7 @@ class BrainRouter:
                     },
                     correlation_id,
                 )
-            return await self._agent_run(local, text, "local", source, correlation_id)
+            return await self._agent_run(local, text, "local", source, correlation_id, deadline)
         return self._unavailable(correlation_id, str(error))
 
     def _context_messages(self, text: str) -> list[Message]:
