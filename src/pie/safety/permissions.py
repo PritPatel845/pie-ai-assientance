@@ -61,8 +61,7 @@ class PermissionGate:
         self._started = True
         self._unsubscribers = [
             self.bus.subscribe("input.voice.transcript", self._on_voice, name="permission-voice"),
-            self.bus.subscribe("input.gesture.event", self._on_gesture, name="permission-gesture"),
-            self.bus.subscribe("input.gesture.state", self._on_state, name="permission-gesture-state"),
+            self.bus.subscribe("input.gesture.*", self._on_gesture_event, name="permission-gesture"),
             self.bus.subscribe("ui.command", self._on_ui, name="permission-ui"),
         ]
 
@@ -86,6 +85,11 @@ class PermissionGate:
             self._pending.popleft()
             if not pending.future.done():
                 pending.future.set_result(PermissionDecision(allow, by))
+            self.bus.publish(
+                "permission.response",
+                {"call_id": pending.call_id, "allow": allow, "by": by},
+                source="permission_gate",
+            )
 
     async def _on_voice(self, event: Event) -> None:
         payload = event.payload
@@ -97,11 +101,11 @@ class PermissionGate:
         elif text in self._NO:
             await self._resolve_oldest(event, False, "voice")
 
-    async def _on_state(self, event: Event) -> None:
-        self._armed = bool(event.payload.get("armed", False))
-
-    async def _on_gesture(self, event: Event) -> None:
-        if not self._armed:
+    async def _on_gesture_event(self, event: Event) -> None:
+        if event.topic == "input.gesture.state":
+            self._armed = bool(event.payload.get("armed", False))
+            return
+        if event.topic != "input.gesture.event" or not self._armed:
             return
         name = event.payload.get("name")
         if name == "thumb_up":
@@ -138,6 +142,11 @@ class PermissionGate:
         while self._prompt_times and now - self._prompt_times[0] >= 60:
             self._prompt_times.popleft()
         if len(self._prompt_times) >= self.max_prompts_per_min:
+            self.bus.publish(
+                "permission.response",
+                {"call_id": call_id, "allow": False, "by": "too_many_confirmations"},
+                source="permission_gate",
+            )
             return PermissionDecision(False, "too_many_confirmations")
         self._prompt_times.append(now)
 
@@ -173,6 +182,11 @@ class PermissionGate:
                     self._pending.remove(pending)
                 except ValueError:
                     pass
+            self.bus.publish(
+                "permission.response",
+                {"call_id": call_id, "allow": False, "by": "timeout"},
+                source="permission_gate",
+            )
             return PermissionDecision(False, "timeout")
 
 
