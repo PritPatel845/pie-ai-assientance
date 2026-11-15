@@ -22,23 +22,26 @@ Branch: phase-0s-implementation. Target Python >=3.12,<3.13 on Apple Silicon mac
 2. Omitted ~/.jarvis_learning migration.
 3. Renamed section 10 to FOUNDATION BEHAVIOUR (specified by Phase 0S).
 
-### Not complete / not verified
-- The target Mac audit has not been run: Apple Silicon architecture, macOS version, Homebrew
-  Python 3.12, MediaPipe Tasks imports, Quartz/AppKit, and PyAutoGUI key support remain
-  unverified on the actual device.
-- The OpenCV packaging blocker is confirmed from MediaPipe 0.10.35 PyPI metadata: its
-  `Requires-Dist` includes `opencv-contrib-python`, while this project's frozen dependency
-  is `opencv-python==4.11.0.86`. OpenCV's own package guidance says to install only one
-  distribution because both provide the `cv2` namespace. No dependency or frozen contract
-  was changed. The read-only Mac audit now prints both installed distributions and MediaPipe's
-  declared OpenCV requirements, and flags the dual-install case.
-- The offline-first model is now committed at `assets/hand_landmarker.task` and CI verifies
-  its exact size and SHA-256 on every test run. See the acceptance ledger below.
-- Linux/Python 3.12 CI is green (206 tests, Ruff, strict mypy, and doctor); this does not
-  establish macOS or camera compatibility.
-- Real camera preview, HUD poses, camera release, Accessibility permission, and safe cursor
-  control still require manual checks on the target Mac.
-- Phase 0S is NOT accepted; do not tag pie-phase-0-done.
+### Current verification status — 2026-11-15
+
+The target Apple Silicon Mac audit and interactive checks have now been run by the project owner.
+The owner reports that the Phase 0S camera/gesture, cursor, media, screenshot, application
+lookup, and safe-exit checks are working. Detailed evidence and remaining caveats are recorded
+in the dated verification entry at the end of this file.
+
+- The approved OpenCV dependency change is implemented: the macOS extra uses only
+  `opencv-contrib-python==4.11.0.86`; the target virtual environment reports that package
+  installed and `opencv-python` absent.
+- Target Mac: arm64, macOS 27.2.1, Python 3.12.14. The read-only audit passed the required
+  MediaPipe Tasks API, PyAutoGUI key, Quartz/AppKit, model hash, and Spotlight checks.
+- Latest target-Mac test run: **207 passed**. `pie doctor` reports all runtime dependencies
+  and the bundled model present.
+- Latest GitHub Actions test job for branch head
+  `1adb89859fd04ee2b4eea53f6362cd93d15583d8` passed. The push and pull-request workflows
+  both completed successfully for that exact SHA.
+- Phase 0S is not yet formally accepted. Keep PR #2 open and draft; do not merge, tag
+  `pie-phase-0-done`, or begin Phase 1 until the acceptance checklist and evidence are
+  reconciled and reviewed.
 
 ### Public symbols
 - features: Landmark, distance, hand_size, finger_extended, is_pinch, is_open_palm,
@@ -71,7 +74,7 @@ Branch: phase-0s-implementation. Target Python >=3.12,<3.13 on Apple Silicon mac
 ### Automated verification
 
 - Latest GitHub Actions runs for code commit `f906bc23546831d9446d60f864fb8689183cd7b2`: push https://github.com/PritPatel845/pie-ai-assientance/actions/runs/43673643751 and pull request https://github.com/PritPatel845/pie-ai-assientance/actions/runs/43673646615 (both passed). The README now directs contributors to install only the `[dev]` extra until the macOS dependency contract is resolved.
-- `pytest -q`: **206 passed**.
+- Earlier Linux/Python 3.12 baseline: `pytest -q` **206 passed**. The latest target-Mac run is 207 passed; see the dated verification entry below.
 - `ruff check .`: passed.
 - `ruff format --check .`: passed.
 - `mypy src/pie`: passed; no issues in 20 source files.
@@ -149,7 +152,7 @@ The parser checks exact phrases first, then volume patterns, search patterns, th
 .venv/bin/python -m pie --no-actions --no-voice
 ```
 
-### Still blocking Phase 0S completion
+### Historical blockers (superseded by target-Mac verification below)
 
 - `assets/hand_landmarker.task` is committed (7,819,105 bytes). The model-asset workflow downloaded it from Google's official URL and verified SHA-256 `fbc2a30080c3c557093b5ddfc334698132eb341044ccee322ccf8bcf3607cde1` before committing. `ensure_model()` independently verifies both size and hash at runtime.
 - The actual target Mac has not been audited here: `uname -m`, `sw_vers`, Homebrew Python 3.12 path, and imports/versions for MediaPipe 0.10.35 Tasks API, OpenCV, PyAutoGUI, Quartz, and AppKit remain unverified.
@@ -180,10 +183,75 @@ External wheel metadata review:
   27.2.1 and CPython 3.12.14, so the published wheel tags are compatible.
 - This metadata review does not establish successful installation or runtime operation.
 
-### Target Mac verification still required
+### Target Mac verification — completed 2026-11-15
 
-On the user's Mac, update the checkout to this branch commit, then install the macOS extra
-in the existing Python 3.12 virtual environment. Verify `pip check`, the exact installed
-OpenCV distribution/version, imports for cv2/MediaPipe Tasks/PyAutoGUI/Quartz/AppKit, and
-the read-only audit. Only then proceed to camera and hardware checks. Phase 0S remains
-unaccepted until all manual checklist items pass.
+The target Mac audit, runtime dependency checks, and owner-reported manual checks are now
+recorded in the dated verification entry below. This section supersedes the earlier
+"verification still required" note. Formal Phase 0S acceptance remains pending until the
+checklist wording and evidence are reviewed together.
+
+
+## Target Mac verification update — 2026-11-15
+
+### Environment and dependencies
+
+- Repository branch: `phase-0s-implementation`.
+- Verified branch head during this review: `1adb89859fd04ee2b4eea53f6362cd93d15583d8`.
+- Hardware/platform: Apple Silicon arm64; macOS 27.2.1.
+- Python: 3.12.14 from the project's `.venv-mac`.
+- `opencv-contrib-python==4.11.0.86`: installed.
+- `opencv-python`: not installed. The duplicate `cv2` distribution conflict is resolved.
+- Runtime versions reported by `pie doctor`: OpenCV 4.11.0, NumPy 2.2.6,
+  MediaPipe 0.10.35, PyAutoGUI 0.9.54; Quartz and AppKit installed.
+- Bundled `assets/hand_landmarker.task` found; expected 7,819,105-byte model and
+  SHA-256 `fbc2a30080c3c557093b5ddfc334698132eb341044ccee322ccf8bcf3607cde1`
+  were confirmed by the read-only audit.
+- The audit also confirmed MediaPipe Tasks symbols, VIDEO mode, BaseOptions, Image,
+  SRGB format, PyAutoGUI `playpause`, and Spotlight query syntax. The audit is read-only
+  and does not access camera or microphone.
+
+### Target-Mac automated checks
+
+- `pytest -q`: **207 passed** (latest user-reported run, 0.11 seconds).
+- `pie doctor`: completed and reported the expected platform, dependencies, model,
+  and ~/.pie directory state.
+- Screenshot regression test: `tests/test_mac_adapter.py` **7 passed**.
+- Screenshot adapter: `MacController().screenshot()` returned `True`; a
+  `Pie Screenshot` PNG was observed on the Desktop.
+- Preview application lookup returned `True`.
+- Cursor-control application was reported working by the owner.
+- The earlier complete Mac quality run reported Ruff lint passed, 34 files formatted,
+  and strict mypy with no issues in 20 source files. These quality checks predate the
+  final OpenCV environment cleanup; they were not re-run in the latest 207-test command.
+
+### Interactive checks — owner confirmation
+
+The project owner confirmed that the manual functionality previously listed as remaining
+is working, including camera preview/gesture poses, cursor interaction, media controls,
+screenshot creation, application lookup, and safe exit/cleanup. Earlier direct checks also
+confirmed the camera preview closes with q, Preview lookup succeeds, and the media adapter
+returns success for play and pause. Treat this as owner-reported manual verification, not
+as automated CI coverage.
+
+### GitHub CI and pull request
+
+For branch head `1adb89859fd04ee2b4eea53f6362cd93d15583d8`:
+- Push workflow run [43677472921](https://github.com/PritPatel845/pie-ai-assientance/actions/runs/43677472921):
+  completed successfully; test job passed and model-asset job passed.
+- Pull-request workflow run [43677475038](https://github.com/PritPatel845/pie-ai-assientance/actions/runs/43677475038):
+  completed successfully; test job passed. The model-asset job was skipped in this PR run.
+- PR [#2](https://github.com/PritPatel845/pie-ai-assientance/pull/2) remains open and draft;
+  it is not merged.
+
+### Voice scope and acceptance decision
+
+Voice phrase parsing exists in Phase 0S, but microphone/voice capture is explicitly deferred
+to Phase 2A. Therefore the manual checklist must not require voice-captured play/pause
+commands in Phase 0S. Media routing/fallback should be checked through the available
+Phase 0S action/gesture path and direct app/system behavior.
+
+The current evidence is strong and the owner reports the interactive checks working, but
+this log does not itself declare Phase 0S accepted. Review the complete Phase 0S PDF
+acceptance requirements against the implementation and this evidence before closing the
+gate. Do not merge PR #2, create `pie-phase-0-done`, or start Phase 1 until that review
+explicitly confirms every acceptance criterion.
