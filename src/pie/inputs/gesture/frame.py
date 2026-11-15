@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Literal
 
@@ -104,7 +104,7 @@ class FrameProcessor:
     """Pure gesture state machine. All OS effects are returned as typed actions."""
 
     def __init__(
-        self, *, arm_hold_seconds: float = 2.0, steer_sensitivity: float = 0.004, clock=None
+        self, *, arm_hold_seconds: float = 2.0, steer_sensitivity: float = 0.004, clock: Callable[[], float] | None = None
     ) -> None:
         import time
 
@@ -132,7 +132,7 @@ class FrameProcessor:
             raise ValueError("mode must be desktop or game")
         if profile is not None and profile not in GAME_PROFILES:
             raise ValueError(f"unknown game profile: {profile}")
-        actions = self._release_keys()
+        actions: list[Action] = self._release_keys()
         self.mode = mode
         if profile is not None:
             self.profile = profile
