@@ -25,10 +25,8 @@ jobs:
       - run: python -m pip install -e ".[dev]"
       - name: Ruff lint
         run: ruff check .
-      - name: Ruff format diagnostic
-        run: |
-          ruff format src/pie/brain/providers/anthropic_api.py src/pie/brain/router.py tests/brain/test_providers.py tests/brain/test_router.py
-          git diff -- src/pie/brain/providers/anthropic_api.py src/pie/brain/router.py tests/brain/test_providers.py tests/brain/test_router.py
+      - name: Ruff format
+        run: ruff format --check .
       - run: pytest -q
       - run: mypy src/pie
       - name: Verify model downloader
