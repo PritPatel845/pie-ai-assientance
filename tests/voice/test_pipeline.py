@@ -61,6 +61,7 @@ def test_fake_microphone_pipeline_publishes_and_executes_in_order(
         raise AssertionError("local voice pipeline attempted a network connection")
 
     monkeypatch.setattr(socket.socket, "connect", deny_network)
+
     async def scenario() -> None:
         bus = EventBus(asyncio.get_running_loop())
         events: list[Event] = []
