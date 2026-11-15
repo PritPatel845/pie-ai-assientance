@@ -23,7 +23,6 @@ class GestureBindingsModule:
         self.daemon = daemon
         if daemon.bus is None or not daemon.config.gesture.bindings_via_tools:
             return
-        daemon.bus.subscribe("input.gesture.event", self._on_gesture, name=self.name)
         self._unsubscribe = daemon.bus.subscribe(
             "input.gesture.event", self._on_gesture, name=self.name
         )
