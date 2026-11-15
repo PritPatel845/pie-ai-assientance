@@ -39,4 +39,5 @@ def test_learning_ring_buffer_is_bounded(tmp_path) -> None:
     for index in range(5100):
         now[0] = index * 0.26
         engine.record_hand_sample(hand(), "gesture")
+        engine._last_flush = now[0]  # isolate ring-buffer bounds from disk flush cost
     assert len(engine.gesture_history()) == 5000
