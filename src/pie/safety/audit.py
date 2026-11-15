@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import stat
 import threading
 import time
 from pathlib import Path
@@ -75,12 +76,12 @@ class AuditLog:
             with self._lock:
                 self.path.parent.mkdir(parents=True, exist_ok=True)
                 self._rotate()
-                descriptor = os.open(
-                    self.path,
-                    os.O_WRONLY | os.O_CREAT | os.O_APPEND,
-                    0o600,
-                )
+                flags = os.O_WRONLY | os.O_CREAT | os.O_APPEND
+                flags |= getattr(os, "O_NOFOLLOW", 0)
+                descriptor = os.open(self.path, flags, 0o600)
                 try:
+                    if not stat.S_ISREG(os.fstat(descriptor).st_mode):
+                        raise OSError("audit target is not a regular file")
                     os.fchmod(descriptor, 0o600)
                     with os.fdopen(descriptor, "a", encoding="utf-8", closefd=False) as handle:
                         handle.write(encoded)
