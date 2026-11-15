@@ -1,0 +1,64 @@
+name: Phase 0S Python checks
+
+on:
+  push:
+    branches: ["phase-0s-implementation"]
+  pull_request:
+    branches: ["main"]
+
+concurrency:
+  group: phase-0s-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e ".[dev]"
+      - name: Ruff lint
+        run: ruff check .
+      - name: Ruff format
+        run: ruff format --check .
+      - run: pytest -q
+      - run: mypy src/pie
+      - name: Verify model downloader
+        run: bash -n scripts/download_model.sh && bash -n scripts/manual_checks/audit_macos.command && test -x scripts/download_model.sh && test -x scripts/manual_checks/audit_macos.command
+      - run: python -m pie doctor
+
+  model-asset:
+    if: github.event_name == 'push' && !contains(github.event.head_commit.message, '[verified-model]')
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+      - name: Download and verify offline-first hand model
+        run: |
+          if [[ -f assets/hand_landmarker.task ]] && \
+             echo "fbc2a30080c3c557093b5ddfc334698132eb341044ccee322ccf8bcf3607cde1  assets/hand_landmarker.task" | sha256sum --check --status; then
+            echo "Verified model already exists; no download required."
+          else
+            bash scripts/download_model.sh
+          fi
+      - name: Commit verified model asset once
+        run: |
+          git add assets/hand_landmarker.task
+          if git diff --cached --quiet; then
+            echo "Model asset is already committed."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "assets: add verified Hand Landmarker model [verified-model]"
+          git push origin "HEAD:${{ github.ref_name }}"
