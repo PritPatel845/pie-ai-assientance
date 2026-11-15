@@ -8,9 +8,9 @@ VOICE_WAKE_WORDS = ("hey pie", "pie", "pi", "jr", "j r", "jay r", "jarvis")
 def extract_wake_command(text: str) -> str | None:
     cleaned = re.sub(r"\s+", " ", text.strip().lower())
     for wake in sorted(VOICE_WAKE_WORDS, key=len, reverse=True):
-        match = re.match(rf"^(?:hey\s+)?{re.escape(wake)}(?=$|[\s,.!?])", cleaned)
+        match = re.match(rf"^(?:hey\s+)?{re.escape(wake)}(?=$|[^\w])", cleaned)
         if match:
-            return cleaned[match.end() :].lstrip(" ,.!?")
+            return re.sub(r"^[^\w]+", "", cleaned[match.end() :])
     return None
 
 
