@@ -172,6 +172,7 @@ def test_stop_cancels_active_provider_request(tmp_path: Path) -> None:
 
     asyncio.run(scenario())
 
+
 def test_cloud_success_uses_first_configured_provider(tmp_path: Path) -> None:
     async def scenario() -> None:
         anthropic = FakeProvider("anthropic", "cloud", text="cloud answer")
@@ -192,9 +193,7 @@ def test_all_cloud_providers_offline_falls_back_without_quota_mark(tmp_path: Pat
         anthropic = FakeProvider("anthropic", "cloud", healthy=False)
         openai = FakeProvider("openai", "cloud", healthy=False)
         local = FakeProvider("local", "local", text="local answer")
-        router = _router(
-            {"anthropic": anthropic, "openai": openai, "local": local}, tmp_path
-        )
+        router = _router({"anthropic": anthropic, "openai": openai, "local": local}, tmp_path)
 
         result = await router.handle("explain gravity", source="test")
 
@@ -207,9 +206,7 @@ def test_all_cloud_providers_offline_falls_back_without_quota_mark(tmp_path: Pat
 
 def test_short_rate_limit_retries_same_provider_once(tmp_path: Path) -> None:
     async def scenario() -> None:
-        anthropic = FakeProvider(
-            "anthropic", "cloud", errors=[RateLimited("anthropic", 0.0), None]
-        )
+        anthropic = FakeProvider("anthropic", "cloud", errors=[RateLimited("anthropic", 0.0), None])
         openai = FakeProvider("openai", "cloud")
         router = _router({"anthropic": anthropic, "openai": openai}, tmp_path)
 
@@ -224,9 +221,7 @@ def test_short_rate_limit_retries_same_provider_once(tmp_path: Path) -> None:
 
 def test_long_rate_limit_moves_to_next_cloud_provider(tmp_path: Path) -> None:
     async def scenario() -> None:
-        anthropic = FakeProvider(
-            "anthropic", "cloud", errors=[RateLimited("anthropic", 9.0)]
-        )
+        anthropic = FakeProvider("anthropic", "cloud", errors=[RateLimited("anthropic", 9.0)])
         openai = FakeProvider("openai", "cloud", text="second provider")
         router = _router({"anthropic": anthropic, "openai": openai}, tmp_path)
 
@@ -273,9 +268,7 @@ def test_auth_error_warns_and_moves_to_next_provider(tmp_path: Path) -> None:
 
 def test_local_failure_returns_unavailable_result(tmp_path: Path) -> None:
     async def scenario() -> None:
-        local = FakeProvider(
-            "local", "local", error=ProviderUnavailable("local", "offline")
-        )
+        local = FakeProvider("local", "local", error=ProviderUnavailable("local", "offline"))
         router = _router({"local": local}, tmp_path, config=BrainConfig())
 
         result = await router.handle("use local explain gravity", source="test")
