@@ -35,8 +35,12 @@ def test_subscriber_order_and_wait_for() -> None:
 def test_wait_for_matches_predicate_and_unsubscribes() -> None:
     async def scenario() -> None:
         bus = EventBus(asyncio.get_running_loop())
-        waiter = asyncio.create_task(bus.wait_for("demo.*", timeout=1,
-                                                   predicate=lambda event: event.payload.get("ok") is True))
+        waiter = asyncio.create_task(
+            bus.wait_for(
+                "demo.*", timeout=1,
+                predicate=lambda event: event.payload.get("ok") is True,
+            )
+        )
         await asyncio.sleep(0)
         bus.publish("demo.ready", {"ok": False}, source="test")
         bus.publish("demo.ready", {"ok": True}, source="test")
