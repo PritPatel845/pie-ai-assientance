@@ -35,7 +35,7 @@ class EnergyVad:
             raise ValueError("VAD durations must be positive")
         self.sample_rate = sample_rate
         self.threshold = threshold
-        self.min_speech_samples = sample_rate * min_speech_ms // 1000
+        self.min_speech_samples = sample_rate * max(min_speech_ms, 300) // 1000
         self.end_silence_samples = sample_rate * end_silence_ms // 1000
         self.max_samples = int(sample_rate * max_utterance_s)
         self.pre_roll_samples = sample_rate * pre_roll_ms // 1000
