@@ -9,13 +9,14 @@
 - License: Apache License 2.0 (Google MediaPipe model distribution)
 - Model overview: https://developers.google.com/edge/mediapipe/solutions/vision/hand_landmarker
 
-The model is not currently committed in this repository. Download it explicitly with
-`scripts/download_model.sh`; it tries the official Google URL first and then a Hugging Face
-mirror containing the byte-identical model. Both sources must pass the exact byte-size and
-SHA-256 checks before the file is moved into `assets/hand_landmarker.task`. Do not bypass
-this check.
+The model is committed at `assets/hand_landmarker.task` (7,819,105 bytes). The commit was
+created by the model-asset CI job only after the official Google download passed the exact
+size and SHA-256 checks. The optional `scripts/download_model.sh` downloader tries the
+official Google URL first and then a Hugging Face mirror; either source must pass both
+checks before the file is accepted.
 
 Verified mirror: https://huggingface.co/Leo-TX/mediapipe-hand/resolve/main/hand_landmarker.task
+Model license statement: https://huggingface.co/Leo-TX/mediapipe-hand/blob/main/README.md
 
 Model checksum corroboration: Google's canonical model URL is used by the official
 MediaPipe examples; independent copies of this exact model report the same SHA-256.
