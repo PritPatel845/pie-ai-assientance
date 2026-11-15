@@ -133,3 +133,31 @@ def test_runner_releases_camera_if_controller_setup_fails(monkeypatch, tmp_path)
         )
     assert capture.released
     assert closed == ["windows"]
+
+
+
+class RecordingController:
+    def __init__(self):
+        self.events = []
+
+    def key_event(self, code, pressed):
+        self.events.append((code, pressed))
+
+
+def test_action_sink_uses_new_game_profile_after_switch() -> None:
+    controller = RecordingController()
+    sink = runner.ActionSink(controller, profile="asphalt")
+
+    # Profile selection changes the mapping used by subsequent actions.
+    sink.set_profile("counter-strike")
+    sink.execute(runner.KeyAction("forward", True))
+
+    assert controller.events == [(13, True)]
+
+
+def test_action_sink_rejects_unknown_game_profile() -> None:
+    controller = RecordingController()
+    sink = runner.ActionSink(controller, profile="asphalt")
+
+    with pytest.raises(ValueError, match="Unknown game profile"):
+        sink.set_profile("unknown")
