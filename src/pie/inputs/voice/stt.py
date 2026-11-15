@@ -108,7 +108,7 @@ class WhisperCppTranscriber:
 
     def __init__(self, model_path: Path, executable: str | None = None) -> None:
         self.model_path = model_path
-        self.executable = executable or shutil.which("whisper-cli") or shutil.which("whisper-cpp") or ""
+        self.executable = (\n            executable or shutil.which("whisper-cli") or shutil.which("whisper-cpp") or ""\n        )
         if not self.executable:
             raise RuntimeError("whisper.cpp CLI not found (install whisper-cpp with Homebrew)")
 
