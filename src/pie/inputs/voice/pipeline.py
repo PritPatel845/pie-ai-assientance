@@ -113,7 +113,9 @@ class VoiceController(_VoiceController):
         import sounddevice
 
         for index, device in enumerate(sounddevice.query_devices()):
-            if wanted in str(device.get("name", "")).lower() and int(device.get("max_input_channels", 0)) > 0:
+            name_matches = wanted in str(device.get("name", "")).lower()
+            has_input = int(device.get("max_input_channels", 0)) > 0
+            if name_matches and has_input:
                 return index
         raise RuntimeError(f"No microphone matches voice.input_device={self.config.input_device!r}")
 
@@ -203,7 +205,10 @@ class VoiceController(_VoiceController):
                     self._publish("system.error", {
                         "where": "voice.microphone",
                         "error": "Microphone returned only silent samples",
-                        "detail": "System Settings > Privacy & Security > Microphone: enable <host app>",
+                        "detail": (
+                            "System Settings > Privacy & Security > Microphone: "
+                            "enable <host app>"
+                        ),
                     })
                 self._all_zero_frames = 0
                 continue
@@ -222,7 +227,8 @@ class VoiceController(_VoiceController):
                     samplerate=_SAMPLE_RATE, channels=1, dtype="float32",
                     blocksize=_BLOCK_SIZE, device=device, callback=self._audio_callback,
                 ):
-                    _LOG.info("Microphone stream opened (device=%s)", device if device is not None else "system default")
+                    device_name = device if device is not None else "system default"
+                    _LOG.info("Microphone stream opened (device=%s)", device_name)
                     retry_window = 0.0
                     while not self._stop.wait(0.2):
                         pass
@@ -231,7 +237,10 @@ class VoiceController(_VoiceController):
                 self._publish("system.error", {
                     "where": "voice.microphone",
                     "error": "Microphone unavailable",
-                    "detail": "System Settings > Privacy & Security > Microphone: enable <host app>",
+                    "detail": (
+                        "System Settings > Privacy & Security > Microphone: "
+                        "enable <host app>"
+                    ),
                 })
                 _LOG.warning("Microphone stream unavailable: %s", type(exc).__name__)
                 if retry_window >= 60.0:
@@ -255,7 +264,13 @@ class VoiceController(_VoiceController):
             self._speaker.start()
             self.bus and self.bus.publish(
                 "tts.say",
-                {"text": f"Listening for your command for {self.config.listen_seconds} seconds.", "interrupt": True},
+                {
+                    "text": (
+                        f"Listening for your command for "
+                        f"{self.config.listen_seconds} seconds."
+                    ),
+                    "interrupt": True,
+                },
                 source="voice",
             )
         self._thread = threading.Thread(target=self._process_audio, name="pie-voice", daemon=True)
