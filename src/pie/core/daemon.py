@@ -6,7 +6,7 @@ import logging
 import signal
 import threading
 from collections.abc import Callable
-from typing import Protocol, cast
+from typing import cast, Protocol
 
 from pie import __version__
 from pie.config import Config
