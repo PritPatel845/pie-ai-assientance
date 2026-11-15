@@ -19,6 +19,8 @@ def redact(value: Any, *, tool: str = "", key: str = "") -> Any:
         return "***"
     if tool == "mac.type_text" and key == "text":
         return {"length": len(str(value))}
+    if tool == "fs.write_text" and key == "content":
+        return {"length": len(str(value))}
     if isinstance(value, dict):
         return {str(name): redact(item, tool=tool, key=str(name)) for name, item in value.items()}
     if isinstance(value, (list, tuple)):
