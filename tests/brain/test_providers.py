@@ -1,0 +1,62 @@
+from __future__ import annotations
+
+import asyncio
+
+import pytest
+
+from pie.brain.providers.anthropic_api import _raise_vendor_error
+from pie.brain.providers.claude_cli import ClaudeCliProvider
+from pie.brain.providers.codex_cli import CodexCliProvider
+from pie.brain.types import AuthError, Message, ProviderUnavailable, QuotaExhausted, RateLimited
+
+
+class AuthenticationError(Exception):
+    pass
+
+
+class RateLimitError(Exception):
+    def __init__(self) -> None:
+        super().__init__("too many requests")
+        self.response = type("Response", (), {"headers": {"retry-after": "2.5"}})()
+
+
+class APIConnectionError(Exception):
+    pass
+
+
+class InternalServerError(Exception):
+    status_code = 503
+
+
+def test_vendor_auth_error_mapping() -> None:
+    with pytest.raises(AuthError):
+        _raise_vendor_error("anthropic", AuthenticationError("invalid key"))
+
+
+def test_vendor_rate_limit_preserves_retry_after() -> None:
+    with pytest.raises(RateLimited) as caught:
+        _raise_vendor_error("openai", RateLimitError())
+    assert caught.value.retry_after == 2.5
+
+
+def test_vendor_billing_error_maps_to_quota() -> None:
+    with pytest.raises(QuotaExhausted):
+        _raise_vendor_error("anthropic", Exception("credit balance too low"))
+
+
+@pytest.mark.parametrize("error", [APIConnectionError("offline"), InternalServerError("server")])
+def test_vendor_network_and_server_errors_map_to_unavailable(error: Exception) -> None:
+    with pytest.raises(ProviderUnavailable):
+        _raise_vendor_error("openai", error)
+
+
+@pytest.mark.parametrize("provider", [ClaudeCliProvider(), CodexCliProvider()])
+def test_cli_providers_are_safe_stubs_until_sandbox_flags_are_verified(provider: object) -> None:
+    async def scenario() -> None:
+        assert await provider.healthcheck()  # type: ignore[attr-defined]
+        with pytest.raises(ProviderUnavailable, match="unsafe: cannot sandbox"):
+            await provider.complete(  # type: ignore[attr-defined]
+                [Message("user", "test")], [], max_tokens=8, timeout_s=1.0
+            )
+
+    asyncio.run(scenario())
