@@ -39,6 +39,41 @@ class Capture(Protocol):
     def release(self) -> None: ...
 
 
+
+class GestureEventTracker:
+    """Pure rising-edge/debounce tracker for canonical gesture event names."""
+
+    def __init__(self, debounce_seconds: float = 0.3) -> None:
+        self.debounce_seconds = debounce_seconds
+        self._previous: set[str] = set()
+        self._last_emitted: dict[str, float] = {}
+
+    def update(self, hands: Sequence[Sequence[Landmark]], now: float) -> tuple[str, ...]:
+        if not hands:
+            self._previous.clear()
+            return ()
+        hand = hands[0]
+        predicates = {
+            "pinch": is_pinch(hand),
+            "open_palm": is_open_palm(hand),
+            "fist": is_fist(hand),
+            "thumb_up": is_thumb_up(hand),
+            "thumb_down": is_thumb_down(hand),
+            "two_finger": is_two_finger(hand),
+            "three_finger": is_three_finger(hand),
+            "four_finger": is_four_finger(hand),
+        }
+        current = {name for name, active in predicates.items() if active}
+        emitted = tuple(
+            name for name in sorted(current - self._previous)
+            if now - self._last_emitted.get(name, float("-inf")) >= self.debounce_seconds
+        )
+        for name in emitted:
+            self._last_emitted[name] = now
+        self._previous = current
+        return emitted
+
+
 class ActionSink:
     """Translate pure FrameProcessor actions into an injectable platform adapter."""
 
@@ -187,8 +222,7 @@ def run(
         previous_time = time.monotonic()
         fps = 0.0
         last_state_at = float("-inf")
-        last_gesture_event: dict[str, float] = {}
-        previous_gesture_events: set[str] = set()
+        gesture_events = GestureEventTracker()
         if bus is not None:
             bus.publish("system.mode", {"mode": processor.mode, "game_profile": processor.profile},
                         source="gesture")
@@ -206,25 +240,13 @@ def run(
                 result = landmarker.detect_for_video(image, timestamp_ms)
                 hands = result.hand_landmarks or []
                 frame_result = processor.process(hands)
-                if bus is not None and hands:
-                    hand = hands[0]
-                    detected = {
-                        "pinch": is_pinch(hand), "open_palm": is_open_palm(hand),
-                        "fist": is_fist(hand), "thumb_up": is_thumb_up(hand),
-                        "thumb_down": is_thumb_down(hand), "two_finger": is_two_finger(hand),
-                        "three_finger": is_three_finger(hand), "four_finger": is_four_finger(hand),
-                    }
-                    now_event = time.monotonic()
-                    current_events = {name for name, active in detected.items() if active}
-                    for name in current_events - previous_gesture_events:
-                        if now_event - last_gesture_event.get(name, float("-inf")) >= 0.3:
-                            bus.publish("input.gesture.event",
-                                        {"name": name, "hand": "unknown", "confidence": 1.0},
-                                        source="gesture")
-                            last_gesture_event[name] = now_event
-                    previous_gesture_events = current_events
+                if bus is not None:
+                    for name in gesture_events.update(hands, time.monotonic()):
+                        bus.publish("input.gesture.event",
+                                    {"name": name, "hand": "unknown", "confidence": 1.0},
+                                    source="gesture")
                 elif not hands:
-                    previous_gesture_events.clear()
+                    gesture_events.update((), time.monotonic())
                 for action in frame_result.actions:
                     sink.execute(action)
                 if hands:
