@@ -79,7 +79,7 @@ def build_filesystem_tools() -> list[FunctionTool]:
         FunctionTool(
             ToolSpec("fs.write_text", "Write UTF-8 text to a file. Confirmation is required when overwriting or writing outside the sandbox.", {
                 "type": "object", "properties": {
-                    "path": {**path_schema, "x-confirm-if-exists": True},
+                    "path": {**path_schema, "x-confirm-if-exists": True, "x-confirm-outside-sandbox": True},
                     "content": {"type": "string", "maxLength": 100000}
                 }, "required": ["path", "content"], "additionalProperties": False
             }, Tier.REVERSIBLE),
