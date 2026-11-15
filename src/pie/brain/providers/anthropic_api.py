@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 from collections.abc import Sequence
 from typing import Any
 
@@ -94,10 +96,18 @@ def _raise_vendor_error(provider: str, exc: Exception) -> None:
     response = getattr(exc, "response", None)
     headers = getattr(response, "headers", {}) or {}
     retry_after = headers.get("retry-after") if hasattr(headers, "get") else None
-    try:
-        retry = float(retry_after) if retry_after is not None else 0.0
-    except (TypeError, ValueError):
-        retry = 0.0
+    retry = 0.0
+    if retry_after is not None:
+        try:
+            retry = max(0.0, float(retry_after))
+        except (TypeError, ValueError):
+            try:
+                retry_at = parsedate_to_datetime(str(retry_after))
+                if retry_at.tzinfo is None:
+                    retry_at = retry_at.replace(tzinfo=timezone.utc)
+                retry = max(0.0, (retry_at - datetime.now(timezone.utc)).total_seconds())
+            except (TypeError, ValueError, OverflowError):
+                retry = 0.0
     if "authentication" in name.lower() or "permission" in name.lower():
         raise AuthError(provider, "authentication failed") from exc
     if "ratelimit" in name.lower() or "rate limit" in message:
