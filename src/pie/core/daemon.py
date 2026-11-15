@@ -6,7 +6,7 @@ import logging
 import signal
 import threading
 from collections.abc import Callable
-from typing import Protocol
+from typing import Protocol, cast
 
 from pie import __version__
 from pie.config import Config
@@ -106,8 +106,8 @@ class Daemon:
         self.stop_flag.set()
         for module in reversed(self._started):
             try:
-                loop = self.loop
-                if loop is None or not loop.is_running():
+                loop = cast(asyncio.AbstractEventLoop, self.loop)
+                if not loop.is_running():
                     module.stop()
                     continue
 
