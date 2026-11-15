@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from pie.inputs.gesture.game import GAME_PROFILES, MAC_KEY_CODES, GameController
 from pie.inputs.gesture.frame import KeyAction
+from pie.inputs.gesture.game import GAME_PROFILES, MAC_KEY_CODES, GameController
 from pie.inputs.gesture.runner import ActionSink
 
 
