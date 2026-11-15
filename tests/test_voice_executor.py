@@ -1,3 +1,5 @@
+"""LegacyRuleExecutor and VoiceController behaviour follow Phase 0S §3.7 (PDF p. 22)."""
+
 from __future__ import annotations
 
 from pie.inputs.voice.executor import LegacyRuleExecutor, VoiceController
