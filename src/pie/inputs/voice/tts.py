@@ -72,8 +72,12 @@ class Speaker:
     def _available_voices(self) -> set[str]:
         if self._voices is None:
             result = self.runner(
-                ["/usr/bin/say", "-v", "?"], capture_output=True, text=True,
-                timeout=3, check=False, shell=False,
+                ["/usr/bin/say", "-v", "?"],
+                capture_output=True,
+                text=True,
+                timeout=3,
+                check=False,
+                shell=False,
             )
             names = set()
             for line in (result.stdout or "").splitlines():
@@ -99,8 +103,11 @@ class Speaker:
                     self.echo_guard.set()
                     self._process = self.popen(
                         ["/usr/bin/say", "-v", voice, "-r", str(self.rate), "-f", "-"],
-                        stdin=subprocess.PIPE, stdout=subprocess.DEVNULL,
-                        stderr=subprocess.DEVNULL, text=True, shell=False,
+                        stdin=subprocess.PIPE,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                        text=True,
+                        shell=False,
                     )
                     process = self._process
                 if process.stdin is not None:

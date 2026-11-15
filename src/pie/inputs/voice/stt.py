@@ -131,9 +131,21 @@ class WhisperCppTranscriber:
                 handle.setframerate(16_000)
                 handle.writeframes(pcm16.tobytes())
             result = subprocess.run(
-                [self.executable, "-m", str(self.model_path), "-f", str(wav_path),
-                 "-l", language, "--no-timestamps"],
-                capture_output=True, text=True, timeout=30, check=False, shell=False,
+                [
+                    self.executable,
+                    "-m",
+                    str(self.model_path),
+                    "-f",
+                    str(wav_path),
+                    "-l",
+                    language,
+                    "--no-timestamps",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=False,
+                shell=False,
             )
             if result.returncode != 0:
                 raise RuntimeError(f"whisper.cpp failed: {result.stderr[-500:]}")

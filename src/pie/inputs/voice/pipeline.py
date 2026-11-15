@@ -61,10 +61,16 @@ class VoiceController(_VoiceController):
         self._capture_thread: threading.Thread | None = None
         self._audio_queue: queue.Queue[np.ndarray] = queue.Queue(maxsize=200)
         self._dropped_blocks = 0
-        self._speaker = Speaker(
-            bus, enabled=self.config.tts_enabled, voice=self.config.tts_voice,
-            rate=self.config.tts_rate,
-        ) if bus is not None else None
+        self._speaker = (
+            Speaker(
+                bus,
+                enabled=self.config.tts_enabled,
+                voice=self.config.tts_voice,
+                rate=self.config.tts_rate,
+            )
+            if bus is not None
+            else None
+        )
         self._vad = EnergyVad(
             sample_rate=_SAMPLE_RATE,
             threshold=self.config.vad_threshold,
@@ -99,8 +105,13 @@ class VoiceController(_VoiceController):
     ) -> None:
         self._publish(
             "input.voice.transcript",
-            {"text": text, "final": final, "lang": self.language,
-             "addressed": addressed, "raw": raw},
+            {
+                "text": text,
+                "final": final,
+                "lang": self.language,
+                "addressed": addressed,
+                "raw": raw,
+            },
         )
 
     def _make_stream_factory(self) -> Callable[..., Any]:
@@ -148,7 +159,8 @@ class VoiceController(_VoiceController):
     def _ensure_transcriber(self) -> Transcriber:
         if self._transcriber is None:
             self._transcriber = self._transcriber_factory(
-                self.config.stt_backend, self.config.stt_model,
+                self.config.stt_backend,
+                self.config.stt_model,
                 allow_cloud=self.config.allow_cloud_stt,
             )
             _LOG.info("Voice STT backend selected: %s", self._transcriber.name)
@@ -165,10 +177,14 @@ class VoiceController(_VoiceController):
             raw = transcriber.transcribe(segment.audio, self.language).strip()
         except Exception as exc:
             _LOG.warning("Local speech transcription unavailable: %s", type(exc).__name__)
-            self._publish("system.error", {
-                "where": "voice.stt", "error": "speech recognition unavailable",
-                "detail": str(exc)[:300],
-            })
+            self._publish(
+                "system.error",
+                {
+                    "where": "voice.stt",
+                    "error": "speech recognition unavailable",
+                    "detail": str(exc)[:300],
+                },
+            )
             return
         self._last_stt_activity = self._clock()
         if self.config.debug_save_audio:
@@ -216,14 +232,17 @@ class VoiceController(_VoiceController):
                 now = self._clock()
                 if now - self._last_zero_notice >= 10:
                     self._last_zero_notice = now
-                    self._publish("system.error", {
-                        "where": "voice.microphone",
-                        "error": "Microphone returned only silent samples",
-                        "detail": (
-                            "System Settings > Privacy & Security > Microphone: "
-                            "enable <host app>"
-                        ),
-                    })
+                    self._publish(
+                        "system.error",
+                        {
+                            "where": "voice.microphone",
+                            "error": "Microphone returned only silent samples",
+                            "detail": (
+                                "System Settings > Privacy & Security > Microphone: "
+                                "enable <host app>"
+                            ),
+                        },
+                    )
                 self._all_zero_frames = 0
                 self._mic_permission_missing.set()
                 continue
@@ -239,8 +258,12 @@ class VoiceController(_VoiceController):
                 factory = self._make_stream_factory()
                 device = self._input_device()
                 with factory(
-                    samplerate=_SAMPLE_RATE, channels=1, dtype="float32",
-                    blocksize=_BLOCK_SIZE, device=device, callback=self._audio_callback,
+                    samplerate=_SAMPLE_RATE,
+                    channels=1,
+                    dtype="float32",
+                    blocksize=_BLOCK_SIZE,
+                    device=device,
+                    callback=self._audio_callback,
                 ):
                     device_name = device if device is not None else "system default"
                     _LOG.info("Microphone stream opened (device=%s)", device_name)
@@ -251,14 +274,16 @@ class VoiceController(_VoiceController):
                             raise RuntimeError("microphone returned only zero samples")
             except Exception as exc:
                 retry_window += 10.0
-                self._publish("system.error", {
-                    "where": "voice.microphone",
-                    "error": "Microphone unavailable",
-                    "detail": (
-                        "System Settings > Privacy & Security > Microphone: "
-                        "enable <host app>"
-                    ),
-                })
+                self._publish(
+                    "system.error",
+                    {
+                        "where": "voice.microphone",
+                        "error": "Microphone unavailable",
+                        "detail": (
+                            "System Settings > Privacy & Security > Microphone: enable <host app>"
+                        ),
+                    },
+                )
                 _LOG.warning("Microphone stream unavailable: %s", type(exc).__name__)
                 if retry_window >= 60.0:
                     _LOG.error("Microphone retry window exhausted; voice capture disabled")
@@ -270,10 +295,14 @@ class VoiceController(_VoiceController):
             return
         if self.config.stt_backend == "google" and not self.config.allow_cloud_stt:
             _LOG.error("Google STT requested but voice.allow_cloud_stt is false")
-            self._publish("system.error", {
-                "where": "voice.stt", "error": "Cloud STT is disabled",
-                "detail": "Set voice.allow_cloud_stt=true to allow audio to leave this Mac.",
-            })
+            self._publish(
+                "system.error",
+                {
+                    "where": "voice.stt",
+                    "error": "Cloud STT is disabled",
+                    "detail": "Set voice.allow_cloud_stt=true to allow audio to leave this Mac.",
+                },
+            )
             return
         if self.config.debug_save_audio:
             _LOG.warning("voice.debug_save_audio is enabled; utterance audio will be saved locally")
@@ -283,8 +312,7 @@ class VoiceController(_VoiceController):
                 "tts.say",
                 {
                     "text": (
-                        f"Listening for your command for "
-                        f"{self.config.listen_seconds} seconds."
+                        f"Listening for your command for {self.config.listen_seconds} seconds."
                     ),
                     "interrupt": True,
                 },
