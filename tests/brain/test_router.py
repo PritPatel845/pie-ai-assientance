@@ -32,6 +32,7 @@ class FakeProvider:
         gate: asyncio.Event | None = None,
         healthy: bool = True,
         errors: list[Exception | None] | None = None,
+        delay: float = 0.0,
     ) -> None:
         self.name = name
         self.kind = kind
@@ -40,6 +41,7 @@ class FakeProvider:
         self.gate = gate
         self.healthy = healthy
         self.errors = list(errors or [])
+        self.delay = delay
         self.seen_tools: list[list[ToolSpec]] = []
 
     async def healthcheck(self) -> bool:
@@ -57,6 +59,8 @@ class FakeProvider:
         if self.gate is not None:
             self.gate.set()
             await asyncio.Event().wait()
+        if self.delay:
+            await asyncio.sleep(self.delay)
         if self.errors:
             error = self.errors.pop(0)
             if error is not None:
@@ -276,5 +280,31 @@ def test_local_failure_returns_unavailable_result(tmp_path: Path) -> None:
         assert not result.ok
         assert result.provider is None
         assert "No AI model is available" in result.text
+
+    asyncio.run(scenario())
+
+def test_total_timeout_is_shared_across_provider_fallbacks(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        anthropic = FakeProvider("anthropic", "cloud", delay=0.04)
+        openai = FakeProvider("openai", "cloud", delay=0.04)
+        local = FakeProvider("local", "local")
+        config = BrainConfig(
+            anthropic_model="claude-test",
+            openai_model="gpt-test",
+            total_timeout_s=0.05,
+            provider_timeout_s=0.03,
+        )
+        router = _router(
+            {"anthropic": anthropic, "openai": openai, "local": local},
+            tmp_path,
+            config=config,
+        )
+
+        result = await router.handle("explain gravity", source="test")
+
+        assert not result.ok
+        assert len(anthropic.seen_tools) == 1
+        assert len(openai.seen_tools) == 1
+        assert not local.seen_tools
 
     asyncio.run(scenario())
