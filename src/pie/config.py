@@ -123,7 +123,9 @@ def _parse_environment_value(name: str, raw: str, current: Any) -> Any:
             value = json.loads(raw)
         except json.JSONDecodeError as exc:
             raise ConfigError(f"{name} must be a JSON array") from exc
-        if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+        if not isinstance(value, list) or not all(
+            isinstance(item, str) for item in value
+        ):
             raise ConfigError(f"{name} must be a JSON array of strings")
         return value
     return raw
