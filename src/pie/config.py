@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
@@ -52,40 +53,26 @@ class Config:
 
 _DEFAULTS: dict[str, dict[str, Any]] = {
     "app": {"name": "pie", "log_level": "INFO"},
-    "gesture": {
-        "camera": 0,
-        "preview": True,
-        "arm_hold_seconds": 2.0,
-        "steer_sensitivity": 0.004,
-        "state_hz": 10,
-        "model_path": "",
-    },
-    "voice": {
-        "enabled": True,
-        "wake_words": ["hey pie", "pie", "pi", "jr", "j r", "jay r", "jarvis"],
-        "listen_seconds": 20,
-        "language": "en",
-    },
+    "gesture": {"camera": 0, "preview": True, "arm_hold_seconds": 2.0,
+                "steer_sensitivity": 0.004, "state_hz": 10, "model_path": ""},
+    "voice": {"enabled": True, "wake_words": ["hey pie", "pie", "pi", "jr", "j r", "jay r", "jarvis"],
+              "listen_seconds": 20, "language": "en"},
     "ui": {"host": "127.0.0.1", "port": 8765},
 }
-_TYPES = {
-    section: {key: type(value) for key, value in values.items()}
-    for section, values in _DEFAULTS.items()
-}
+_TYPES = {section: {key: type(value) for key, value in values.items()}
+          for section, values in _DEFAULTS.items()}
 
 
 def _merge(target: dict[str, dict[str, Any]], source: dict[str, Any]) -> None:
     unknown_sections = set(source) - set(target)
     if unknown_sections:
-        names = ", ".join(sorted(unknown_sections))
-        raise ConfigError(f"Unknown config section(s): {names}")
+        raise ConfigError(f"Unknown config section(s): {', '.join(sorted(unknown_sections))}")
     for section, values in source.items():
         if not isinstance(values, dict):
             raise ConfigError(f"Config section {section} must be a table")
         unknown = set(values) - set(target[section])
         if unknown:
-            names = ", ".join(sorted(unknown))
-            raise ConfigError(f"Unknown config key(s) in {section}: {names}")
+            raise ConfigError(f"Unknown config key(s) in {section}: {', '.join(sorted(unknown))}")
         for key, value in values.items():
             expected = _TYPES[section][key]
             if expected is int and isinstance(value, bool):
@@ -129,10 +116,15 @@ def load_config(
     cli_overrides: dict[str, dict[str, Any]] | None = None,
 ) -> Config:
     data = {section: dict(values) for section, values in _DEFAULTS.items()}
-    root_defaults = Path(__file__).resolve().parents[2] / "config" / "pie.default.toml"
-    if root_defaults.is_file():
-        with root_defaults.open("rb") as handle:
-            _merge(data, tomllib.load(handle))
+    candidates = (
+        Path(__file__).resolve().parents[2] / "config" / "pie.default.toml",
+        Path(sys.prefix) / "config" / "pie.default.toml",
+    )
+    for defaults_path in candidates:
+        if defaults_path.is_file():
+            with defaults_path.open("rb") as handle:
+                _merge(data, tomllib.load(handle))
+            break
 
     user_path = path or Path.home() / ".pie" / "config.toml"
     if user_path.is_file():
@@ -140,16 +132,17 @@ def load_config(
             _merge(data, tomllib.load(handle))
 
     env = os.environ if environ is None else environ
-    known_env = {
-        f"PIE_{section.upper()}_{key.upper()}" for section, values in data.items() for key in values
-    }
+    known_env = {f"PIE_{section.upper()}_{key.upper()}"
+                 for section, values in data.items() for key in values}
     for name, raw in env.items():
         if name in known_env:
             section, key = name.removeprefix("PIE_").lower().split("_", 1)
             data[section][key] = _parse_environment_value(name, raw, data[section][key])
-            continue
-        if name.startswith("PIE_"):
-            raise ConfigError(f"Unknown environment variable: {name}")
+        elif name.startswith("PIE_"):
+            remainder = name.removeprefix("PIE_").lower()
+            section = remainder.split("_", 1)[0]
+            if section in data:
+                raise ConfigError(f"Unknown environment variable: {name}")
 
     if cli_overrides:
         _merge(data, cli_overrides)
@@ -159,16 +152,14 @@ def load_config(
     if model_path:
         data["gesture"]["model_path"] = str(Path(model_path).expanduser())
 
-    config = Config(
-        AppConfig(**data["app"]),
-        GestureConfig(**data["gesture"]),
-        VoiceConfig(**data["voice"]),
-        UiConfig(**data["ui"]),
-    )
+    config = Config(AppConfig(**data["app"]), GestureConfig(**data["gesture"]),
+                    VoiceConfig(**data["voice"]), UiConfig(**data["ui"]))
     if not 1 <= config.gesture.state_hz <= 60:
         raise ConfigError("gesture.state_hz must be between 1 and 60")
     if not 1 <= config.ui.port <= 65535:
         raise ConfigError("ui.port must be between 1 and 65535")
     if config.voice.listen_seconds < 5:
         raise ConfigError("voice.listen_seconds must be at least 5")
+    if config.gesture.arm_hold_seconds <= 0:
+        raise ConfigError("gesture.arm_hold_seconds must be positive")
     return config
