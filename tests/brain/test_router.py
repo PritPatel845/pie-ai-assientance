@@ -519,6 +519,7 @@ def test_system_prompt_contains_required_safety_rules() -> None:
     ):
         assert phrase.casefold() in SYSTEM_PROMPT.casefold()
 
+
 def test_local_failure_publishes_unavailable_speech(tmp_path: Path) -> None:
     async def scenario() -> None:
         bus = EventBus(asyncio.get_running_loop())
