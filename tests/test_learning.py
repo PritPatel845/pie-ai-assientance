@@ -43,3 +43,19 @@ def test_learning_ring_buffer_is_bounded(tmp_path) -> None:
         engine.record_hand_sample(hand(), "gesture")
         engine._last_flush = now[0]  # isolate ring-buffer bounds from disk flush cost
     assert len(engine.gesture_history()) == 5000
+
+
+def test_invalid_json_shape_is_quarantined(tmp_path) -> None:
+    path = tmp_path / "learning.json"
+    path.write_text('["not", "an", "object"]', encoding="utf-8")
+    LearningEngine(tmp_path, clock=lambda: 123.0)
+    assert not path.exists()
+    assert (tmp_path / "learning.json.corrupt-123").exists()
+
+
+def test_invalid_sample_schema_is_quarantined(tmp_path) -> None:
+    path = tmp_path / "learning.json"
+    path.write_text('{"samples": [1], "voice": []}', encoding="utf-8")
+    LearningEngine(tmp_path, clock=lambda: 456.0)
+    assert not path.exists()
+    assert (tmp_path / "learning.json.corrupt-456").exists()
