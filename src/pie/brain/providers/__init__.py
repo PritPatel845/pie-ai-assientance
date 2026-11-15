@@ -13,17 +13,20 @@ def build_providers(config: Any) -> dict[str, Any]:
     if config.anthropic_model:
         try:
             from pie.brain.providers.anthropic_api import AnthropicProvider
+
             providers["anthropic"] = AnthropicProvider(config.anthropic_model)
         except (ImportError, AuthError) as exc:
             _LOG.info("Anthropic provider unavailable: %s", type(exc).__name__)
     if config.openai_model:
         try:
             from pie.brain.providers.openai_api import OpenAIProvider
+
             providers["openai"] = OpenAIProvider(config.openai_model)
         except (ImportError, AuthError) as exc:
             _LOG.info("OpenAI provider unavailable: %s", type(exc).__name__)
     try:
         from pie.brain.providers.local import LocalProvider
+
         providers["local"] = LocalProvider(
             backend=config.local_backend,
             model=config.local_model,
