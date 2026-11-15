@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import time
 from collections import deque
 from dataclasses import dataclass
@@ -9,6 +10,8 @@ from typing import Any
 
 from pie.events import Event, EventBus
 from pie.safety.audit import redact
+
+_LOG = logging.getLogger(__name__)
 
 
 class Tier(IntEnum):
@@ -88,13 +91,32 @@ class PermissionGate:
     async def _resolve_oldest(self, event: Event, allow: bool, by: str) -> None:
         async with self._lock:
             if not self._pending:
+                _LOG.debug(
+                    "Permission response ignored: no pending request (source=%s, by=%s)",
+                    event.source,
+                    by,
+                )
                 return
             pending = self._pending[0]
             if event.ts < pending.request_ts:
+                _LOG.warning(
+                    "Permission response ignored as stale (call_id=%s, event_ts=%.6f, "
+                    "request_ts=%.6f, by=%s)",
+                    pending.call_id,
+                    event.ts,
+                    pending.request_ts,
+                    by,
+                )
                 return
             self._pending.popleft()
             if not pending.future.done():
                 pending.future.set_result(PermissionDecision(allow, by))
+            _LOG.info(
+                "Permission request resolved (call_id=%s, allow=%s, by=%s)",
+                pending.call_id,
+                allow,
+                by,
+            )
             self.bus.publish(
                 "permission.response",
                 {"call_id": pending.call_id, "allow": allow, "by": by},
@@ -104,6 +126,11 @@ class PermissionGate:
     async def _on_voice(self, event: Event) -> None:
         payload = event.payload
         if not payload.get("final") or not payload.get("addressed"):
+            _LOG.debug(
+                "Voice permission response ignored (final=%s, addressed=%s)",
+                bool(payload.get("final")),
+                bool(payload.get("addressed")),
+            )
             return
         text = " ".join(str(payload.get("text", "")).casefold().split())
         text = text.strip(" .,!?:;")
@@ -111,6 +138,8 @@ class PermissionGate:
             await self._resolve_oldest(event, True, "voice")
         elif text in self._NO:
             await self._resolve_oldest(event, False, "voice")
+        else:
+            _LOG.debug("Addressed voice transcript was not an exact permission response")
 
     async def _on_gesture_event(self, event: Event) -> None:
         if event.topic == "input.gesture.state":
@@ -166,6 +195,16 @@ class PermissionGate:
         pending = _Pending(call_id, now, future)
         async with self._lock:
             self._pending.append(pending)
+            pending_count = len(self._pending)
+        _LOG.info(
+            "Permission request queued (call_id=%s, tool=%s, request_ts=%.6f, "
+            "timeout_s=%.2f, pending=%d)",
+            call_id,
+            tool,
+            now,
+            timeout_s or self.timeout_s,
+            pending_count,
+        )
 
         safe_args = redact(args, tool=tool)
         self.bus.publish(
@@ -191,6 +230,11 @@ class PermissionGate:
         try:
             return await asyncio.wait_for(future, timeout_s or self.timeout_s)
         except TimeoutError:
+            _LOG.warning(
+                "Permission request timed out (call_id=%s, timeout_s=%.2f)",
+                call_id,
+                timeout_s or self.timeout_s,
+            )
             async with self._lock:
                 try:
                     self._pending.remove(pending)
