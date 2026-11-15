@@ -35,6 +35,7 @@ def _guard(path: str, home, allowed, audit) -> Tier:
         ".gnupg/private-keys-v1.d/key",
         "Library/Keychains/login.keychain-db",
         ".pie/config.toml",
+        ".pie/CONFIG.TOML",
         ".pie/config.toml/child",
         "Project/.env",
         "Project/.env.local",
