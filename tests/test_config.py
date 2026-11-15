@@ -19,8 +19,8 @@ def test_unknown_config_key_is_rejected(tmp_path) -> None:
 
 
 def test_invalid_environment_boolean_is_rejected() -> None:
-    with pytest.raises(ValueError, match="true or false"):
-        load_config(environ={"PIE_VOICE_ENABLED": "yes"})
+    with pytest.raises(ValueError, match="bool"):
+        load_config(environ={"PIE_VOICE_ENABLED": "maybe"})
 
 
 def test_environment_boolean_spellings_and_list_override() -> None:
