@@ -52,6 +52,7 @@ class PermissionGate:
         self._prompt_times: deque[float] = deque()
         self._unsubscribers: list[Any] = []
         self._started = False
+        self._armed = False
         self._lock = asyncio.Lock()
 
     def start(self) -> None:
@@ -61,6 +62,7 @@ class PermissionGate:
         self._unsubscribers = [
             self.bus.subscribe("input.voice.transcript", self._on_voice, name="permission-voice"),
             self.bus.subscribe("input.gesture.event", self._on_gesture, name="permission-gesture"),
+            self.bus.subscribe("input.gesture.state", self._on_state, name="permission-gesture-state"),
             self.bus.subscribe("ui.command", self._on_ui, name="permission-ui"),
         ]
 
@@ -95,8 +97,11 @@ class PermissionGate:
         elif text in self._NO:
             await self._resolve_oldest(event, False, "voice")
 
+    async def _on_state(self, event: Event) -> None:
+        self._armed = bool(event.payload.get("armed", False))
+
     async def _on_gesture(self, event: Event) -> None:
-        if not event.payload.get("armed"):
+        if not self._armed:
             return
         name = event.payload.get("name")
         if name == "thumb_up":
