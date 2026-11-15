@@ -1,7 +1,5 @@
 """Import and shell-safety boundaries follow Phase 0S §§3.1–3.7 (PDF pp. 16–22)."""
 
-from __future__ import annotations
-
 import ast
 from pathlib import Path
 
