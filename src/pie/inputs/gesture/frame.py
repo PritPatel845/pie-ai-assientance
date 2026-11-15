@@ -102,6 +102,7 @@ class FrameProcessor:
         self._steering_center: float | None = None
         self._held: set[str] = set()
         self._previous_game = "GAME READY"
+        self._previous_index: Landmark | None = None
 
     def set_mode(self, mode: Literal["desktop", "game"], profile: str | None = None) -> list[Action]:
         if mode not in ("desktop", "game"):
@@ -196,7 +197,7 @@ class FrameProcessor:
                 self._last_volume_at = timestamp
         elif self.armed and self.mode == "game":
             profile = GAME_PROFILES[self.profile]
-            label = game_gesture(hand, None, hand[8])
+            label = game_gesture(hand, self._previous_index, hand[8])
             rising = label != self._previous_game
             style = profile["style"]
             if style == "racing":
@@ -223,7 +224,8 @@ class FrameProcessor:
             elif style == "fps":
                 self._key("left", is_three_finger(hand), actions)
                 self._key("right", is_four_finger(hand), actions)
-                self._key("forward", is_open_palm(hand), actions)
+                dx = (hand[8].x - self._previous_index.x) if self._previous_index else 0.0
+                self._key("forward", is_open_palm(hand) and abs(dx) <= 0.035, actions)
                 self._key("back", is_fist(hand), actions)
                 if is_pinch(hand) and rising:
                     actions.append(MouseClick())
@@ -231,6 +233,7 @@ class FrameProcessor:
                     actions.append(Tap("jump"))
             self._previous_game = label
 
+        self._previous_index = hand[8]
         current = set()
         if is_pinch(hand): current.add("pinch")
         if is_three_finger(hand): current.add("three")
