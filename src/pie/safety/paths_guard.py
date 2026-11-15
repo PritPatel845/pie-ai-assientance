@@ -22,7 +22,13 @@ _BLOCKED_FILES = {".env", ".pie/config.toml"}
 
 
 def _normal_path(value: str) -> str:
-    normalised = unicodedata.normalize("NFKC", value).rstrip(" .")
+    normalised = unicodedata.normalize("NFKC", value)
+    if not normalised:
+        raise PathGuardError("path must not be empty")
+    if normalised.startswith("~") and not normalised.startswith("~/"):
+        raise PathGuardError("named-user home paths are not allowed")
+    parts = [part.rstrip(" .") for part in normalised.split(os.sep)]
+    normalised = os.sep.join(parts)
     if not normalised:
         raise PathGuardError("path must not be empty")
     expanded = os.path.expanduser(normalised)
