@@ -97,6 +97,8 @@ class EnergyVad:
 
         if self._speech_count == 0:
             if not is_speech:
+                self._candidate.clear()
+                self._candidate_count = 0
                 self._noise_floor = 0.98 * self._noise_floor + 0.02 * rms
                 self._remember_pre_roll(samples)
                 return output
