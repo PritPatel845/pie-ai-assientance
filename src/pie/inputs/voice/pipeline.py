@@ -4,6 +4,9 @@ import logging
 import queue
 import threading
 import time
+import wave
+from datetime import datetime
+from pathlib import Path
 from collections.abc import Callable
 from typing import Any
 
@@ -75,6 +78,7 @@ class VoiceController(_VoiceController):
         self._transcriber: Transcriber | None = None
         self._last_zero_notice = 0.0
         self._all_zero_frames = 0
+        self._mic_permission_missing = threading.Event()
 
     @property
     def echo_guard(self) -> bool:
@@ -167,6 +171,16 @@ class VoiceController(_VoiceController):
             })
             return
         self._last_stt_activity = self._clock()
+        if self.config.debug_save_audio:
+            directory = Path.home() / ".pie" / "debug_audio"
+            directory.mkdir(parents=True, exist_ok=True)
+            filename = directory / f"utterance-{datetime.now():%Y%m%d-%H%M%S-%f}.wav"
+            pcm = np.clip(segment.audio, -1.0, 1.0)
+            with wave.open(str(filename), "wb") as handle:
+                handle.setnchannels(1)
+                handle.setsampwidth(2)
+                handle.setframerate(_SAMPLE_RATE)
+                handle.writeframes((pcm * 32767).astype("<i2").tobytes())
         rms = float(np.sqrt(np.mean(np.square(segment.audio, dtype=np.float64))))
         if is_hallucination(raw, rms=rms, threshold=self.config.vad_threshold):
             return
@@ -211,6 +225,7 @@ class VoiceController(_VoiceController):
                         ),
                     })
                 self._all_zero_frames = 0
+                self._mic_permission_missing.set()
                 continue
             for segment in self._vad.feed(block):
                 self._handle_segment(segment)
@@ -231,7 +246,9 @@ class VoiceController(_VoiceController):
                     _LOG.info("Microphone stream opened (device=%s)", device_name)
                     retry_window = 0.0
                     while not self._stop.wait(0.2):
-                        pass
+                        if self._mic_permission_missing.is_set():
+                            self._mic_permission_missing.clear()
+                            raise RuntimeError("microphone returned only zero samples")
             except Exception as exc:
                 retry_window += 10.0
                 self._publish("system.error", {
