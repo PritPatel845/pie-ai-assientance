@@ -223,14 +223,17 @@ def test_filesystem_read_rejects_binary_data(tmp_path: Path) -> None:
 def test_voice_stop_listening_uses_existing_event_topic(tmp_path: Path) -> None:
     async def scenario() -> None:
         bus = EventBus(asyncio.get_running_loop())
+        received = []
+        bus.subscribe(
+            "input.voice.listening", received.append, name="voice-stop-test"
+        )
+        await asyncio.sleep(0)
         tool = build_voice_tools(bus)[0]
         result = await tool.run({}, _context(tmp_path))
+        await asyncio.sleep(0.01)
         assert result.ok
-        event = bus.publish(
-            "input.voice.listening",
-            {"active": False, "until": 0.0},
-            source="tool",
-        )
-        assert event.topic == "input.voice.listening"
+        assert len(received) == 1
+        assert received[0].source == "tool"
+        assert received[0].payload["active"] is False
 
     asyncio.run(scenario())
