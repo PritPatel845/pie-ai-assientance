@@ -1,4 +1,5 @@
-"""FrameProcessor timing, arming, desktop actions, and game state follow Phase 0S §3.3 (PDF pp. 18–19)."""
+"""FrameProcessor timing, arming, desktop actions, and game state
+follow Phase 0S §3.3 (PDF pp. 18–19)."""
 
 from dataclasses import dataclass
 
