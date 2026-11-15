@@ -57,3 +57,14 @@ def test_redact_recurses_through_nested_data() -> None:
         {"nested": {"password": "p", "value": 4}, "api_key": "k"},
     )
     assert safe == {"nested": {"password": "***", "value": 4}, "api_key": "***"}
+
+
+
+def test_audit_redacts_search_query_and_url_query_parameters() -> None:
+    search = redact({"query": "my private medical search"}, tool="browser.search")
+    url = redact(
+        {"url": "https://example.com/path?access_token=secret"},
+        tool="mac.open_url",
+    )
+    assert search == {"query": {"length": 24}}
+    assert url == {"url": {"host": "example.com", "length": 52}}
