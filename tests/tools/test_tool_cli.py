@@ -147,3 +147,28 @@ def test_tool_command_configures_application_logging(monkeypatch) -> None:
         pass
 
     assert calls == ["DEBUG"]
+
+
+def test_invalid_confirm_tool_arguments_do_not_start_voice_approval() -> None:
+    tool = SimpleNamespace(
+        spec=SimpleNamespace(
+            tier=Tier.CONFIRM,
+            parameters={
+                "type": "object",
+                "properties": {
+                    "text": {
+                        "type": "string",
+                        "maxLength": 500,
+                        "pattern": r"^[^\\x00-\\x1f\\x7f]*$",
+                    }
+                },
+                "required": ["text"],
+                "additionalProperties": False,
+            },
+        )
+    )
+
+    for value in ("first line\\nsecond line", "test\\x1b", "first\\tsecond"):
+        assert not _requires_confirmation(tool, {"text": value}, SimpleNamespace())
+
+    assert _requires_confirmation(tool, {"text": "ordinary text"}, SimpleNamespace())
