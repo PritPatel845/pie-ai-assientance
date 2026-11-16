@@ -360,7 +360,13 @@ def build_mac_tools(controller: MacController) -> list[FunctionTool]:
                 ),
                 {
                     "type": "object",
-                    "properties": {"text": {"type": "string", "maxLength": 500}},
+                    "properties": {
+                        "text": {
+                            "type": "string",
+                            "maxLength": 500,
+                            "pattern": r"^[^\\x00-\\x1f\\x7f]*$",
+                        }
+                    },
                     "required": ["text"],
                     "additionalProperties": False,
                 },
