@@ -7,6 +7,9 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
+from jsonschema import Draft202012Validator
+from jsonschema.exceptions import SchemaError
+
 from pie.config import load_config
 from pie.core.daemon import Daemon
 from pie.inputs.voice.pipeline import VoiceController
@@ -44,6 +47,13 @@ def _requires_confirmation(tool: Any, payload: dict[str, Any], config: Any) -> b
     Invalid or protected paths deliberately return False here: the registry
     remains authoritative and rejects them before requesting permission.
     """
+    try:
+        Draft202012Validator.check_schema(tool.spec.parameters)
+        if list(Draft202012Validator(tool.spec.parameters).iter_errors(payload)):
+            return False
+    except (SchemaError, TypeError, ValueError):
+        return False
+
     tier = tool.spec.tier
     if tier is Tier.CONFIRM:
         return True
