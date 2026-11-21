@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
-from pathlib import Path
-from typing import Any
-
 import heapq
 import os
 import stat
+from collections.abc import Mapping
+from pathlib import Path
+from typing import Any
 
 from pie.safety.permissions import Tier
 from pie.tools.base import FunctionTool, ToolContext, ToolResult, ToolSpec, fail, ok
