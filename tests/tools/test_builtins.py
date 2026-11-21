@@ -372,3 +372,19 @@ def test_delete_selected_rechecks_frontmost_app_after_confirmation(tmp_path: Pat
         tool.clear_confirmation("delete-call")
 
     asyncio.run(scenario())
+
+
+def test_filesystem_overwrite_succeeds_for_confirmed_file_identity(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        path = tmp_path / "notes.txt"
+        path.write_text("original", encoding="utf-8")
+        tool = next(item for item in build_filesystem_tools() if item.spec.name == "fs.write_text")
+        tool.confirmation_prompt({"path": str(path), "content": "updated"}, "approved-call")
+        ctx = _context(tmp_path)
+        ctx.call_id = "approved-call"
+        result = await tool.run({"path": str(path), "content": "updated"}, ctx)
+        assert result.ok
+        assert path.read_text(encoding="utf-8") == "updated"
+        tool.clear_confirmation("approved-call")
+
+    asyncio.run(scenario())
