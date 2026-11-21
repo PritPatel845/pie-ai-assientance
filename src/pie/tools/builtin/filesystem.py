@@ -64,6 +64,27 @@ def _open_regular_file(path: Path, flags: int, mode: int = 0o600) -> int:
 
 
 def build_filesystem_tools() -> list[FunctionTool]:
+    confirmed_targets: dict[str, tuple[int, int] | None] = {}
+
+    def write_prompt(args: Mapping[str, Any], call_id: str) -> str:
+        path = Path(str(args["path"])).expanduser()
+        try:
+            info = os.stat(path, follow_symlinks=False)
+            if not stat.S_ISREG(info.st_mode):
+                confirmed_targets[call_id] = (-1, -1)
+                return f"Cannot safely overwrite {path}: target is not a regular file."
+            confirmed_targets[call_id] = (info.st_dev, info.st_ino)
+            return f"Overwrite the existing file {path}?"
+        except FileNotFoundError:
+            confirmed_targets[call_id] = None
+            return f"Create the new file {path}?"
+        except OSError as exc:
+            confirmed_targets[call_id] = (-1, -1)
+            return f"Cannot safely inspect {path}: {type(exc).__name__}."
+
+    def clear_write_prompt(call_id: str) -> None:
+        confirmed_targets.pop(call_id, None)
+
     async def list_dir(args: Mapping[str, Any], ctx: ToolContext) -> ToolResult:
         path = Path(str(args["path"])).expanduser()
         if ctx.dry_run:
@@ -137,24 +158,24 @@ def build_filesystem_tools() -> list[FunctionTool]:
         descriptor = -1
         try:
             parent_fd = _open_directory(path.parent, create=True)
-            # O_EXCL prevents a file appearing after the overwrite check from being
-            # silently replaced; O_NOFOLLOW rejects a symlink substituted at the leaf.
-            flags = os.O_WRONLY | os.O_CREAT | os.O_NOFOLLOW
-            try:
+            expected = confirmed_targets.get(ctx.call_id, ...)
+            flags = os.O_WRONLY | os.O_NOFOLLOW
+            if expected is ... or expected is None:
+                # A file created after the confirmation prompt is never overwritten.
                 descriptor = os.open(
                     path.name,
-                    flags | os.O_EXCL,
+                    flags | os.O_CREAT | os.O_EXCL,
                     0o600,
                     dir_fd=parent_fd,
                 )
-            except FileExistsError:
-                descriptor = os.open(
-                    path.name,
-                    os.O_WRONLY | os.O_TRUNC | os.O_NOFOLLOW,
-                    dir_fd=parent_fd,
-                )
-            if not stat.S_ISREG(os.fstat(descriptor).st_mode):
-                raise OSError("target is not a regular file")
+            else:
+                if expected == (-1, -1):
+                    raise OSError("target could not be safely inspected before approval")
+                descriptor = os.open(path.name, flags, dir_fd=parent_fd)
+                info = os.fstat(descriptor)
+                if (info.st_dev, info.st_ino) != expected or not stat.S_ISREG(info.st_mode):
+                    raise OSError("file changed after confirmation; request the action again")
+                os.ftruncate(descriptor, 0)
             with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
                 descriptor = -1
                 handle.write(content)
@@ -228,5 +249,7 @@ def build_filesystem_tools() -> list[FunctionTool]:
                 platforms=("darwin", "linux"),
             ),
             write_text,
+            write_prompt,
+            clear_write_prompt,
         ),
     ]
