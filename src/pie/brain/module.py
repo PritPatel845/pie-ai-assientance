@@ -144,7 +144,7 @@ class BrainModule:
             result.provider or "rule",
             result.error or "empty response",
         )
-        self._daemon.bus.publish(
+        bus.publish(
             "tts.say",
             {
                 "text": "I couldn't complete that request. Please try again.",
