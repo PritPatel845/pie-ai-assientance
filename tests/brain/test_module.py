@@ -19,6 +19,8 @@ class FakeMacController:
         return True
 
 
+
+
 def test_brain_module_executes_deterministic_voice_rule_exactly_once(tmp_path: Path) -> None:
     async def scenario() -> None:
         loop = asyncio.get_running_loop()
@@ -46,6 +48,8 @@ def test_brain_module_executes_deterministic_voice_rule_exactly_once(tmp_path: P
 
     asyncio.run(scenario())
 
+
+
 def test_brain_module_accepts_typed_text_commands(tmp_path: Path) -> None:
     async def scenario() -> None:
         loop = asyncio.get_running_loop()
@@ -68,6 +72,8 @@ def test_brain_module_accepts_typed_text_commands(tmp_path: Path) -> None:
         await asyncio.to_thread(module.stop)
 
     asyncio.run(scenario())
+
+
 
 def test_brain_module_speaks_fallback_when_router_returns_no_response() -> None:
     async def scenario() -> None:
