@@ -19,7 +19,7 @@ def _open_directory(path: Path, *, create: bool = False) -> int:
     """Open a canonical directory without following symlinks in any path component."""
     if not hasattr(os, "O_NOFOLLOW") or not hasattr(os, "O_DIRECTORY"):
         raise OSError("safe directory operations are unavailable on this platform")
-    canonical = Path(os.path.realpath(os.path.abspath(path.expanduser())))
+    canonical = Path(os.path.abspath(path.expanduser()))
     descriptor = os.open(os.sep, os.O_RDONLY | os.O_DIRECTORY)
     try:
         for part in canonical.parts[1:]:
