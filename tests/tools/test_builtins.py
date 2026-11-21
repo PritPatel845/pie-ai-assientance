@@ -260,3 +260,30 @@ def test_mac_open_app_rejects_control_characters(tmp_path: Path) -> None:
         assert controller.calls == []
 
     asyncio.run(scenario())
+
+
+def test_filesystem_read_rejects_oversized_file_with_bounded_read(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        path = tmp_path / "large.txt"
+        path.write_bytes(b"x" * (100 * 1024 + 1))
+        tools = {tool.spec.name: tool for tool in build_filesystem_tools()}
+        result = await tools["fs.read_text"].run({"path": str(path)}, _context(tmp_path))
+        assert not result.ok
+        assert result.error == "file exceeds 100 KB limit"
+
+    asyncio.run(scenario())
+
+
+def test_filesystem_list_dir_caps_results_and_sorts_names(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        for index in range(205):
+            (tmp_path / f"entry-{index:03d}.txt").touch()
+        tools = {tool.spec.name: tool for tool in build_filesystem_tools()}
+        result = await tools["fs.list_dir"].run({"path": str(tmp_path)}, _context(tmp_path))
+        assert result.ok
+        assert len(result.output["entries"]) == 200
+        assert result.output["entries"][0]["name"] == "entry-000.txt"
+        assert result.output["entries"][-1]["name"] == "entry-199.txt"
+        assert result.output["truncated"] is True
+
+    asyncio.run(scenario())
