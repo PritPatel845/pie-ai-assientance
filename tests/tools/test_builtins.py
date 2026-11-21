@@ -4,6 +4,8 @@ import asyncio
 from pathlib import Path
 from typing import Any
 
+from jsonschema import Draft202012Validator
+
 from pie.events import EventBus
 from pie.safety.permissions import Tier
 from pie.tools.base import ToolContext
@@ -154,8 +156,16 @@ def test_mac_type_text_rejects_control_characters(tmp_path: Path) -> None:
     async def scenario() -> None:
         controller = FakeController()
         tools = {tool.spec.name: tool for tool in build_mac_tools(controller)}
-        result = await tools["mac.type_text"].run({"text": "hello\nworld"}, _context(tmp_path))
-        assert not result.ok
+        tool = tools["mac.type_text"]
+        validator = Draft202012Validator(tool.spec.parameters)
+
+        for value in ("hello\nworld", "test\x1b", "first\tsecond", "nul\x00", "delete\x7f"):
+            assert list(validator.iter_errors({"text": value}))
+
+        assert not list(validator.iter_errors({"text": "ordinary typing text"}))
+        for value in ("hello\nworld", "test\x1b", "first\tsecond"):
+            result = await tool.run({"text": value}, _context(tmp_path))
+            assert not result.ok
         assert controller.calls == []
 
     asyncio.run(scenario())

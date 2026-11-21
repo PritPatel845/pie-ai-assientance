@@ -99,3 +99,14 @@ def test_adaptive_noise_floor_tracks_a_quiet_room() -> None:
     feed_ms(vad, 2000, 0.01)
     assert vad._noise_floor > initial
     assert feed_ms(vad, 700, 0.0) == []
+
+
+def test_reset_discards_preroll_and_partial_speech() -> None:
+    vad = EnergyVad()
+    feed_ms(vad, 500, 0.08)
+    vad.reset()
+    feed_ms(vad, 400, 0.0)
+    assert feed_ms(vad, 350, 0.08) == []
+    segments = feed_ms(vad, 700, 0.0)
+    assert len(segments) == 1
+    assert len(segments[0].audio) < int(RATE * 1.2)

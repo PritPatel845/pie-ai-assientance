@@ -80,12 +80,40 @@ class MlxWhisperTranscriber:
             self._validate_model_size(target)
             self._model_path = target
             return target
-        _LOG.info("Downloading local speech model %s to %s", self.model, target)
+
         downloader = self._downloader
         if downloader is None:
             hub = importlib.import_module("huggingface_hub")
             downloader = hub.snapshot_download
-        downloaded = downloader(repo_id=repo_id, cache_dir=str(self.cache_dir))
+
+        # Hugging Face stores snapshots under models--<org>--<repo>/snapshots,
+        # not at cache_dir / model. Resolve that cache in offline mode first so
+        # a warm local cache never needs a network request on startup.
+        try:
+            downloaded = downloader(
+                repo_id=repo_id,
+                cache_dir=str(self.cache_dir),
+                local_files_only=True,
+            )
+        except Exception as exc:
+            # Import lazily: huggingface_hub is supplied by the optional macOS
+            # speech extra, and non-MLX installations must remain importable.
+            try:
+                hub_errors = importlib.import_module("huggingface_hub.errors")
+                cache_miss = hub_errors.LocalEntryNotFoundError
+            except (ImportError, AttributeError):
+                raise exc
+            if not isinstance(exc, cache_miss):
+                raise
+            _LOG.info(
+                "Local speech model %s is not cached; downloading it to %s",
+                self.model,
+                self.cache_dir,
+            )
+            downloaded = downloader(repo_id=repo_id, cache_dir=str(self.cache_dir))
+        else:
+            _LOG.info("Using cached speech model %s", self.model)
+
         self._model_path = Path(downloaded)
         model_bytes = self._validate_model_size(self._model_path)
         _LOG.info(

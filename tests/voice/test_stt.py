@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import importlib
 from pathlib import Path
+from types import ModuleType
 
 import numpy as np
 import pytest
@@ -48,8 +50,56 @@ def test_mlx_adapter_downloads_lazily_and_returns_text(tmp_path: Path) -> None:
     assert calls == []
     result = adapter.transcribe(np.ones(1600, dtype=np.float32), "en")
     assert result == "open Safari"
-    assert len(calls) == 1
+    assert calls == [
+        {
+            "repo_id": "mlx-community/whisper-base.en-mlx",
+            "cache_dir": str(tmp_path / "cache"),
+            "local_files_only": True,
+        }
+    ]
     adapter.close()
+
+
+def test_mlx_adapter_falls_back_to_download_only_when_cache_is_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    model_dir = tmp_path / "downloaded-model"
+    model_dir.mkdir()
+    calls: list[dict[str, object]] = []
+
+    class LocalEntryNotFoundError(Exception):
+        pass
+
+    hub_errors = ModuleType("huggingface_hub.errors")
+    hub_errors.LocalEntryNotFoundError = LocalEntryNotFoundError  # type: ignore[attr-defined]
+    original_import_module = importlib.import_module
+
+    def import_module(name: str, package: str | None = None) -> ModuleType:
+        if name == "huggingface_hub.errors":
+            return hub_errors
+        return original_import_module(name, package)
+
+    monkeypatch.setattr("pie.inputs.voice.stt.importlib.import_module", import_module)
+
+    def download(**kwargs: object) -> str:
+        calls.append(kwargs)
+        if kwargs.get("local_files_only") is True:
+            raise LocalEntryNotFoundError("no local snapshot")
+        return str(model_dir)
+
+    adapter = MlxWhisperTranscriber(cache_dir=tmp_path / "cache", downloader=download)
+    assert adapter._ensure_model() == model_dir
+    assert calls == [
+        {
+            "repo_id": "mlx-community/whisper-base.en-mlx",
+            "cache_dir": str(tmp_path / "cache"),
+            "local_files_only": True,
+        },
+        {
+            "repo_id": "mlx-community/whisper-base.en-mlx",
+            "cache_dir": str(tmp_path / "cache"),
+        },
+    ]
 
 
 def test_mlx_adapter_rejects_unknown_model(tmp_path: Path) -> None:

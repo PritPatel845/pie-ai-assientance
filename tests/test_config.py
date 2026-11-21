@@ -78,7 +78,7 @@ def test_phase3a_safety_and_tool_defaults_are_additive() -> None:
         "thumb_down": "media.pause",
         "palm_push": "mac.mute",
     }
-    assert config.safety.confirm_timeout_s == 20
+    assert config.safety.confirm_timeout_s == 45
     assert config.safety.max_calls_per_10s == 10
     assert config.tools.dry_run is False
     assert config.tools.disabled == ()

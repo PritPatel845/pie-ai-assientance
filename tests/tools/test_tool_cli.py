@@ -121,3 +121,54 @@ def test_protected_path_is_rejected_without_starting_voice_approval(tmp_path: Pa
         {"path": str(home / ".ssh" / "id_rsa")},
         _path_config(sandbox, tmp_path / "audit.jsonl"),
     )
+
+
+def test_tool_command_configures_application_logging(monkeypatch) -> None:
+    from pie.tools import cli as tool_cli
+
+    calls: list[str] = []
+    fake_daemon = SimpleNamespace(
+        register_module=lambda _module: None,
+        stop=lambda: None,
+    )
+    monkeypatch.setattr(
+        tool_cli,
+        "load_config",
+        lambda _path: SimpleNamespace(app=SimpleNamespace(log_level="DEBUG")),
+    )
+    monkeypatch.setattr(tool_cli, "configure_logging", calls.append)
+    monkeypatch.setattr(tool_cli, "Daemon", lambda _config: fake_daemon)
+    monkeypatch.setattr(tool_cli, "ToolsModule", lambda: SimpleNamespace())
+    monkeypatch.setattr(tool_cli, "_requires_confirmation", lambda *_args: False)
+
+    try:
+        tool_cli.run_tool_command("invalid", [], None)
+    except ValueError:
+        pass
+
+    assert calls == ["DEBUG"]
+
+
+def test_invalid_confirm_tool_arguments_do_not_start_voice_approval() -> None:
+    tool = SimpleNamespace(
+        spec=SimpleNamespace(
+            tier=Tier.CONFIRM,
+            parameters={
+                "type": "object",
+                "properties": {
+                    "text": {
+                        "type": "string",
+                        "maxLength": 500,
+                        "pattern": r"^[^\x00-\x1f\x7f]*$",
+                    }
+                },
+                "required": ["text"],
+                "additionalProperties": False,
+            },
+        )
+    )
+
+    for value in ("first line\nsecond line", "test\x1b", "first\tsecond"):
+        assert not _requires_confirmation(tool, {"text": value}, SimpleNamespace())
+
+    assert _requires_confirmation(tool, {"text": "ordinary text"}, SimpleNamespace())

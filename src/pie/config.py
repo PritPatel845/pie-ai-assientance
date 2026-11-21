@@ -100,7 +100,7 @@ class BrainConfig:
 class SafetyConfig:
     sandbox_dir: str = "~/PieWorkspace"
     allowed_folders: tuple[str, ...] = ("~/Desktop", "~/Documents", "~/Downloads", "~/PieWorkspace")
-    confirm_timeout_s: int = 20
+    confirm_timeout_s: int = 45
     max_calls_per_10s: int = 10
     max_confirm_prompts_per_min: int = 3
     audit_path: str = "~/.pie/logs/audit.jsonl"
@@ -181,7 +181,7 @@ _DEFAULTS: dict[str, dict[str, Any]] = {
     "safety": {
         "sandbox_dir": "~/PieWorkspace",
         "allowed_folders": ["~/Desktop", "~/Documents", "~/Downloads", "~/PieWorkspace"],
-        "confirm_timeout_s": 20,
+        "confirm_timeout_s": 45,
         "max_calls_per_10s": 10,
         "max_confirm_prompts_per_min": 3,
         "audit_path": "~/.pie/logs/audit.jsonl",

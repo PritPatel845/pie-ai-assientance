@@ -119,13 +119,38 @@ class BrainModule:
             source=event.source,
             correlation_id=event.correlation_id or event.id,
         )
-        if result.ok and result.text and self._daemon.bus is not None:
+        if result.ok and result.text.strip():
+            _LOG.debug(
+                "Brain response ready for speech (route=%s, provider=%s, chars=%d)",
+                result.route,
+                result.provider or "rule",
+                len(result.text),
+            )
             self._daemon.bus.publish(
                 "tts.say",
                 {"text": result.text[:1000], "interrupt": False},
                 source="brain",
                 correlation_id=event.correlation_id or event.id,
             )
+            return
+
+        _LOG.warning(
+            "Brain request produced no speakable response "
+            "(ok=%s, route=%s, provider=%s, error=%s)",
+            result.ok,
+            result.route,
+            result.provider or "rule",
+            result.error or "empty response",
+        )
+        self._daemon.bus.publish(
+            "tts.say",
+            {
+                "text": "I couldn't complete that request. Please try again.",
+                "interrupt": False,
+            },
+            source="brain",
+            correlation_id=event.correlation_id or event.id,
+        )
 
     def stop(self) -> None:
         for unsubscribe in self._unsubscribers:
