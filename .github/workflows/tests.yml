@@ -26,6 +26,8 @@ jobs:
       - run: python -m pip install -e ".[dev]"
       - name: Ruff lint
         run: ruff check .
+      - name: Diagnose test formatting
+        run: ruff format --diff tests/brain/test_module.py || true
       - name: Ruff format
         run: ruff format --check .
       - run: pytest -q
