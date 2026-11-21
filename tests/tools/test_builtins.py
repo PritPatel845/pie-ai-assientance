@@ -353,3 +353,22 @@ def test_filesystem_overwrite_rejects_file_replaced_after_confirmation(tmp_path:
         tool.clear_confirmation("approved-call")
 
     asyncio.run(scenario())
+
+
+def test_delete_selected_rechecks_frontmost_app_after_confirmation(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        controller = FakeController()
+        tool = next(
+            item for item in build_mac_tools(controller) if item.spec.name == "mac.delete_selected"
+        )
+        prompt = tool.confirmation_prompt({}, "delete-call")
+        assert prompt is not None and "Finder" in prompt
+        controller.frontmost = "Safari"
+        ctx = _context(tmp_path)
+        ctx.call_id = "delete-call"
+        result = await tool.run({}, ctx)
+        assert not result.ok
+        assert not any(name == "delete" for name, _ in controller.calls)
+        tool.clear_confirmation("delete-call")
+
+    asyncio.run(scenario())
