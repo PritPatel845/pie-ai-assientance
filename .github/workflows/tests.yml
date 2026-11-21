@@ -4,7 +4,6 @@ on:
   push:
     branches: ["phase-0s-implementation"]
   pull_request:
-    branches: ["main"]
 
 concurrency:
   group: phase-0s-validation-${{ github.ref }}
