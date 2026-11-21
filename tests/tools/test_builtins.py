@@ -287,3 +287,49 @@ def test_filesystem_list_dir_caps_results_and_sorts_names(tmp_path: Path) -> Non
         assert result.output["truncated"] is True
 
     asyncio.run(scenario())
+
+
+def test_filesystem_read_rejects_symlink_leaf(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        secret = tmp_path / "secret.txt"
+        secret.write_text("do not read", encoding="utf-8")
+        link = tmp_path / "linked.txt"
+        link.symlink_to(secret)
+        tools = {tool.spec.name: tool for tool in build_filesystem_tools()}
+        result = await tools["fs.read_text"].run({"path": str(link)}, _context(tmp_path))
+        assert not result.ok
+        assert secret.read_text(encoding="utf-8") == "do not read"
+
+    asyncio.run(scenario())
+
+
+def test_filesystem_write_rejects_symlink_leaf(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        secret = tmp_path / "secret.txt"
+        secret.write_text("original", encoding="utf-8")
+        link = tmp_path / "linked.txt"
+        link.symlink_to(secret)
+        tools = {tool.spec.name: tool for tool in build_filesystem_tools()}
+        result = await tools["fs.write_text"].run(
+            {"path": str(link), "content": "overwritten"}, _context(tmp_path)
+        )
+        assert not result.ok
+        assert secret.read_text(encoding="utf-8") == "original"
+
+    asyncio.run(scenario())
+
+
+def test_filesystem_write_rejects_symlink_parent(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        outside = tmp_path / "outside"
+        outside.mkdir()
+        link = tmp_path / "linked"
+        link.symlink_to(outside, target_is_directory=True)
+        tools = {tool.spec.name: tool for tool in build_filesystem_tools()}
+        result = await tools["fs.write_text"].run(
+            {"path": str(link / "new.txt"), "content": "nope"}, _context(tmp_path)
+        )
+        assert not result.ok
+        assert not (outside / "new.txt").exists()
+
+    asyncio.run(scenario())
