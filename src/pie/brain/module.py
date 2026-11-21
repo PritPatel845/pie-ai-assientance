@@ -111,6 +111,9 @@ class BrainModule:
     async def _handle_text(self, event: Event) -> None:
         if self.router is None or self._daemon is None:
             return
+        bus = self._daemon.bus
+        if bus is None:
+            return
         text = event.payload.get("text")
         if not isinstance(text, str) or not text.strip():
             return
@@ -126,7 +129,7 @@ class BrainModule:
                 result.provider or "rule",
                 len(result.text),
             )
-            self._daemon.bus.publish(
+            bus.publish(
                 "tts.say",
                 {"text": result.text[:1000], "interrupt": False},
                 source="brain",
@@ -135,14 +138,13 @@ class BrainModule:
             return
 
         _LOG.warning(
-            "Brain request produced no speakable response "
-            "(ok=%s, route=%s, provider=%s, error=%s)",
+            "Brain request produced no speakable response (ok=%s, route=%s, provider=%s, error=%s)",
             result.ok,
             result.route,
             result.provider or "rule",
             result.error or "empty response",
         )
-        self._daemon.bus.publish(
+        bus.publish(
             "tts.say",
             {
                 "text": "I couldn't complete that request. Please try again.",

@@ -287,3 +287,104 @@ def test_filesystem_list_dir_caps_results_and_sorts_names(tmp_path: Path) -> Non
         assert result.output["truncated"] is True
 
     asyncio.run(scenario())
+
+
+def test_filesystem_read_rejects_symlink_leaf(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        secret = tmp_path / "secret.txt"
+        secret.write_text("do not read", encoding="utf-8")
+        link = tmp_path / "linked.txt"
+        link.symlink_to(secret)
+        tools = {tool.spec.name: tool for tool in build_filesystem_tools()}
+        result = await tools["fs.read_text"].run({"path": str(link)}, _context(tmp_path))
+        assert not result.ok
+        assert secret.read_text(encoding="utf-8") == "do not read"
+
+    asyncio.run(scenario())
+
+
+def test_filesystem_write_rejects_symlink_leaf(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        secret = tmp_path / "secret.txt"
+        secret.write_text("original", encoding="utf-8")
+        link = tmp_path / "linked.txt"
+        link.symlink_to(secret)
+        tools = {tool.spec.name: tool for tool in build_filesystem_tools()}
+        result = await tools["fs.write_text"].run(
+            {"path": str(link), "content": "overwritten"}, _context(tmp_path)
+        )
+        assert not result.ok
+        assert secret.read_text(encoding="utf-8") == "original"
+
+    asyncio.run(scenario())
+
+
+def test_filesystem_write_rejects_symlink_parent(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        outside = tmp_path / "outside"
+        outside.mkdir()
+        link = tmp_path / "linked"
+        link.symlink_to(outside, target_is_directory=True)
+        tools = {tool.spec.name: tool for tool in build_filesystem_tools()}
+        result = await tools["fs.write_text"].run(
+            {"path": str(link / "new.txt"), "content": "nope"}, _context(tmp_path)
+        )
+        assert not result.ok
+        assert not (outside / "new.txt").exists()
+
+    asyncio.run(scenario())
+
+
+def test_filesystem_overwrite_rejects_file_replaced_after_confirmation(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        path = tmp_path / "notes.txt"
+        path.write_text("original", encoding="utf-8")
+        tool = next(item for item in build_filesystem_tools() if item.spec.name == "fs.write_text")
+        prompt = tool.confirmation_prompt({"path": str(path), "content": "new"}, "approved-call")
+        assert prompt is not None and str(path) in prompt
+        replacement = tmp_path / "replacement.txt"
+        replacement.write_text("replacement", encoding="utf-8")
+        replacement.replace(path)
+        ctx = _context(tmp_path)
+        ctx.call_id = "approved-call"
+        result = await tool.run({"path": str(path), "content": "new"}, ctx)
+        assert not result.ok
+        assert path.read_text(encoding="utf-8") == "replacement"
+        tool.clear_confirmation("approved-call")
+
+    asyncio.run(scenario())
+
+
+def test_delete_selected_rechecks_frontmost_app_after_confirmation(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        controller = FakeController()
+        tool = next(
+            item for item in build_mac_tools(controller) if item.spec.name == "mac.delete_selected"
+        )
+        prompt = tool.confirmation_prompt({}, "delete-call")
+        assert prompt is not None and "Finder" in prompt
+        controller.frontmost = "Safari"
+        ctx = _context(tmp_path)
+        ctx.call_id = "delete-call"
+        result = await tool.run({}, ctx)
+        assert not result.ok
+        assert not any(name == "delete" for name, _ in controller.calls)
+        tool.clear_confirmation("delete-call")
+
+    asyncio.run(scenario())
+
+
+def test_filesystem_overwrite_succeeds_for_confirmed_file_identity(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        path = tmp_path / "notes.txt"
+        path.write_text("original", encoding="utf-8")
+        tool = next(item for item in build_filesystem_tools() if item.spec.name == "fs.write_text")
+        tool.confirmation_prompt({"path": str(path), "content": "updated"}, "approved-call")
+        ctx = _context(tmp_path)
+        ctx.call_id = "approved-call"
+        result = await tool.run({"path": str(path), "content": "updated"}, ctx)
+        assert result.ok
+        assert path.read_text(encoding="utf-8") == "updated"
+        tool.clear_confirmation("approved-call")
+
+    asyncio.run(scenario())

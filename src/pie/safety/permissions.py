@@ -44,7 +44,7 @@ class PermissionGate:
         self,
         bus: EventBus,
         *,
-        timeout_s: float = 20.0,
+        timeout_s: float = 45.0,
         max_prompts_per_min: int = 3,
         clock: Any = time.time,
     ) -> None:

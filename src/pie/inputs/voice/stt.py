@@ -102,7 +102,7 @@ class MlxWhisperTranscriber:
                 hub_errors = importlib.import_module("huggingface_hub.errors")
                 cache_miss = hub_errors.LocalEntryNotFoundError
             except (ImportError, AttributeError):
-                raise exc
+                raise exc from None
             if not isinstance(exc, cache_miss):
                 raise
             _LOG.info(

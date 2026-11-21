@@ -2,7 +2,9 @@ name: Phase 0S Python checks
 
 on:
   push:
-    branches: ["phase-0s-implementation"]
+    branches:
+      - "phase-0s-implementation"
+      - "phase-3a-hardening-*"
   pull_request:
 
 concurrency:

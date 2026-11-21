@@ -220,6 +220,33 @@ class ToolRegistry:
                 audit_path=self._setting("safety", "audit_path", "~/.pie/logs/audit.jsonl"),
             )
             tier = max(tier, path_tier)
+            # Freeze each checked path to its canonical target before waiting for consent.
+            # Filesystem handlers then open that exact path with O_NOFOLLOW at every
+            # component, so a symlink swap cannot redirect an approved operation.
+            for key, property_schema in spec.parameters.get("properties", {}).items():
+                if (
+                    isinstance(property_schema, dict)
+                    and property_schema.get("x-path") is True
+                    and isinstance(safe_args.get(key), str)
+                ):
+                    safe_args[key] = str(
+                        Path(str(safe_args[key])).expanduser().resolve(strict=False)
+                    )
+            # Re-check the canonical path itself; resolution must not turn a benign
+            # alias into a protected or out-of-policy target.
+            tier = max(
+                tier,
+                guard_paths(
+                    safe_args,
+                    spec.parameters,
+                    allowed_folders=self._setting(
+                        "safety",
+                        "allowed_folders",
+                        ("~/Desktop", "~/Documents", "~/Downloads", "~/PieWorkspace"),
+                    ),
+                    audit_path=self._setting("safety", "audit_path", "~/.pie/logs/audit.jsonl"),
+                ),
+            )
             for key, property_schema in spec.parameters.get("properties", {}).items():
                 if not isinstance(property_schema, dict) or not isinstance(safe_args.get(key), str):
                     continue
@@ -278,10 +305,9 @@ class ToolRegistry:
             return result
         self._calls.append(now)
 
-        if not (
-            source == "rule" and name == "mac.delete_selected" and pre_approved_by == "voice_phrase"
-        ):
-            pre_approved_by = None
+        # Rules and model-generated plans cannot pre-approve destructive actions.
+        # Every CONFIRM-tier tool must receive a fresh response from the user.
+        pre_approved_by = None
         redacted_args = redact(safe_args, tool=name)
         self._publish(
             "tool.requested",
@@ -315,7 +341,7 @@ class ToolRegistry:
                     args=safe_args,
                     tier=tier,
                     prompt=prompt,
-                    timeout_s=float(self._setting("safety", "confirm_timeout_s", 20)),
+                    timeout_s=float(self._setting("safety", "confirm_timeout_s", 45)),
                     pre_approved_by=pre_approved_by,
                 )
         except asyncio.CancelledError:

@@ -23,6 +23,7 @@ def _empty_schema() -> dict[str, Any]:
 
 def build_mac_tools(controller: MacController) -> list[FunctionTool]:
     confirmed_apps: dict[str, str] = {}
+    confirmed_delete_apps: dict[str, str] = {}
 
     async def open_app(args: Mapping[str, Any], ctx: ToolContext) -> ToolResult:
         name = str(args["name"]).strip()
@@ -165,10 +166,28 @@ def build_mac_tools(controller: MacController) -> list[FunctionTool]:
         closed = await asyncio.to_thread(controller.close_frontmost)
         return ok({"closed": confirmed_app}) if closed else fail("application could not be closed")
 
+    def delete_prompt(args: Mapping[str, Any], call_id: str) -> str:
+        del args
+        app = controller.frontmost_app()
+        if app:
+            confirmed_delete_apps[call_id] = app
+        label = app or "unknown frontmost application"
+        return (
+            f"Delete the selected item in {label}? "
+            "Confirm only if the intended item is still selected."
+        )
+
+    def clear_delete_prompt(call_id: str) -> None:
+        confirmed_delete_apps.pop(call_id, None)
+
     async def delete_selected(args: Mapping[str, Any], ctx: ToolContext) -> ToolResult:
         del args
         if ctx.dry_run:
             return ok({"would_delete_selected": True})
+        confirmed_app = confirmed_delete_apps.pop(ctx.call_id, None)
+        current = await asyncio.to_thread(controller.frontmost_app)
+        if not confirmed_app or current != confirmed_app:
+            return fail("frontmost application changed; request the action again")
         deleted = await asyncio.to_thread(controller.delete_selected)
         return ok({"deleted_selected_item": True}) if deleted else fail("delete action failed")
 
@@ -350,6 +369,8 @@ def build_mac_tools(controller: MacController) -> list[FunctionTool]:
                 Tier.CONFIRM,
             ),
             delete_selected,
+            delete_prompt,
+            clear_delete_prompt,
         ),
         FunctionTool(
             ToolSpec(

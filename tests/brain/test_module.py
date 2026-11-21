@@ -70,6 +70,7 @@ def test_brain_module_accepts_typed_text_commands(tmp_path: Path) -> None:
 
     asyncio.run(scenario())
 
+
 def test_brain_module_speaks_fallback_when_router_returns_no_response() -> None:
     async def scenario() -> None:
         loop = asyncio.get_running_loop()
@@ -107,4 +108,3 @@ def test_brain_module_speaks_fallback_when_router_returns_no_response() -> None:
         await asyncio.to_thread(module.stop)
 
     asyncio.run(scenario())
-
