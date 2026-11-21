@@ -238,3 +238,11 @@ def test_permission_request_redacts_typed_and_written_content() -> None:
         gate.stop()
 
     asyncio.run(scenario())
+
+
+def test_default_permission_timeout_is_45_seconds() -> None:
+    bus = EventBus(asyncio.new_event_loop())
+    gate = PermissionGate(bus)
+    assert gate.timeout_s == 45.0
+    gate.stop()
+    bus.loop.close()
