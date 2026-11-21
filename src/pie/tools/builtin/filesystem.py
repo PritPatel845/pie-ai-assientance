@@ -10,7 +10,6 @@ from typing import Any
 from pie.safety.permissions import Tier
 from pie.tools.base import FunctionTool, ToolContext, ToolResult, ToolSpec, fail, ok
 
-
 _MAX_TEXT_BYTES = 100 * 1024
 _MAX_DIRECTORY_ENTRIES = 200
 
