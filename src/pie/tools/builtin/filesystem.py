@@ -100,13 +100,13 @@ def build_filesystem_tools() -> list[FunctionTool]:
                     iterator,
                     key=lambda item: item.name.casefold(),
                 )
-            entries = [
-                {
-                    "name": item.name,
-                    "type": "directory" if item.is_dir(follow_symlinks=False) else "file",
-                }
-                for item in selected[:_MAX_DIRECTORY_ENTRIES]
-            ]
+                entries = [
+                    {
+                        "name": item.name,
+                        "type": "directory" if item.is_dir(follow_symlinks=False) else "file",
+                    }
+                    for item in selected[:_MAX_DIRECTORY_ENTRIES]
+                ]
             return ok(
                 {
                     "path": str(path),
