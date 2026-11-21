@@ -172,7 +172,10 @@ def build_mac_tools(controller: MacController) -> list[FunctionTool]:
         if app:
             confirmed_delete_apps[call_id] = app
         label = app or "unknown frontmost application"
-        return f"Delete the selected item in {label}? Confirm only if the intended item is still selected."
+        return (
+            f"Delete the selected item in {label}? "
+            "Confirm only if the intended item is still selected."
+        )
 
     def clear_delete_prompt(call_id: str) -> None:
         confirmed_delete_apps.pop(call_id, None)
