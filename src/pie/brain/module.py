@@ -135,8 +135,7 @@ class BrainModule:
             return
 
         _LOG.warning(
-            "Brain request produced no speakable response "
-            "(ok=%s, route=%s, provider=%s, error=%s)",
+            "Brain request produced no speakable response (ok=%s, route=%s, provider=%s, error=%s)",
             result.ok,
             result.route,
             result.provider or "rule",
