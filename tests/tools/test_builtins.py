@@ -333,3 +333,23 @@ def test_filesystem_write_rejects_symlink_parent(tmp_path: Path) -> None:
         assert not (outside / "new.txt").exists()
 
     asyncio.run(scenario())
+
+
+def test_filesystem_overwrite_rejects_file_replaced_after_confirmation(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        path = tmp_path / "notes.txt"
+        path.write_text("original", encoding="utf-8")
+        tool = next(item for item in build_filesystem_tools() if item.spec.name == "fs.write_text")
+        prompt = tool.confirmation_prompt({"path": str(path), "content": "new"}, "approved-call")
+        assert prompt is not None and str(path) in prompt
+        replacement = tmp_path / "replacement.txt"
+        replacement.write_text("replacement", encoding="utf-8")
+        replacement.replace(path)
+        ctx = _context(tmp_path)
+        ctx.call_id = "approved-call"
+        result = await tool.run({"path": str(path), "content": "new"}, ctx)
+        assert not result.ok
+        assert path.read_text(encoding="utf-8") == "replacement"
+        tool.clear_confirmation("approved-call")
+
+    asyncio.run(scenario())
