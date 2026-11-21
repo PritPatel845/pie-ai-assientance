@@ -341,7 +341,7 @@ class ToolRegistry:
                     args=safe_args,
                     tier=tier,
                     prompt=prompt,
-                    timeout_s=float(self._setting("safety", "confirm_timeout_s", 20)),
+                    timeout_s=float(self._setting("safety", "confirm_timeout_s", 45)),
                     pre_approved_by=pre_approved_by,
                 )
         except asyncio.CancelledError:
