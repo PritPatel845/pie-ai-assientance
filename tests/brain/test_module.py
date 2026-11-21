@@ -46,7 +46,6 @@ def test_brain_module_executes_deterministic_voice_rule_exactly_once(tmp_path: P
 
     asyncio.run(scenario())
 
-
 def test_brain_module_accepts_typed_text_commands(tmp_path: Path) -> None:
     async def scenario() -> None:
         loop = asyncio.get_running_loop()
