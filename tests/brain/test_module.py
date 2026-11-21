@@ -112,4 +112,3 @@ def test_brain_module_speaks_fallback_when_router_returns_no_response() -> None:
         await asyncio.to_thread(module.stop)
 
     asyncio.run(scenario())
-
