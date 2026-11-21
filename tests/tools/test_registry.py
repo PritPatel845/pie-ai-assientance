@@ -198,17 +198,26 @@ def test_agent_cannot_self_approve_confirm_tier_tool(tmp_path: Path) -> None:
     asyncio.run(scenario())
 
 
-def test_explicit_rule_preapproval_is_accepted(tmp_path: Path) -> None:
+def test_rule_cannot_preapprove_destructive_tool(tmp_path: Path) -> None:
     async def scenario() -> None:
-        registry, gate, _ = _registry(tmp_path)
+        registry, gate, bus = _registry(tmp_path)
         registry.register(_tool("mac.delete_selected", tier=Tier.CONFIRM))
-        result = await registry.execute(
-            "mac.delete_selected",
-            {},
-            source="rule",
-            pre_approved_by="voice_phrase",
+        task = asyncio.create_task(
+            registry.execute(
+                "mac.delete_selected",
+                {},
+                source="rule",
+                pre_approved_by="voice_phrase",
+            )
         )
-        assert result.ok
+        await asyncio.sleep(0.01)
+        assert not task.done()
+        bus.publish(
+            "input.voice.transcript",
+            {"final": True, "addressed": True, "text": "yes"},
+            source="voice",
+        )
+        assert (await task).ok
         gate.stop()
 
     asyncio.run(scenario())
