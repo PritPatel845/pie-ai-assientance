@@ -220,6 +220,18 @@ class ToolRegistry:
                 audit_path=self._setting("safety", "audit_path", "~/.pie/logs/audit.jsonl"),
             )
             tier = max(tier, path_tier)
+            # Freeze each checked path to its canonical target before waiting for consent.
+            # Filesystem handlers then open that exact path with O_NOFOLLOW at every
+            # component, so a symlink swap cannot redirect an approved operation.
+            for key, property_schema in spec.parameters.get("properties", {}).items():
+                if (
+                    isinstance(property_schema, dict)
+                    and property_schema.get("x-path") is True
+                    and isinstance(safe_args.get(key), str)
+                ):
+                    safe_args[key] = str(
+                        Path(str(safe_args[key])).expanduser().resolve(strict=False)
+                    )
             for key, property_schema in spec.parameters.get("properties", {}).items():
                 if not isinstance(property_schema, dict) or not isinstance(safe_args.get(key), str):
                     continue
