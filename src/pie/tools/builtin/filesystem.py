@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import heapq
 import os
 from collections.abc import Mapping
 from pathlib import Path
@@ -9,6 +10,10 @@ from pie.safety.permissions import Tier
 from pie.tools.base import FunctionTool, ToolContext, ToolResult, ToolSpec, fail, ok
 
 
+_MAX_TEXT_BYTES = 100 * 1024
+_MAX_DIRECTORY_ENTRIES = 200
+
+
 def build_filesystem_tools() -> list[FunctionTool]:
     async def list_dir(args: Mapping[str, Any], ctx: ToolContext) -> ToolResult:
         path = Path(str(args["path"])).expanduser()
@@ -16,19 +21,28 @@ def build_filesystem_tools() -> list[FunctionTool]:
             return ok({"path": str(path), "entries": [], "dry_run": True})
         if not path.is_dir():
             return fail("path is not a directory")
-        all_entries = sorted(path.iterdir(), key=lambda item: item.name.casefold())
-        entries = all_entries[:200]
+        try:
+            # Keep memory bounded even when a directory contains millions of entries.
+            with os.scandir(path) as iterator:
+                selected = heapq.nsmallest(
+                    _MAX_DIRECTORY_ENTRIES + 1,
+                    iterator,
+                    key=lambda item: item.name.casefold(),
+                )
+        except OSError as exc:
+            return fail(f"cannot list directory: {type(exc).__name__}")
+        entries = selected[:_MAX_DIRECTORY_ENTRIES]
         return ok(
             {
                 "path": str(path),
                 "entries": [
                     {
                         "name": item.name,
-                        "type": "directory" if item.is_dir() else "file",
+                        "type": "directory" if item.is_dir(follow_symlinks=False) else "file",
                     }
                     for item in entries
                 ],
-                "truncated": len(all_entries) > 200,
+                "truncated": len(selected) > _MAX_DIRECTORY_ENTRIES,
             }
         )
 
@@ -37,10 +51,13 @@ def build_filesystem_tools() -> list[FunctionTool]:
         if ctx.dry_run:
             return ok({"path": str(path), "dry_run": True})
         try:
-            data = path.read_bytes()
+            # Read one byte beyond the limit so oversized files are rejected without
+            # loading their entire contents into memory.
+            with path.open("rb") as handle:
+                data = handle.read(_MAX_TEXT_BYTES + 1)
         except OSError as exc:
             return fail(f"cannot read file: {type(exc).__name__}")
-        if len(data) > 100 * 1024:
+        if len(data) > _MAX_TEXT_BYTES:
             return fail("file exceeds 100 KB limit")
         try:
             return ok(data.decode("utf-8", errors="strict"))
