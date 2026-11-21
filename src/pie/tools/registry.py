@@ -232,6 +232,21 @@ class ToolRegistry:
                     safe_args[key] = str(
                         Path(str(safe_args[key])).expanduser().resolve(strict=False)
                     )
+            # Re-check the canonical path itself; resolution must not turn a benign
+            # alias into a protected or out-of-policy target.
+            tier = max(
+                tier,
+                guard_paths(
+                    safe_args,
+                    spec.parameters,
+                    allowed_folders=self._setting(
+                        "safety",
+                        "allowed_folders",
+                        ("~/Desktop", "~/Documents", "~/Downloads", "~/PieWorkspace"),
+                    ),
+                    audit_path=self._setting("safety", "audit_path", "~/.pie/logs/audit.jsonl"),
+                ),
+            )
             for key, property_schema in spec.parameters.get("properties", {}).items():
                 if not isinstance(property_schema, dict) or not isinstance(safe_args.get(key), str):
                     continue
